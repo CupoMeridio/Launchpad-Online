@@ -1,0 +1,84 @@
+.Launchpad {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    grid-template-rows: repeat(10, 1fr);
+    gap: 10px;
+    max-width: 550px; /* Increased max-width for the 10x10 grid */
+    aspect-ratio: 1 / 1;
+    padding: 15px;
+    background-color: #111;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    margin: 0 auto;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.grid-item,
+.launchpad-pad { /* Keep .launchpad-pad for backward compatibility if needed, and for the active state */
+    background-color: #333;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+    border: none; /* for the buttons */
+}
+
+.grid-item:hover,
+.launchpad-pad:hover {
+    background-color: #444;
+}
+
+.grid-item.active,
+.launchpad-pad.active {
+    background-color: #00aaff;
+    box-shadow: 0 0 10px #00aaff;
+}
+
+.grid-item-menu {
+    background-color: #555;
+    border-radius: 50%; /* Make menu buttons circular */
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+    border: none;
+}
+
+.grid-item-menu:hover {
+    background-color: #666;
+}
+
+.grid-item-triangle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.triangolo {
+    width: 50%;
+    height: 50%;
+}
+
+.testo_su_launchpad {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #eee;
+    font-size: 0.8em;
+    text-align: center;
+}
+
+#image-container {
+    grid-column: 9 / span 2;
+    grid-row: 1 / span 2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.square-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 5px;
+}

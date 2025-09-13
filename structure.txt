@@ -1,0 +1,26 @@
+launchpad-pwa/
+│
+├── index.html              # pagina principale (griglia launchpad + menu)
+├── manifest.json           # definizione PWA (icone, nome, tema, ecc.)
+├── service-worker.js       # gestione cache/offline
+│
+├── css/
+│   ├── style.css           # stile generale
+│   ├── launchpad.css       # griglia dei pad
+│   └── editor.css          # stile per editor progetti
+│
+├── js/
+│   ├── app.js              # entrypoint dell'app (inizializzazione)
+│   ├── midi.js             # gestione MIDI (Web MIDI API)
+│   ├── audio.js            # gestione suoni (Web Audio API)
+│   ├── storage.js          # gestione salvataggio progetti (IndexedDB/LocalStorage)
+│   └── ui/
+│       ├── launchpad-ui.js   # logica UI della griglia (click, colori pad)
+│       ├── library-ui.js     # interfaccia libreria progetti
+│       └── editor-ui.js      # editor per mappare campioni ai pad
+│
+├── assets/
+│   ├── samples/            # campioni audio di default
+│   └── icons/              # icone PWA (per manifest.json)
+│
+└── projects/               # progetti salvati (JSON)
