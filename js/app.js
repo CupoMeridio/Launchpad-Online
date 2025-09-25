@@ -10,6 +10,7 @@
  * 1. Importiamo i moduli necessari
  * --------------------------------------------- */
 import { audioEngine } from './audio.js'; // gestisce i suoni
+import { Visualizer } from './visualizer.js'; // gestisce il visualizzatore
 
 /* ---------------------------------------------
  * 2. Definiamo le funzioni globali
@@ -50,25 +51,37 @@ window.toggleSidebar = function() {
 
 window.toggleMenu = function(menuId) {
     const menu = document.getElementById(menuId);
-    const isOpen = menu.classList.toggle('open');
+    menu.classList.toggle('open');
 
-    // Se il menu è quello del background, gestisci la visibilità dei controlli video
+    // Se il menu è quello del background, aggiorna la visibilità dei controlli
     if (menuId === 'background-menu') {
-        const videoControls = document.querySelector('.video-controls');
-        if (videoControls) {
-            videoControls.style.display = isOpen ? 'block' : 'none';
-        }
+        updateVideoControlsVisibility();
     }
 };
 
 // Variabili globali per i controlli video
 let currentVideo = null;
 
+// Funzione unificata per gestire la visibilità dei controlli video
+function updateVideoControlsVisibility() {
+    const backgroundMenu = document.getElementById('background-menu');
+    const videoControls = document.querySelector('.video-controls');
+    if (!videoControls || !backgroundMenu) return;
+
+    const isVideoActive = currentVideo !== null;
+    const isMenuOpen = backgroundMenu.classList.contains('open');
+
+    // Mostra i controlli solo se ENTRAMBE le condizioni sono vere
+    if (isVideoActive && isMenuOpen) {
+        videoControls.classList.add('visible');
+    } else {
+        videoControls.classList.remove('visible');
+    }
+}
+
 // Funzione per caricare e applicare i video background
 window.setBackgroundVideo = function(videoFile) {
-    // Seleziona l'overlay video e i controlli video
     const overlay = document.querySelector('.video-overlay');
-    const videoControls = document.querySelector('.video-controls');
     
     // Rimuovi eventuale video precedente presente nel DOM
     const existingVideo = document.querySelector('.background-video');
@@ -78,41 +91,27 @@ window.setBackgroundVideo = function(videoFile) {
     
     // Se è stato fornito un file video, crea e aggiungi il nuovo video
     if (videoFile) {
-        // Crea il nuovo elemento video
         const video = document.createElement('video');
-        video.className = 'background-video'; // Assegna la classe CSS
-        video.src = `assets/videos/${videoFile}?t=${new Date().getTime()}`; // Imposta la sorgente del video
-        video.autoplay = true; // Avvia automaticamente il video
-        video.loop = true;     // Ripeti il video in loop
-        video.muted = true;    // Muta l'audio del video
+        video.className = 'background-video';
+        video.src = `assets/videos/${videoFile}?t=${new Date().getTime()}`;
+        video.autoplay = true;
+        video.loop = true;
+        video.muted = true;
         
-        // Aggiunge il video al corpo del documento
         document.body.appendChild(video);
-        // Attiva l'overlay (per effetti come l'opacità)
         overlay.classList.add('active');
-        // Imposta il video corrente
         currentVideo = video;
         
-        // Mostra i controlli video se esistono
-        if (videoControls) {
-            videoControls.style.display = 'block';
-        }
-        
-        // Applica gli effetti video (opacità, sfocatura, luminosità)
         applyVideoEffects();
     } else {
         // Se nessun file video è fornito (es. "Nessun background")
-        // Disattiva l'overlay
         overlay.classList.remove('active');
-        // Resetta il video corrente
         currentVideo = null;
-        
-        // Nascondi i controlli video e resetta i loro valori
-        if (videoControls) {
-            videoControls.style.display = 'none';
-        }
         resetVideoControls();
     }
+
+    // Alla fine, chiama sempre la funzione unificata per aggiornare la visibilità
+    updateVideoControlsVisibility();
 };
 
 // Funzione per resettare i controlli video ai valori di default
@@ -208,41 +207,55 @@ function initializeVideoControls() {
 }
 
 // Inizializzazione: carica i video nella sidebar
-async function initializeBackgroundMenu() {
+function initializeBackgroundMenu(videoFiles) {
     // Seleziona il menu a discesa per i background
     const backgroundMenu = document.getElementById('background-menu');
     // Seleziona il contenitore dei controlli video all'interno del menu background
     const videoControls = backgroundMenu.querySelector('.video-controls');
-    
-    try {
-        const response = await fetch('/api/videos');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const videoFiles = await response.json();
 
-        // Per ogni file video, crea un pulsante nel menu
-        videoFiles.forEach(videoFile => {
-            const button = document.createElement('button');
-            button.className = 'menu-option'; // Assegna la classe CSS per lo stile
-            button.textContent = videoFile.replace('.mp4', ''); // Imposta il testo del pulsante (nome del file senza estensione)
-            button.onclick = () => setBackgroundVideo(videoFile); // Assegna la funzione da chiamare al click
-            
-            // Inserisce i pulsanti dei video prima del blocco dei controlli video
-            backgroundMenu.insertBefore(button, videoControls);
-        });
-    } catch (error) {
-        console.error("Failed to load videos:", error);
-    }
+    // Per ogni file video, crea un pulsante nel menu
+    videoFiles.forEach(videoFile => {
+        const button = document.createElement('button');
+        button.className = 'menu-option'; // Assegna la classe CSS per lo stile
+        button.textContent = videoFile.replace('.mp4', ''); // Imposta il testo del pulsante (nome del file senza estensione)
+        button.onclick = () => setBackgroundVideo(videoFile); // Assegna la funzione da chiamare al click
+        
+        // Inserisce i pulsanti dei video prima del blocco dei controlli video
+        backgroundMenu.insertBefore(button, videoControls);
+    });
 }
 
 // Inizializza le funzioni quando il DOM è completamente caricato
-// Inizializza le funzioni quando il DOM è completamente caricato
 document.addEventListener('DOMContentLoaded', async function() {
-    // Inizializza i menu e i controlli
-    await initializeBackgroundMenu();
-    initializeVideoControls();
-    await initializePersonalizeLaunchpadMenu();
+    // Inizializzazione menu
+    try {
+        const response = await fetch('js/static-data.json');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        initializeBackgroundMenu(data.videos);
+        initializeVideoControls();
+        initializePersonalizeLaunchpadMenu(data.skins);
+    } catch (error) {
+        console.error("Failed to load static data:", error);
+    }
+
+    // Inizializzazione visualizzatore
+    try {
+        const analyser = audioEngine.getAnalyser();
+        const canvasTop = document.getElementById('visualizer-canvas-top');
+        const canvasBottom = document.getElementById('visualizer-canvas-bottom');
+        
+        const visualizer = new Visualizer(analyser, canvasTop, canvasBottom);
+        visualizer.draw();
+
+        // Esponi il visualizzatore a livello globale per poterlo controllare (es. dalla console o da altri menu)
+        window.visualizer = visualizer;
+
+    } catch (error) {
+        console.error("Failed to initialize visualizer:", error);
+    }
 
     // Registra il Service Worker
     if ('serviceWorker' in navigator) {
@@ -267,24 +280,14 @@ window.setLaunchpadBackground = function(imageFile) {
     }
 };
 
-async function initializePersonalizeLaunchpadMenu() {
+function initializePersonalizeLaunchpadMenu(imageFiles) {
     const menu = document.getElementById('personalize-launchpad-menu');
     
-    try {
-        const response = await fetch('/api/skins');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const imageFiles = await response.json();
-
-        imageFiles.forEach(imageFile => {
-            const button = document.createElement('button');
-            button.className = 'menu-option';
-            button.textContent = imageFile.split('.')[0];
-            button.onclick = () => setLaunchpadBackground(imageFile);
-            menu.appendChild(button);
-        });
-    } catch (error) {
-        console.error("Failed to load skins:", error);
-    }
+    imageFiles.forEach(imageFile => {
+        const button = document.createElement('button');
+        button.className = 'menu-option';
+        button.textContent = imageFile.split('.')[0];
+        button.onclick = () => setLaunchpadBackground(imageFile);
+        menu.appendChild(button);
+    });
 }

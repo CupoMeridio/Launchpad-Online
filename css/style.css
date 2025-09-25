@@ -1,88 +1,379 @@
+/* Stili base per l'HTML e il corpo della pagina */
 html, body {
-    height: 100%;
+    height: 100%; /* Assicura che l'altezza sia il 100% della viewport */
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    background-color: #1a1a1a;
-    color: #f0f0f0;
-    margin: 0;
-    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; /* Font di sistema */
+    background-color: #1a1a1a; /* Colore di sfondo scuro */
+    color: #f0f0f0; /* Colore del testo chiaro */
+    margin: 0; /* Rimuove i margini predefiniti del body */
+    overflow: hidden; /* Nasconde l'overflow per evitare scroll indesiderati */
 }
 
-h1 {
-    color: #00aaff;
+/* Stili per i titoli h1 e h2 */
+h1, h2 {
+    color: #00aaff; /* Colore blu acceso per i titoli */
+    margin: 0; /* Rimuove i margini predefiniti */
 }
 
+/* Stili per l'intestazione della sidebar */
+.sidebar-header {
+    display: flex; /* Utilizza flexbox per allineare gli elementi */
+    align-items: center; /* Allinea verticalmente al centro */
+    margin-bottom: 15px; /* Margine inferiore */
+    margin-top: 5px; /* Margine superiore */
+}
+
+/* Spaziatore per l'intestazione della sidebar */
+.sidebar-spacer {
+    width: 30px; /* Stessa larghezza del bottone + gap */
+    height: 28px; /* Stessa altezza del bottone */
+    flex-shrink: 0; /* Impedisce che l'elemento si restringa */
+}
+
+/* Stili per il titolo h2 all'interno dell'intestazione della sidebar */
+.sidebar-header h2 {
+    margin: 0; /* Rimuove i margini predefiniti */
+    color: #fff; /* Colore del testo bianco */
+    font-size: 16px; /* Dimensione del font */
+    font-weight: normal; /* Peso del font normale */
+    text-align: center; /* Allineamento del testo al centro */
+    transition: opacity 0.2s ease; /* Transizione per l'opacitÃ  */
+    white-space: nowrap; /* Impedisce il wrapping del testo */
+    overflow: hidden; /* Nasconde il testo in eccesso */
+}
+
+/* Stili per l'elemento main */
 main {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    width: 100%; /* Larghezza al 100% */
+    display: flex; /* Utilizza flexbox */
+    justify-content: center; /* Centra orizzontalmente */
+    align-items: center; /* Centra verticalmente */
 }
 
+/* Stili per il layout principale */
 .layout {
-    width: 100%;
-    height: 100vh;
-    display: grid;
-    grid-template-columns: 0px 1fr; /* Sidebar (0px) and Body (1fr) */
-    gap: 8px;
-    transition: grid-template-columns 0.3s ease-in-out; /* Transition for grid columns */
+    width: 100%; /* Larghezza al 100% */
+    height: 100vh; /* Altezza al 100% della viewport */
+    display: grid; /* Utilizza CSS Grid per il layout */
+    grid-template-columns: 0 1fr; /* Due colonne: la prima larga 0, la seconda occupa lo spazio rimanente */
+    gap: 8px; /* Spazio tra le colonne */
+    transition: grid-template-columns .3s ease-in-out; /* Transizione per il cambio di layout */
+    position: relative; /* Posizionamento relativo per gli elementi figli */
 }
 
-.layout.sidebar-open {
-    grid-template-columns: 200px 1fr; /* Sidebar (200px) and Body (1fr) */
+/* Stili per il video di sfondo */
+.background-video {
+    position: fixed; /* Posizionamento fisso */
+    top: 0; /* Allinea in alto */
+    left: 0; /* Allinea a sinistra */
+    width: 100%; /* Larghezza al 100% */
+    height: 100%; /* Altezza al 100% */
+    object-fit: cover; /* Copre l'intera area mantenendo le proporzioni */
+    z-index: -2; /* Posiziona il video dietro gli altri elementi */
 }
 
-.sidebar {
-    grid-column: 1; /* Sidebar in the first column */
-    background-color: #2a2a2a;
-    padding: 16px;
-    height: 100%;
-    position: relative;
-    z-index: 1000;
-    overflow: hidden; /* Hide content that overflows when width is 0 */
+/* Stili per l'overlay del video */
+.video-overlay {
+    position: fixed; /* Posizionamento fisso */
+    top: 0; /* Allinea in alto */
+    left: 0; /* Allinea a sinistra */
+    width: 100%; /* Larghezza al 100% */
+    height: 100%; /* Altezza al 100% */
+    background-color: rgba(18, 18, 18, 0.15); /* Colore di sfondo semi-trasparente */
+    z-index: -1; /* Posiziona l'overlay sopra il video ma sotto gli altri elementi */
+    transition: opacity 0.3s ease, backdrop-filter 0.3s ease; /* Transizioni per opacitÃ  e filtro */
+    opacity: 0; /* Inizialmente trasparente */
+    pointer-events: none; /* Non intercettare eventi del mouse */
+    backdrop-filter: blur(0px); /* Inizialmente nessun blur */
 }
 
-.sidebar.open {
-    /* No transform needed here, grid handles it */
+/* Stili per l'overlay del video quando Ã¨ attivo */
+.video-overlay.active {
+    opacity: 1; /* Rende l'overlay visibile */
 }
 
-.close-btn {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: none;
-    border: none;
-    color: #fff;
-    font-size: 24px;
-    cursor: pointer;
-    z-index: 1001;
+/* Stili per i controlli video con transizione */
+.video-controls {
+    background-color: #252525; /* Stesso sfondo dei dropdown */
+    border-radius: 4px;
+    margin-top: 5px;
+    padding: 0 15px; /* Padding orizzontale, no verticale per la transizione */
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out, padding 0.3s ease-out;
 }
 
-#openSidebar {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    background-color: #00aaff;
-    border: none;
-    color: white;
-    padding: 10px 15px;
-    border-radius: 5px;
-    cursor: pointer;
-    z-index: 999;
-    transition: transform 0.3s ease-in-out;
+.video-controls.visible {
+    padding: 15px; /* Padding completo quando visibile */
+    max-height: 500px; /* Altezza sufficiente per contenere gli slider */
+    transition: max-height 0.4s ease-in, padding 0.4s ease-in;
 }
 
-#openSidebar.rotated {
-    transform: rotate(90deg);
+/* Stili per i gruppi di controlli */
+.control-group {
+    margin-bottom: 12px; /* Margine inferiore */
+    position: relative; /* Posizionamento relativo */
 }
 
+/* Rimuove il margine inferiore per l'ultimo gruppo di controlli */
+.control-group:last-child {
+    margin-bottom: 0; /* Nessun margine inferiore */
+}
+
+/* Stili per le etichette dei controlli */
+.control-group label {
+    display: block; /* Mostra come blocco */
+    font-size: 12px; /* Dimensione del font */
+    color: #ccc; /* Colore del testo */
+    margin-bottom: 5px; /* Margine inferiore */
+    font-weight: 500; /* Peso del font */
+}
+
+/* Stili per il gruppo di input (slider e input numerico) */
+.input-group {
+    display: flex; /* Utilizza flexbox */
+    align-items: center; /* Allinea verticalmente al centro */
+    gap: 4px; /* Spazio tra gli elementi */
+    margin-bottom: 4px; /* Margine inferiore */
+    flex-wrap: nowrap; /* Impedisce il wrapping degli elementi */
+    justify-content: space-between; /* Spazia gli elementi in modo uniforme */
+}
+
+/* Stili per gli slider (input di tipo range) */
+.control-group input[type="range"] {
+    width: calc(100% - 85px); /* Larghezza calcolata */
+    height: 4px; /* Altezza dello slider */
+    background: #333; /* Colore di sfondo */
+    border-radius: 2px; /* Bordo arrotondato */
+    outline: none; /* Rimuove l'outline al focus */
+    -webkit-appearance: none; /* Rimuove lo stile predefinito di Webkit */
+    appearance: none; /* Rimuove lo stile predefinito per compatibilitÃ  */
+    margin: 0; /* Rimuove i margini */
+    flex-shrink: 1; /* Permette all'elemento di restringersi */
+    min-width: 50px; /* Larghezza minima */
+}
+
+/* Stili per gli input numerici manuali */
+.manual-input {
+    width: 40px; /* Larghezza fissa */
+    height: 16px; /* Altezza fissa */
+    background: #333; /* Colore di sfondo */
+    border: 1px solid #555; /* Bordo */
+    border-radius: 2px; /* Bordo arrotondato */
+    color: #ccc; /* Colore del testo */
+    font-size: 10px; /* Dimensione del font */
+    text-align: center; /* Centra il testo */
+    padding: 0; /* Rimuove il padding */
+    flex-shrink: 0; /* Impedisce all'elemento di restringersi */
+}
+
+/* Stili per la visualizzazione del valore */
+.value-display {
+    font-size: 10px; /* Dimensione del font */
+    color: #888; /* Colore del testo */
+    margin-left: 1px; /* Margine sinistro */
+    white-space: nowrap; /* Impedisce il wrapping del testo */
+    flex-shrink: 0; /* Impedisce all'elemento di restringersi */
+    display: inline; /* Mostra come inline */
+}
+
+/* Stili per il thumb dello slider (Webkit) */
+.control-group input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; /* Rimuove lo stile predefinito di Webkit */
+    width: 14px; /* Larghezza del thumb */
+    height: 14px; /* Altezza del thumb */
+    background: #00ff88; /* Colore di sfondo verde acceso */
+    border-radius: 50%; /* Rende il thumb circolare */
+    cursor: pointer; /* Cambia il cursore a puntatore */
+}
+
+/* Stili per il thumb dello slider (Mozilla Firefox) */
+.control-group input[type="range"]::-moz-range-thumb {
+    width: 14px; /* Larghezza del thumb */
+    height: 14px; /* Altezza del thumb */
+    background: #00ff88; /* Colore di sfondo verde acceso */
+    border-radius: 50%; /* Rende il thumb circolare */
+    cursor: pointer; /* Cambia il cursore a puntatore */
+    border: none; /* Rimuove il bordo */
+}
+
+/* Stili per l'elemento body (contenuto principale) */
 .body {
-    grid-column: 2; /* Body in the second column */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    position: relative;
+    position: relative; /* Posizionamento relativo */
+    z-index: 2; /* Posiziona sopra il visualizzatore */
 }
+
+/* Stili per il layout quando la sidebar Ã¨ aperta */
+.layout.sidebar-open {
+    grid-template-columns: 260px 1fr; /* La sidebar occupa 260px, il resto lo spazio rimanente */
+}
+
+/* Stili per la sidebar */
+.sidebar {
+    grid-column: 1; /* Posiziona nella prima colonna della griglia */
+    background-color: #2a2a2a; /* Colore di sfondo scuro */
+    padding: 0px 16px 16px 16px; /* Spaziatura interna */
+    height: 100%; /* Altezza al 100% */
+    position: relative; /* Posizionamento relativo */
+    z-index: 1; /* Posiziona sopra altri elementi */
+    overflow: hidden; /* Nasconde l'overflow */
+    opacity: 0; /* Inizialmente trasparente */
+    visibility: hidden; /* Inizialmente nascosta */
+    transition: opacity 0.3s ease, visibility 0.3s ease; /* Transizioni per opacitÃ  e visibilitÃ  */
+}
+
+/* Stili per la sidebar quando Ã¨ aperta */
+.layout.sidebar-open .sidebar {
+    opacity: 1; /* Rende la sidebar visibile */
+    visibility: visible; /* Rende la sidebar visibile */
+}
+
+/* Stili per il contenuto della sidebar */
+.sidebar-content {
+    display: flex; /* Utilizza flexbox */
+    flex-direction: column; /* Dispone gli elementi in colonna */
+    gap: 10px; /* Spazio tra gli elementi */
+}
+
+/* Stili per gli elementi del menu */
+.menu-item {
+    display: flex; /* Utilizza flexbox */
+    flex-direction: column; /* Dispone gli elementi in colonna */
+}
+
+/* Stili per i pulsanti di toggle del menu */
+.menu-toggle {
+    background: #2a2a2a; /* Colore di sfondo */
+    color: white; /* Colore del testo */
+    border: none; /* Rimuove il bordo */
+    padding: 12px 15px; /* Spaziatura interna */
+    border-radius: 4px; /* Bordo arrotondato */
+    cursor: pointer; /* Cambia il cursore a puntatore */
+    text-align: left; /* Allinea il testo a sinistra */
+    font-size: 14px; /* Dimensione del font */
+    transition: background-color 0.2s ease; /* Transizione per il colore di sfondo */
+    white-space: nowrap; /* Impedisce il wrapping del testo */
+    overflow: hidden; /* Nasconde il testo in eccesso */
+}
+
+/* Stili per i pulsanti di toggle del menu al passaggio del mouse */
+.menu-toggle:hover {
+    background: #3a3a3a; /* Cambia il colore di sfondo al passaggio del mouse */
+}
+
+/* Stili per i menu a discesa */
+.menu-dropdown {
+    max-height: 0; /* Inizialmente nascosto */
+    overflow: hidden; /* Nasconde l'overflow */
+    transition: max-height 0.3s ease; /* Transizione per l'altezza massima */
+    background: #252525; /* Colore di sfondo */
+    border-radius: 4px; /* Bordo arrotondato */
+    margin-top: 5px; /* Margine superiore */
+}
+
+/* Stili per i menu a discesa quando sono aperti */
+.menu-dropdown.open {
+    max-height: 200px; /* Altezza massima quando aperto */
+    overflow-y: auto; /* Abilita lo scroll verticale se necessario */
+}
+
+/* Stili per i pulsanti all'interno dei menu a discesa */
+.menu-dropdown button {
+    display: block; /* Mostra come blocco */
+    width: 100%; /* Larghezza al 100% */
+    background: none; /* Nessun colore di sfondo */
+    color: #ccc; /* Colore del testo */
+    border: none; /* Rimuove il bordo */
+    padding: 10px 15px; /* Spaziatura interna */
+    text-align: left; /* Allinea il testo a sinistra */
+    cursor: pointer; /* Cambia il cursore a puntatore */
+    font-size: 13px; /* Dimensione del font */
+    transition: background-color 0.2s ease, color 0.2s ease; /* Transizioni per colore di sfondo e testo */
+}
+
+/* Stili per i pulsanti all'interno dei menu a discesa al passaggio del mouse */
+.menu-dropdown button:hover {
+    background: #333; /* Cambia il colore di sfondo al passaggio del mouse */
+    color: white; /* Cambia il colore del testo al passaggio del mouse */
+}
+
+/* Stili personalizzati per la scrollbar */
+.menu-dropdown::-webkit-scrollbar {
+    width: 8px; /* Larghezza della scrollbar */
+}
+
+.menu-dropdown::-webkit-scrollbar-track {
+    background: #2a2a2a; /* Colore dello sfondo della traccia della scrollbar */
+    border-radius: 10px; /* Bordo arrotondato per la traccia */
+}
+
+.menu-dropdown::-webkit-scrollbar-thumb {
+    background: #00aaff; /* Colore del "pollice" della scrollbar */
+    border-radius: 10px; /* Bordo arrotondato per il pollice */
+}
+
+.menu-dropdown::-webkit-scrollbar-thumb:hover {
+    background: #0088cc; /* Colore del pollice al passaggio del mouse */
+}
+
+/* Stili per il pulsante di apertura della sidebar */
+#openSidebar {
+    position: fixed; /* Posizionamento fisso */
+    top: 0; /* Allinea in alto */
+    left: 0; /* Allinea a sinistra */
+    background-color: #00aaff; /* Colore di sfondo blu acceso */
+    border: none; /* Rimuove il bordo */
+    color: white; /* Colore del testo bianco */
+    padding: 10px 10px; /* Spaziatura interna */
+    border-radius: 3px; /* Bordo arrotondato */
+    cursor: pointer; /* Cambia il cursore a puntatore */
+    z-index: 3; /* Posiziona sopra tutti gli altri elementi */
+    transition: background-color 0.3s ease; /* Transizione per il colore di sfondo */
+    font-size: 18px; /* Dimensione del font */
+    line-height: 1; /* Altezza della linea */
+    margin: 0; /* Rimuove i margini */
+}
+
+/* Stili per il pulsante di apertura della sidebar al passaggio del mouse */
+#openSidebar:hover {
+    background-color: #0088cc; /* Cambia il colore di sfondo al passaggio del mouse */
+}
+
+/* Stili per l'icona all'interno del pulsante di apertura della sidebar */
+#openSidebar .icon {
+    display: inline-block; /* Mostra come inline-block */
+    transition: transform 0.3s ease; /* Transizione per la trasformazione */
+    font-size: 20px; /* Dimensione del font */
+    line-height: 1; /* Altezza della linea */
+    margin: 0; /* Rimuove i margini */
+    padding: 0; /* Rimuove il padding */
+}
+
+/* Stili per l'icona quando la sidebar Ã¨ aperta (rotazione) */
+.layout.sidebar-open #openSidebar .icon {
+    transform: rotate(90deg); /* Ruota l'icona di 90 gradi */
+}
+
+/* Stili per il contenuto principale (body) */
+.body {
+    grid-column: 2; /* Posiziona nella seconda colonna della griglia */
+    display: flex; /* Utilizza flexbox */
+    justify-content: center; /* Centra orizzontalmente */
+    align-items: center; /* Centra verticalmente */
+    min-height: 100vh; /* Altezza minima al 100% della viewport */
+    position: relative; /* Posizionamento relativo */
+}
+
+/* Visualizer Canvas Styles */
+.visualizer-canvas {
+    position: fixed;
+    left: 0;
+    width: 100%;
+    height: 25%;
+    z-index: 1;
+    pointer-events: none;
+}
+#visualizer-canvas-top { top: 0; }
+#visualizer-canvas-bottom { bottom: 0; }
