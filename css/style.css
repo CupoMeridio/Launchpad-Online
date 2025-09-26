@@ -294,7 +294,8 @@ main {
 }
 
 /* Stili per i pulsanti all'interno dei menu a discesa al passaggio del mouse */
-.menu-dropdown button:hover {
+.menu-dropdown button:hover,
+.menu-dropdown button.selected {
     background: #333; /* Cambia il colore di sfondo al passaggio del mouse */
     color: white; /* Cambia il colore del testo al passaggio del mouse */
 }
@@ -374,6 +375,34 @@ main {
     height: 25%;
     z-index: 1;
     pointer-events: none;
+    transition: left 0.3s ease-in-out, width 0.3s ease-in-out; /* Added transition */
 }
 #visualizer-canvas-top { top: 0; }
 #visualizer-canvas-bottom { bottom: 0; }
+
+/* Adjust visualizer when sidebar is open */
+.layout.sidebar-open .visualizer-canvas {
+    left: 260px;
+    width: calc(100% - 260px);
+}
+
+
+/* Animazione per feedback di errore */
+@keyframes shake {
+  10%, 90% {
+    transform: translate3d(-1px, 0, 0);
+  }
+  20%, 80% {
+    transform: translate3d(2px, 0, 0);
+  }
+  30%, 50%, 70% {
+    transform: translate3d(-4px, 0, 0);
+  }
+  40%, 60% {
+    transform: translate3d(4px, 0, 0);
+  }
+}
+
+.error-shake {
+  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}

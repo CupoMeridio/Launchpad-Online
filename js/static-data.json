@@ -13,5 +13,8 @@
     "black_bg_red_black_stripes_tb.png",
     "black_bg_side_stripes_white_yellow_black.png",
     "black_bg_zigzag_yellow_black_tb.png"
+  ],
+  "projects": [
+    { "id": "virtual-riot-idols", "name": "Virtual Riot - Idols", "configPath": "projects/Virtual Riot - Idols.json" }
   ]
 }

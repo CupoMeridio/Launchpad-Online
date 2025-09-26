@@ -37,6 +37,11 @@ export class Visualizer {
         this.ctxBottom.clearRect(0, 0, this.canvasBottom.width, this.canvasBottom.height);
     }
 
+    // Permette di cambiare la fluidità dell'animazione
+    setSmoothing(value) {
+        this.analyser.smoothingTimeConstant = value;
+    }
+
     draw() {
         // Richiede il prossimo frame per l'animazione
         requestAnimationFrame(() => this.draw());

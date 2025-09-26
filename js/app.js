@@ -11,10 +11,17 @@
  * --------------------------------------------- */
 import { audioEngine } from './audio.js'; // gestisce i suoni
 import { Visualizer } from './visualizer.js'; // gestisce il visualizzatore
+import { initMidi, setActivePageLED, resetLaunchpadLEDs } from './midi.js'; // gestisce l'input da MIDI controller
 
 /* ---------------------------------------------
  * 2. Definiamo le funzioni globali
  * --------------------------------------------- */
+
+let currentProject = null;
+let selectedProjectButton = null;
+let projectSounds = [];
+window.currentPage = 0;
+let activePageButton = null;
 
 window.playSound = function(event, index) {
     // Ottiene l'elemento pad che ha scatenato l'evento
@@ -23,7 +30,8 @@ window.playSound = function(event, index) {
     /* -------------------------------------
      * 3a. Suono
      * ------------------------------------- */
-    audioEngine.playSound();
+    const soundIndex = currentPage * 64 + index;
+    audioEngine.playPadSound(soundIndex);
 
     /* -------------------------------------
      * 3b. Feedback visivo istantaneo
@@ -37,9 +45,47 @@ window.playSound = function(event, index) {
     setTimeout(() => pad.classList.remove('active'), 100);
 }
 
+window.triggerPad = function(index) {
+    const pads = document.querySelectorAll('.grid-item');
+    if (index >= 0 && index < pads.length) {
+        const pad = pads[index];
+        const soundIndex = currentPage * 64 + index;
+
+        // 1. Suono
+        audioEngine.playPadSound(soundIndex);
+
+        // 2. Feedback visivo
+        pad.classList.add('active');
+        setTimeout(() => pad.classList.remove('active'), 100);
+    }
+}
+
 window.changeSoundSet = function(index) {
-    // Logga il cambio del set di suoni (funzionalità da implementare)
-    console.log(`Changing sound set to ${index}`);
+    if (currentProject && index < currentProject.pages.length) {
+        currentPage = index;
+        console.log(`Changed to page ${index}`);
+
+        const pageButtons = document.querySelectorAll('.grid-item-menu[onclick^="changeSoundSet"]');
+        if (activePageButton) {
+            activePageButton.classList.remove('selected');
+        }
+        activePageButton = pageButtons[index];
+                    if (activePageButton) {
+                        activePageButton.classList.add('selected');
+                    }
+        
+                    // Aggiorna il LED sul Launchpad fisico
+                    setActivePageLED(index);    } else {
+        // Feedback visivo per azione non valida
+        console.warn(`Tentativo di accesso a pagina non esistente: ${index}`);
+        const launchpadElement = document.getElementById('Launchpad');
+        if (launchpadElement) {
+            launchpadElement.classList.add('error-shake');
+            setTimeout(() => {
+                launchpadElement.classList.remove('error-shake');
+            }, 500); // Corrisponde alla durata dell'animazione
+        }
+    }
 }
 
 window.toggleSidebar = function() {
@@ -206,6 +252,37 @@ function initializeVideoControls() {
     }
 }
 
+// Inizializza i controlli del visualizzatore (es. fluidità)
+function initializeVisualizerControls() {
+    const smoothingSlider = document.getElementById('smoothing-slider');
+    const smoothingInput = document.getElementById('smoothing-input');
+
+    if (smoothingSlider && smoothingInput) {
+        function syncSmoothingControls(slider, input) {
+            slider.addEventListener('input', function() {
+                input.value = this.value;
+                if (window.visualizer) {
+                    window.visualizer.setSmoothing(this.value);
+                }
+            });
+
+            input.addEventListener('input', function() {
+                let value = parseFloat(this.value);
+                const min = parseFloat(slider.min);
+                const max = parseFloat(slider.max);
+                
+                value = Math.max(min, Math.min(max, value));
+                this.value = value;
+                slider.value = value;
+                if (window.visualizer) {
+                    window.visualizer.setSmoothing(this.value);
+                }
+            });
+        }
+        syncSmoothingControls(smoothingSlider, smoothingInput);
+    }
+}
+
 // Inizializzazione: carica i video nella sidebar
 function initializeBackgroundMenu(videoFiles) {
     // Seleziona il menu a discesa per i background
@@ -225,23 +302,109 @@ function initializeBackgroundMenu(videoFiles) {
     });
 }
 
+async function loadProject(configPath, button) {
+    try {
+        const response = await fetch(configPath);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const project = await response.json();
+        currentProject = project;
+
+        // Load all sounds from all pages
+        projectSounds = [];
+        if (project.pages) {
+            project.pages.forEach(page => {
+                projectSounds.push(...page.sounds);
+            });
+        }
+        await audioEngine.loadSounds(projectSounds);
+
+        setLaunchpadBackground(project.coverImage);
+
+        if (selectedProjectButton) {
+            selectedProjectButton.classList.remove('selected');
+        }
+        if (button) {
+            button.classList.add('selected');
+            selectedProjectButton = button;
+        }
+
+        // Reset to the first page and select the first page button
+        changeSoundSet(0);
+
+        console.log(`Project "${project.name}" loaded.`);
+    } catch (error) {
+        console.error("Failed to load project:", error);
+    }
+}
+
+function initializeProjectMenu(projects) {
+    const projectMenu = document.getElementById('project-menu');
+    if (!projectMenu) return;
+
+    projects.forEach((project, index) => {
+        const button = document.createElement('button');
+        button.className = 'menu-option';
+        button.textContent = project.name;
+        button.onclick = () => loadProject(project.configPath, button);
+        projectMenu.appendChild(button);
+
+        // Automatically select the first project
+        if (index === 0) {
+            selectedProjectButton = button;
+        }
+    });
+}
+
 // Inizializza le funzioni quando il DOM è completamente caricato
 document.addEventListener('DOMContentLoaded', async function() {
-    // Inizializzazione menu
+    // Gestisce lo sblocco dell'AudioContext e l'overlay di avviso
+    const unlockOverlay = document.getElementById('audio-unlock-overlay');
+    const unlockAudioAndHideOverlay = () => {
+        if (unlockOverlay) {
+            unlockOverlay.classList.add('hidden');
+        }
+        if (audioEngine.audioContext.state === 'suspended') {
+            audioEngine.audioContext.resume().then(() => {
+                console.log('AudioContext resumed successfully.');
+            });
+        }
+    };
+    document.addEventListener('click', unlockAudioAndHideOverlay, { once: true });
+    document.addEventListener('touchstart', unlockAudioAndHideOverlay, { once: true });
+    // Inizializza i controlli che non dipendono da dati esterni
+    initializeVideoControls();
+    initializeVisualizerControls();
+
+    // Carica i dati statici e inizializza i moduli dipendenti
     try {
         const response = await fetch('js/static-data.json');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
+
+        // Inizializza i menu con i dati caricati
         initializeBackgroundMenu(data.videos);
-        initializeVideoControls();
         initializePersonalizeLaunchpadMenu(data.skins);
+        initializeProjectMenu(data.projects);
+
+        // Carica il primo progetto di default, con un suo blocco try-catch
+        if (data.projects && data.projects.length > 0) {
+            try {
+                const firstProjectButton = document.querySelector('#project-menu .menu-option');
+                await loadProject(data.projects[0].configPath, firstProjectButton);
+            } catch (projectError) {
+                console.error("Failed to load the default project:", projectError);
+            }
+        }
+
     } catch (error) {
-        console.error("Failed to load static data:", error);
+        console.error("Failed to load static data for menus:", error);
     }
 
-    // Inizializzazione visualizzatore
+    // Inizializzazione visualizzatore (indipendente dai dati statici)
     try {
         const analyser = audioEngine.getAnalyser();
         const canvasTop = document.getElementById('visualizer-canvas-top');
@@ -249,15 +412,19 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         const visualizer = new Visualizer(analyser, canvasTop, canvasBottom);
         visualizer.draw();
-
-        // Esponi il visualizzatore a livello globale per poterlo controllare (es. dalla console o da altri menu)
         window.visualizer = visualizer;
 
     } catch (error) {
         console.error("Failed to initialize visualizer:", error);
     }
 
-    // Registra il Service Worker
+            // Inizializza il supporto MIDI
+            initMidi();
+    
+            // Registra la funzione di pulizia per spegnere i LED del Launchpad alla chiusura della pagina
+        window.addEventListener('pagehide', () => {
+            resetLaunchpadLEDs();
+        });    // Registra il Service Worker
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('/service-worker.js')
@@ -277,6 +444,15 @@ window.setLaunchpadBackground = function(imageFile) {
         launchpad.style.backgroundImage = `url('/assets/images/launchpad covers/${imageFile}?t=${new Date().getTime()}')`;
     } else {
         launchpad.style.backgroundImage = 'none';
+    }
+};
+
+window.toggleLaunchpadStickers = function(isActive) {
+    const launchpad = document.getElementById('Launchpad');
+    if (isActive) {
+        launchpad.classList.add('has-stickers');
+    } else {
+        launchpad.classList.remove('has-stickers');
     }
 };
 

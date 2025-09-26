@@ -82,12 +82,28 @@
             <button class="menu-option" onclick="visualizer.setMode('top')">Superiore</button>
             <button class="menu-option" onclick="visualizer.setMode('bottom')">Inferiore</button>
             <button class="menu-option" onclick="visualizer.setMode('off')">Spento</button>
+            
+            <!-- Controllo per la fluidità -->
+            <div class="control-group" style="padding: 15px 15px 5px 15px;">
+              <label for="smoothing-slider">Fluidità</label>
+              <div class="input-group">
+                <input type="range" id="smoothing-slider" min="0" max="0.95" step="0.05" value="0.8">
+                <input type="number" id="smoothing-input" min="0" max="0.95" step="0.05" value="0.8" class="manual-input">
+              </div>
+            </div>
+
           </div>
         </div>
 
         <div class="menu-item">
           <button class="menu-toggle" onclick="toggleMenu('personalize-launchpad-menu')">Personalize Launchpad</button>
           <div class="menu-dropdown" id="personalize-launchpad-menu">
+            <div class="control-group" style="padding: 15px 15px 5px 15px;">
+              <label for="toggle-stickers">
+                <input type="checkbox" id="toggle-stickers" onchange="toggleLaunchpadStickers(this.checked)">
+                Mostra Adesivi
+              </label>
+            </div>
             <button class="menu-option" onclick="setLaunchpadBackground(null)">Default</button>
           </div>
         </div>
@@ -99,11 +115,11 @@
       <button id="openSidebar" onclick="toggleSidebar()"><span class="icon">☰</span></button>
     <main>
       <div class="Launchpad" id="Launchpad">
+		<div id="audio-unlock-overlay" class="launchpad-overlay">
+			<p>Clicca per avviare</p>
+		</div>
 		
-			<!--<div class="grid-item-menu"></div>
-			<div class="grid-item-menu"></div>
-			<div class="grid-item-menu"></div>
-			<div class="grid-item-menu"></div>-->
+			
 			
 			<div class="grid-item-triangle"><img src="assets/icons/triangle.png"  class="triangolo"></div>
 			<div class="grid-item-triangle"><img style="transform: rotate(180deg);" src="assets/icons/triangle.png" class="triangolo"></div>
