@@ -1,68 +1,120 @@
+/*
+  Questo file contiene gli stili specifici per il componente Launchpad.
+  Definisce l'aspetto della griglia, dei pad (pulsanti), dei pulsanti di menu
+  e degli elementi decorativi. Modificando questo file, è possibile personalizzare
+  completamente l'estetica del Launchpad.
+*/
+
+/*
+  CONTENITORE PRINCIPALE DEL LAUNCHPAD
+  - Definisce la griglia 10x10 e l'aspetto generale.
+  - `display: grid;` e `grid-template-columns/rows: repeat(10, 1fr);` creano la griglia 10x10.
+    La griglia include i pad 8x8, più una riga e una colonna per i pulsanti di menu e gli elementi decorativi.
+  - `aspect-ratio: 1 / 1;` mantiene il Launchpad perfettamente quadrato.
+  - PERSONALIZZAZIONE: 
+    - `background-color`: Cambia il colore di sfondo del Launchpad.
+    - `max-width`: Aumenta o diminuisci questo valore per rendere il Launchpad più grande o più piccolo.
+    - `gap`: Modifica lo spazio tra i pad.
+    - `border-radius`: Cambia l'arrotondamento dei bordi del Launchpad.
+    - `background-image`: Tramite JavaScript, qui viene impostata l'immagine di sfondo personalizzata.
+*/
 .Launchpad {
-    position: relative; /* Necessario per posizionare l'overlay figlio */
+    position: relative; /* Necessario per posizionare elementi figli in modo assoluto (es. l'overlay). */
     display: grid;
     grid-template-columns: repeat(10, 1fr);
     grid-template-rows: repeat(10, 1fr);
     gap: 10px;
-    max-width: 550px; /* Increased max-width for the 10x10 grid */
+    max-width: 550px;
     aspect-ratio: 1 / 1;
     padding: 15px;
     background-color: #111;
     border-radius: 10px;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-    margin: 0 auto;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5); /* Ombra per dare un effetto di profondità. */
+    margin: 0 auto; /* Centra il Launchpad orizzontalmente nel suo contenitore. */
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
 }
 
+/*
+  PAD DELLA GRIGLIA (Pulsanti 8x8)
+  - Stile base per i pad quadrati che riproducono i suoni.
+  - PERSONALIZZAZIONE:
+    - `background-color`: Colore del pad a riposo.
+    - `border-radius`: Arrotondamento degli angoli dei pad.
+    - `box-shadow`: Ombra interna per dare un effetto "incassato".
+*/
 .grid-item {
-    background-color: #d3d3d3;
+    background-color: #d3d3d3; /* Grigio chiaro di default. */
     border-radius: 5px;
     cursor: pointer;
-    transition: background-color 0.1s ease;
+    transition: background-color 0.1s ease; /* Transizione rapida per il cambio colore. */
     box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
-    border: none; /* for the buttons */
-    position: relative; /* Added for sticker positioning */
+    border: none; /* Rimuove il bordo predefinito dei pulsanti. */
+    position: relative; /* Necessario per posizionare lo pseudo-elemento 'sticker'. */
 }
 
+/* Stile del pad al passaggio del mouse. */
 .grid-item:hover {
-    background-color: #bfbfbf;
+    background-color: #bfbfbf; /* Un grigio leggermente più scuro. */
 }
 
+/*
+  Stile del pad quando è attivo (cioè, mentre sta suonando).
+  - La classe `.active` viene aggiunta e rimossa via JavaScript.
+  - PERSONALIZZAZIONE: Questo è lo stile più importante per il feedback visivo.
+    - `background-color`: Colore del pad quando premuto. #00aaff è un blu acceso.
+    - `box-shadow`: Aggiunge un bagliore dello stesso colore per un effetto neon.
+*/
 .grid-item.active {
     background-color: #00aaff;
     box-shadow: 0 0 10px #00aaff;
 }
 
+/*
+  PULSANTI DI MENU (laterali e superiori)
+  - Stile per i pulsanti rotondi.
+  - PERSONALIZZAZIONE:
+    - `background-color`: Colore dei pulsanti a riposo.
+    - `:hover` e `.selected`: Stile al passaggio del mouse o quando una pagina di suoni è selezionata.
+      Cambia `background-color` e `box-shadow` per personalizzare l'effetto.
+*/
 .grid-item-menu {
     background-color: #d3d3d3;
-    border-radius: 50%; /* Make menu buttons circular */
+    border-radius: 50%; /* Li rende perfettamente rotondi. */
     cursor: pointer;
     transition: background-color 0.1s ease;
     border: none;
-    position: relative; /* Added for sticker positioning */
+    position: relative; /* Necessario per posizionare lo pseudo-elemento 'sticker'. */
 }
 
 .grid-item-menu:hover,
 .grid-item-menu.selected {
     background-color: #bfbfbf;
-    box-shadow: 0 0 10px #00aaff;
+    box-shadow: 0 0 10px #00aaff; /* Bagliore blu per indicare la selezione. */
 }
 
-/* Sticker styles */
+/*
+  STILI DEGLI "STICKERS" (Adesivi)
+  - Questi stili creano un finto "adesivo" nero sopra ogni pad, lasciando visibile solo un bordo colorato.
+  - Funziona aggiungendo uno pseudo-elemento `::before` a ogni pad.
+  - La classe `.has-stickers` viene aggiunta al `.Launchpad` via JavaScript per attivarli.
+  - PERSONALIZZAZIONE:
+    - `background-color`: Colore dell'adesivo (attualmente nero).
+    - `width` e `height`: Controllano la dimensione dell'adesivo. Un valore più basso (es. 80%) renderà il bordo colorato più spesso.
+*/
 .Launchpad.has-stickers .grid-item::before {
     content: '';
     display: block;
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
-    width: 85%; /* Adjust size as needed */
+    transform: translate(-50%, -50%); /* Centra l'adesivo nel pad. */
+    width: 85%;
     height: 85%;
     background-color: black;
-    border-radius: 5px; /* For square buttons */
-    pointer-events: none; /* Allow clicks to pass through */
+    border-radius: 5px; /* Stesso arrotondamento del pad. */
+    pointer-events: none; /* Permette ai click di passare attraverso l'adesivo e raggiungere il pulsante. */
 }
 
 .Launchpad.has-stickers .grid-item-menu::before {
@@ -75,10 +127,14 @@
     width: 85%;
     height: 85%;
     background-color: black;
-    border-radius: 50%; /* For round buttons */
-    pointer-events: none; /* Allow clicks to pass through */
+    border-radius: 50%; /* Arrotondamento per i pulsanti di menu. */
+    pointer-events: none;
 }
 
+/*
+  ELEMENTI DECORATIVI (Triangoli, Testo, Logo)
+  - Questi elementi sono posizionati nella griglia per scopi puramente estetici.
+*/
 .grid-item-triangle {
     display: flex;
     justify-content: center;
@@ -99,9 +155,10 @@
     text-align: center;
 }
 
+/* Posizionamento del logo nell'angolo in alto a destra. */
 #image-container {
-    grid-column: 9 / span 2;
-    grid-row: 1 / span 2;
+    grid-column: 9 / span 2; /* Occupa le ultime due colonne. */
+    grid-row: 1 / span 2;    /* Occupa le prime due righe. */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -114,6 +171,14 @@
     border-radius: 5px;
 }
 
+/*
+  OVERLAY DI SBLOCCO AUDIO
+  - Stile per la schermata che appare all'inizio per richiedere l'interazione dell'utente.
+  - Copre l'intero Launchpad.
+  - PERSONALIZZAZIONE:
+    - `background-color`: Colore di sfondo dell'overlay. `rgba(18, 18, 18, 0.85)` è un nero quasi opaco.
+    - `color`, `font-size`, `font-weight`: Stile del testo "Clicca per avviare".
+*/
 .launchpad-overlay {
     position: absolute;
     top: 0;
@@ -127,12 +192,13 @@
     align-items: center;
     font-size: 1.5em;
     font-weight: bold;
-    z-index: 10;
+    z-index: 10; /* Si posiziona sopra a tutto il resto all'interno del Launchpad. */
     cursor: pointer;
-    border-radius: 10px;
+    border-radius: 10px; /* Stesso arrotondamento del Launchpad. */
     text-align: center;
 }
 
+/* La classe `.hidden` viene aggiunta via JS per nascondere l'overlay dopo il primo click. */
 .launchpad-overlay.hidden {
     display: none;
 }

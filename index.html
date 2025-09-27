@@ -1,51 +1,121 @@
+<!--
+  Questo file è il punto di ingresso principale dell'applicazione Launchpad PWA.
+  Esso definisce la struttura di base della pagina HTML, carica gli stili CSS,
+  i file JavaScript necessari e imposta gli elementi dell'interfaccia utente.
+-->
 <!DOCTYPE html>
 <html lang="it">
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Launchpad PWA</title>	
-	
-	<!-- Manifest PWA -->
-	<link rel="manifest" href="manifest.json">
+    <!--
+      La sezione <head> contiene metadati importanti per il browser e per i motori di ricerca,
+      oltre ai collegamenti ai file CSS e JavaScript.
+    -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Launchpad PWA</title>
 
-	<!-- Icona PWA -->
-	<link rel="icon" href="assets/icons/favicon.ico" type="image/x-icon">
-	<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32x32.png">
-	<link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16x16.png">
-	<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+    <!--
+      MANIFEST PWA (Progressive Web App)
+      Il file manifest.json fornisce informazioni sull'applicazione (come nome, icone, colori)
+      e permette di installarla su dispositivi desktop e mobili come se fosse un'app nativa.
+      Per personalizzare l'aspetto dell'app installata (es. nome, icona), modifica questo file.
+    -->
+    <link rel="manifest" href="manifest.json">
 
-	<!-- Fogli di stile -->
-	<link rel="stylesheet" href="css/style.css">
-	<link rel="stylesheet" href="css/launchpad.css">
-	
-	<!-- Script javascript -->
-	<script src="js/app.js?v=2" type="module" defer></script>
+    <!--
+      ICONE
+      Queste righe definiscono le icone dell'applicazione per diverse piattaforme e dimensioni.
+      - favicon.ico: Icona tradizionale per i browser.
+      - favicon-32x32.png / favicon-16x16.png: Dimensioni specifiche per le tab del browser.
+      - apple-touch-icon.png: Icona per i dispositivi Apple quando l'app viene aggiunta alla home screen.
+      Puoi sostituire questi file in 'assets/icons/' con le tue icone personalizzate.
+    -->
+    <link rel="icon" href="assets/icons/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16x16.png">
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+
+    <!--
+      FOGLI DI STILE (CSS)
+      - style.css: Contiene gli stili generali per l'layout, la sidebar e altri elementi dell'interfaccia.
+                   Modifica questo file per cambiare l'aspetto generale dell'app (colori, font, ecc.).
+      - launchpad.css: Contiene stili specifici per la griglia del Launchpad e i suoi pad.
+                       Modifica questo file per personalizzare l'aspetto del Launchpad (colori dei pad, animazioni, ecc.).
+    -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/launchpad.css">
+
+    <!--
+      SCRIPT JAVASCRIPT
+      - app.js: È lo script principale che gestisce la logica dell'applicazione.
+                Importa e coordina gli altri moduli JavaScript.
+      - type="module": Permette di usare le funzionalità dei moduli ES6 (import/export).
+      - defer: Assicura che lo script venga eseguito solo dopo che l'intero documento HTML è stato caricato.
+    -->
+    <script src="js/app.js?v=2" type="module" defer></script>
 </head>
 <body>
 
+<!--
+  LAYOUT PRINCIPALE
+  Il div con classe "layout" è il contenitore principale che organizza la sidebar e il corpo della pagina.
+  L'intera struttura è basata su CSS Grid per un layout flessibile.
+-->
 <div class="layout">
+    <!--
+      ELEMENTI DI SFONDO E VISUALIZZATORE
+      - video-overlay: Un livello semitrasparente che si sovrappone al video di sfondo per migliorarne la leggibilità.
+                       L'opacità è controllabile dal menu.
+      - visualizer-canvas: Due elementi <canvas> usati per disegnare il visualizzatore audio (uno in alto, uno in basso).
+                           La loro visibilità e comportamento sono gestiti da 'js/visualizer.js'.
+    -->
     <div class="video-overlay"></div>
     <canvas id="visualizer-canvas-top" class="visualizer-canvas"></canvas>
     <canvas id="visualizer-canvas-bottom" class="visualizer-canvas"></canvas>
+
+    <!--
+      SIDEBAR (MENU LATERALE)
+      Contiene i menu per selezionare progetti, cambiare lo sfondo, controllare il visualizzatore e personalizzare il Launchpad.
+      La visibilità della sidebar è gestita tramite JavaScript (funzione toggleSidebar).
+    -->
     <div class="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-spacer"></div>
         <h2>Menu</h2>
       </div>
       <div class="sidebar-content">
+        <!--
+          MENU SELEZIONE PROGETTO
+          - Il contenuto di 'project-menu' viene popolato dinamicamente da 'js/ui/library-ui.js'
+            leggendo i file dei progetti disponibili nella cartella 'projects/'.
+        -->
         <div class="menu-item">
           <button class="menu-toggle" onclick="toggleMenu('project-menu')">Seleziona progetto</button>
           <div class="menu-dropdown" id="project-menu">
             <!-- Contenuto progetti verrà aggiunto dinamicamente -->
           </div>
         </div>
+
+        <!--
+          MENU BACKGROUND
+          - Permette di selezionare un video di sfondo.
+          - I video disponibili vengono caricati dinamicamente da 'js/ui/library-ui.js' leggendo dalla cartella 'assets/videos/'.
+          - Contiene anche i controlli per personalizzare l'aspetto del video di sfondo.
+          - PERSONALIZZAZIONE: Per aggiungere nuovi video, inseriscili nella cartella 'assets/videos/'.
+            Verranno automaticamente aggiunti al menu.
+        -->
         <div class="menu-item">
           <button class="menu-toggle" onclick="toggleMenu('background-menu')">Background</button>
           <div class="menu-dropdown" id="background-menu">
             <button class="menu-option" onclick="setBackgroundVideo(null)">Nessun background</button>
-            
- 
-            <!-- Controlli video (spostati qui dentro) -->
+            <!--
+              CONTROLLI VIDEO
+              Questi slider permettono di modificare in tempo reale:
+              - Opacità dell'overlay: Controlla la trasparenza del livello sopra il video.
+              - Sfocatura: Applica un filtro blur al video.
+              - Luminosità: Regola la luminosità del video.
+              I valori di questi controlli sono gestiti in 'js/app.js'.
+            -->
             <div class="video-controls">
               <div class="control-group">
                 <label for="opacity-slider">Opacità overlay</label>
@@ -75,6 +145,13 @@
           </div>
         </div>
 
+        <!--
+          MENU VISUALIZZATORE
+          - Controlla il comportamento del visualizzatore audio.
+          - Le funzioni onclick chiamano metodi dell'oggetto 'visualizer' definito in 'js/visualizer.js'.
+          - PERSONALIZZAZIONE: I parametri del visualizzatore (es. colori, tipo di barre)
+            possono essere modificati direttamente nel file 'js/visualizer.js'.
+        -->
         <div class="menu-item">
           <button class="menu-toggle" onclick="toggleMenu('visualizer-menu')">Visualizzatore</button>
           <div class="menu-dropdown" id="visualizer-menu">
@@ -83,7 +160,7 @@
             <button class="menu-option" onclick="visualizer.setMode('bottom')">Inferiore</button>
             <button class="menu-option" onclick="visualizer.setMode('off')">Spento</button>
             
-            <!-- Controllo per la fluidità -->
+            <!-- Controllo per la fluidità del visualizzatore -->
             <div class="control-group" style="padding: 15px 15px 5px 15px;">
               <label for="smoothing-slider">Fluidità</label>
               <div class="input-group">
@@ -91,10 +168,18 @@
                 <input type="number" id="smoothing-input" min="0" max="0.95" step="0.05" value="0.8" class="manual-input">
               </div>
             </div>
-
           </div>
         </div>
 
+        <!--
+          MENU PERSONALIZZAZIONE LAUNCHPAD
+          - Contiene opzioni per modificare l'aspetto del Launchpad.
+          - 'toggle-stickers': Mostra/nasconde gli adesivi decorativi sul Launchpad.
+          - Sfondi Launchpad: Vengono caricati dinamicamente da 'js/ui/library-ui.js'
+            leggendo dalla cartella 'assets/images/launchpad covers/'.
+          - PERSONALIZZAZIONE: Per aggiungere nuovi sfondi per il Launchpad, inserisci le immagini
+            nella cartella 'assets/images/launchpad covers/'.
+        -->
         <div class="menu-item">
           <button class="menu-toggle" onclick="toggleMenu('personalize-launchpad-menu')">Personalize Launchpad</button>
           <div class="menu-dropdown" id="personalize-launchpad-menu">
@@ -108,130 +193,175 @@
           </div>
         </div>
       </div>
-      <!-- Contenuto sidebar -->
     </div>
     
+    <!--
+      CORPO PRINCIPALE
+      Contiene il pulsante per aprire la sidebar e il Launchpad stesso.
+    -->
     <div class="body">
       <button id="openSidebar" onclick="toggleSidebar()"><span class="icon">☰</span></button>
-    <main>
-      <div class="Launchpad" id="Launchpad">
-		<div id="audio-unlock-overlay" class="launchpad-overlay">
-			<p>Clicca per avviare</p>
-		</div>
-		
-			
-			
-			<div class="grid-item-triangle"><img src="assets/icons/triangle.png"  class="triangolo"></div>
-			<div class="grid-item-triangle"><img style="transform: rotate(180deg);" src="assets/icons/triangle.png" class="triangolo"></div>
-			<div class="grid-item-triangle"><img style="transform: rotate(270deg);" src="assets/icons/triangle.png" class="triangolo"></div>
-			<div class="grid-item-triangle"><img style="transform: rotate(90deg);" src="assets/icons/triangle.png" class="triangolo"></div>
-			<div class="testo_su_launchpad">Session</div>
-			<div class="testo_su_launchpad">User 1</div>
-			<div class="testo_su_launchpad">User 2</div>
-			<div class="testo_su_launchpad">Mixer</div>
-			<div id="image-container"><img src="assets/icons/Logo.png" alt="immagine" class="square-image"></div>
-        
-		
-			<button id="a1" class="grid-item-menu"></button>
-			<button id="a2" class="grid-item-menu"></button>
-			<button id="a3" class="grid-item-menu"></button>
-			<button id="a4" class="grid-item-menu"></button>
-			<button id="a5" class="grid-item-menu"></button>
-			<button id="a6" class="grid-item-menu"></button>
-			<button id="a7" class="grid-item-menu"></button>
-			<button id="a8" class="grid-item-menu"></button>
-        
-                
-			<button id="b1" class="grid-item" onclick="playSound(event, 0)" ></button>
-			<button id="b2" class="grid-item" onclick="playSound(event, 1)" ></button>
-			<button id="b3" class="grid-item" onclick="playSound(event, 2)" ></button>
-			<button id="b4" class="grid-item" onclick="playSound(event, 3)" ></button>
-			<button id="b5" class="grid-item" onclick="playSound(event, 4)" ></button>
-			<button id="b6" class="grid-item" onclick="playSound(event, 5)" ></button>
-			<button id="b7" class="grid-item" onclick="playSound(event, 6)" ></button>
-			<button id="b8" class="grid-item" onclick="playSound(event, 7)" ></button>
-			<button id="m1" class="grid-item-menu" onclick="changeSoundSet(0)" ></button>
-			<div class="testo_su_launchpad">Volume</div>
-        
-			<button id="c1" class="grid-item" onclick="playSound(event, 8)" ></button>
-			<button id="c2" class="grid-item" onclick="playSound(event, 9)" ></button>
-			<button id="c3" class="grid-item" onclick="playSound(event, 10)" ></button>
-			<button id="c4" class="grid-item" onclick="playSound(event, 11)" ></button>
-			<button id="c5" class="grid-item" onclick="playSound(event, 12)" ></button>
-			<button id="c6" class="grid-item" onclick="playSound(event, 13)" ></button>
-			<button id="c7" class="grid-item" onclick="playSound(event, 14)" ></button>
-			<button id="c8" class="grid-item" onclick="playSound(event, 15)" ></button>
-			<button id="m2" class="grid-item-menu" onclick="changeSoundSet(1)" ></button>
-			<div class="testo_su_launchpad">Pan</div>
-        
-			<button id="d1" class="grid-item" onclick="playSound(event, 16)" ></button>
-			<button id="d2" class="grid-item" onclick="playSound(event, 17)" ></button>
-			<button id="d3" class="grid-item" onclick="playSound(event, 18)" ></button>
-			<button id="d4" class="grid-item" onclick="playSound(event, 19)" ></button>
-			<button id="d5" class="grid-item" onclick="playSound(event, 20)" ></button>
-			<button id="d6" class="grid-item" onclick="playSound(event, 21)" ></button>
-			<button id="d7" class="grid-item" onclick="playSound(event, 22)" ></button>
-			<button id="d8" class="grid-item" onclick="playSound(event, 23)" ></button>
-			<button id="m3" class="grid-item-menu" onclick="changeSoundSet(2)" ></button>
-			<div class="testo_su_launchpad">Send A</div>
-        
-			<button id="e1" class="grid-item" onclick="playSound(event, 24)"></button>
-			<button id="e2" class="grid-item" onclick="playSound(event, 25)" ></button>
-			<button id="e3" class="grid-item" onclick="playSound(event, 26)" ></button>
-			<button id="e4" class="grid-item" onclick="playSound(event, 27)" ></button>
-			<button id="e5" class="grid-item" onclick="playSound(event, 28)" ></button>
-			<button id="e6" class="grid-item" onclick="playSound(event, 29)" ></button>
-			<button id="e7" class="grid-item" onclick="playSound(event, 30)" ></button>
-			<button id="e8" class="grid-item" onclick="playSound(event, 31)" ></button>
-			<button id="m4" class="grid-item-menu" onclick="changeSoundSet(3)" ></button>
-			<div class="testo_su_launchpad">Send B</div>
-        
-			<button id="f1" class="grid-item" onclick="playSound(event, 32)" ></button>
-			<button id="f2" class="grid-item" onclick="playSound(event, 33)" ></button>
-			<button id="f3" class="grid-item" onclick="playSound(event, 34)" ></button>
-			<button id="f4" class="grid-item" onclick="playSound(event, 35)"></button>
-			<button id="f5" class="grid-item" onclick="playSound(event, 36)"></button>
-			<button id="f6" class="grid-item" onclick="playSound(event, 37)"></button>
-			<button id="f7" class="grid-item" onclick="playSound(event, 38)"></button>
-			<button id="f8" class="grid-item" onclick="playSound(event, 39)" ></button>
-			<button id="m5" class="grid-item-menu" onclick="changeSoundSet(4)" ></button>
-			<div class="testo_su_launchpad">Stop</div>
-        
-			<button id="g1" class="grid-item" onclick="playSound(event, 40)" ></button>
-			<button id="g2" class="grid-item" onclick="playSound(event, 41)" ></button>
-			<button id="g3" class="grid-item" onclick="playSound(event, 42)" ></button>
-			<button id="g4" class="grid-item" onclick="playSound(event, 43)" ></button>
-			<button id="g5" class="grid-item" onclick="playSound(event, 44)" ></button>
-			<button id="g6" class="grid-item" onclick="playSound(event, 45)"></button>
-			<button id="g7" class="grid-item" onclick="playSound(event, 46)"></button>
-			<button id="g8" class="grid-item" onclick="playSound(event, 47)"></button>
-			<button id="m6" class="grid-item-menu" onclick="changeSoundSet(5)" ></button>
-			<div class="testo_su_launchpad">Mute</div>
-        
-			<button id="h1" class="grid-item" onclick="playSound(event, 48)" ></button>
-			<button id="h2" class="grid-item" onclick="playSound(event, 49)" ></button>
-			<button id="h3" class="grid-item" onclick="playSound(event, 50)" ></button>
-			<button id="h4" class="grid-item" onclick="playSound(event, 51)"></button>
-			<button id="h5" class="grid-item" onclick="playSound(event, 52)" ></button>
-			<button id="h6" class="grid-item" onclick="playSound(event, 53)" ></button>
-			<button id="h7" class="grid-item" onclick="playSound(event, 54)" ></button>
-			<button id="h8" class="grid-item" onclick="playSound(event, 55)" ></button>
-			<button id="m7" class="grid-item-menu" onclick="changeSoundSet(6)"></button>
-			<div class="testo_su_launchpad">Solo</div>
-        
-			<button id="i1" class="grid-item" onclick="playSound(event, 56)" ></button>
-			<button id="i2" class="grid-item" onclick="playSound(event, 57)" ></button>
-			<button id="i3" class="grid-item" onclick="playSound(event, 58)" ></button>
-			<button id="i4"class="grid-item"  onclick="playSound(event, 59)" ></button>
-			<button id="i5" class="grid-item" onclick="playSound(event, 60)" ></button>
-			<button id="i6" class="grid-item" onclick="playSound(event, 61)" ></button>
-			<button id="i7" class="grid-item" onclick="playSound(event, 62)" ></button>
-			<button id="i8" class="grid-item" onclick="playSound(event, 63)" ></button>
-			<button id="m8" class="grid-item-menu" onclick="changeSoundSet(7)" ></button>
-			<div class="testo_su_launchpad">Record</div>
-		</div>
-    </main>
-</div>
-
+      <main>
+        <!--
+          LAUNCHPAD
+          Il cuore dell'applicazione. È una griglia di pulsanti che riproducono suoni.
+        -->
+        <div class="Launchpad" id="Launchpad">
+          <!--
+            OVERLAY SBLOCCO AUDIO
+            Molti browser moderni bloccano la riproduzione audio automatica.
+            Questo overlay richiede un'interazione dell'utente (un click) per sbloccare l'AudioContext,
+            garantendo che i suoni possano essere riprodotti.
+            È gestito da 'js/audio.js'.
+          -->
+          <div id="audio-unlock-overlay" class="launchpad-overlay">
+            <p>Clicca per avviare</p>
+          </div>
+          
+          <!--
+            ELEMENTI DECORATIVI DEL LAUNCHPAD
+            Questi elementi (triangoli, testi, logo) sono puramente estetici.
+            La loro visibilità può essere controllata tramite CSS o JavaScript (es. 'toggleLaunchpadStickers').
+            - PERSONALIZZAZIONE: Puoi cambiare le immagini, i testi o lo stile di questi elementi
+              modificando il CSS in 'launchpad.css' o sostituendo le immagini in 'assets/icons/'.
+          -->
+          <div class="grid-item-triangle"><img src="assets/icons/triangle.png"  class="triangolo"></div>
+          <div class="grid-item-triangle"><img style="transform: rotate(180deg);" src="assets/icons/triangle.png" class="triangolo"></div>
+          <div class="grid-item-triangle"><img style="transform: rotate(270deg);" src="assets/icons/triangle.png" class="triangolo"></div>
+          <div class="grid-item-triangle"><img style="transform: rotate(90deg);" src="assets/icons/triangle.png" class="triangolo"></div>
+          <div class="testo_su_launchpad">Session</div>
+          <div class="testo_su_launchpad">User 1</div>
+          <div class="testo_su_launchpad">User 2</div>
+          <div class="testo_su_launchpad">Mixer</div>
+          <div id="image-container"><img src="assets/icons/Logo.png" alt="immagine" class="square-image"></div>
+      
+          <!--
+            PULSANTI DI CONTROLLO SUPERIORI (Riga 'a')
+            Questi pulsanti sono attualmente vuoti e non hanno funzioni associate.
+            Potrebbero essere usati in futuro per funzioni globali.
+          -->
+          <button id="a1" class="grid-item-menu"></button>
+          <button id="a2" class="grid-item-menu"></button>
+          <button id="a3" class="grid-item-menu"></button>
+          <button id="a4" class="grid-item-menu"></button>
+          <button id="a5" class="grid-item-menu"></button>
+          <button id="a6" class="grid-item-menu"></button>
+          <button id="a7" class="grid-item-menu"></button>
+          <button id="a8" class="grid-item-menu"></button>
+      
+          <!--
+            GRIGLIA DEI PAD 8x8 (Righe 'b' a 'i')
+            Ogni pulsante (pad) ha:
+            - Un ID univoco (es. "b1", "c2", ...).
+            - La classe "grid-item" per lo stile.
+            - Un attributo 'onclick' che chiama la funzione 'playSound(event, index)'.
+              - 'event': L'oggetto evento del click.
+              - 'index': Un numero da 0 a 63 che identifica univocamente il pad.
+                         Questo indice è usato per trovare il campione audio corrispondente nel progetto caricato.
+            La logica di riproduzione è in 'js/audio.js'.
+            L'assegnazione dei suoni ai pad è definita nei file di progetto JSON (es. 'projects/Virtual Riot - Idols.json').
+          -->
+          <button id="b1" class="grid-item" onclick="playSound(event, 0)" ></button>
+          <button id="b2" class="grid-item" onclick="playSound(event, 1)" ></button>
+          <!-- ... altri pad da b3 a b8 ... -->
+          <button id="b3" class="grid-item" onclick="playSound(event, 2)" ></button>
+          <button id="b4" class="grid-item" onclick="playSound(event, 3)" ></button>
+          <button id="b5" class="grid-item" onclick="playSound(event, 4)" ></button>
+          <button id="b6" class="grid-item" onclick="playSound(event, 5)" ></button>
+          <button id="b7" class="grid-item" onclick="playSound(event, 6)" ></button>
+          <button id="b8" class="grid-item" onclick="playSound(event, 7)" ></button>
+          
+          <!--
+            PULSANTI DI CONTROLLO LATERALI (colonna 'm')
+            Questi pulsanti (m1-m8) cambiano la "pagina" o il "set" di suoni.
+            - 'onclick="changeSoundSet(index)"': Chiama la funzione per caricare un nuovo set di campioni.
+              - 'index': Identifica la pagina da caricare (da 0 a 7).
+            La logica è gestita in 'js/app.js' e 'js/audio.js'.
+            I testi accanto a questi pulsanti (Volume, Pan, ecc.) sono puramente decorativi.
+          -->
+          <button id="m1" class="grid-item-menu" onclick="changeSoundSet(0)" ></button>
+          <div class="testo_su_launchpad">Volume</div>
+      
+          <button id="c1" class="grid-item" onclick="playSound(event, 8)" ></button>
+          <button id="c2" class="grid-item" onclick="playSound(event, 9)" ></button>
+          <!-- ... altri pad ... -->
+          <button id="c3" class="grid-item" onclick="playSound(event, 10)" ></button>
+          <button id="c4" class="grid-item" onclick="playSound(event, 11)" ></button>
+          <button id="c5" class="grid-item" onclick="playSound(event, 12)" ></button>
+          <button id="c6" class="grid-item" onclick="playSound(event, 13)" ></button>
+          <button id="c7" class="grid-item" onclick="playSound(event, 14)" ></button>
+          <button id="c8" class="grid-item" onclick="playSound(event, 15)" ></button>
+          <button id="m2" class="grid-item-menu" onclick="changeSoundSet(1)" ></button>
+          <div class="testo_su_launchpad">Pan</div>
+      
+          <button id="d1" class="grid-item" onclick="playSound(event, 16)" ></button>
+          <!-- ... e così via per tutte le righe fino a 'i' e 'm8' ... -->
+          <button id="d2" class="grid-item" onclick="playSound(event, 17)" ></button>
+          <button id="d3" class="grid-item" onclick="playSound(event, 18)" ></button>
+          <button id="d4" class="grid-item" onclick="playSound(event, 19)" ></button>
+          <button id="d5" class="grid-item" onclick="playSound(event, 20)" ></button>
+          <button id="d6" class="grid-item" onclick="playSound(event, 21)" ></button>
+          <button id="d7" class="grid-item" onclick="playSound(event, 22)" ></button>
+          <button id="d8" class="grid-item" onclick="playSound(event, 23)" ></button>
+          <button id="m3" class="grid-item-menu" onclick="changeSoundSet(2)" ></button>
+          <div class="testo_su_launchpad">Send A</div>
+      
+          <button id="e1" class="grid-item" onclick="playSound(event, 24)"></button>
+          <button id="e2" class="grid-item" onclick="playSound(event, 25)" ></button>
+          <button id="e3" class="grid-item" onclick="playSound(event, 26)" ></button>
+          <button id="e4" class="grid-item" onclick="playSound(event, 27)" ></button>
+          <button id="e5" class="grid-item" onclick="playSound(event, 28)" ></button>
+          <button id="e6" class="grid-item" onclick="playSound(event, 29)" ></button>
+          <button id="e7" class="grid-item" onclick="playSound(event, 30)" ></button>
+          <button id="e8" class="grid-item" onclick="playSound(event, 31)" ></button>
+          <button id="m4" class="grid-item-menu" onclick="changeSoundSet(3)" ></button>
+          <div class="testo_su_launchpad">Send B</div>
+      
+          <button id="f1" class="grid-item" onclick="playSound(event, 32)" ></button>
+          <button id="f2" class="grid-item" onclick="playSound(event, 33)" ></button>
+          <button id="f3" class="grid-item" onclick="playSound(event, 34)" ></button>
+          <button id="f4" class="grid-item" onclick="playSound(event, 35)"></button>
+          <button id="f5" class="grid-item" onclick="playSound(event, 36)"></button>
+          <button id="f6" class="grid-item" onclick="playSound(event, 37)"></button>
+          <button id="f7" class="grid-item" onclick="playSound(event, 38)"></button>
+          <button id="f8" class="grid-item" onclick="playSound(event, 39)" ></button>
+          <button id="m5" class="grid-item-menu" onclick="changeSoundSet(4)" ></button>
+          <div class="testo_su_launchpad">Stop</div>
+      
+          <button id="g1" class="grid-item" onclick="playSound(event, 40)" ></button>
+          <button id="g2" class="grid-item" onclick="playSound(event, 41)" ></button>
+          <button id="g3" class="grid-item" onclick="playSound(event, 42)" ></button>
+          <button id="g4" class="grid-item" onclick="playSound(event, 43)" ></button>
+          <button id="g5" class="grid-item" onclick="playSound(event, 44)" ></button>
+          <button id="g6" class="grid-item" onclick="playSound(event, 45)"></button>
+          <button id="g7" class="grid-item" onclick="playSound(event, 46)"></button>
+          <button id="g8" class="grid-item" onclick="playSound(event, 47)"></button>
+          <button id="m6" class="grid-item-menu" onclick="changeSoundSet(5)" ></button>
+          <div class="testo_su_launchpad">Mute</div>
+      
+          <button id="h1" class="grid-item" onclick="playSound(event, 48)" ></button>
+          <button id="h2" class="grid-item" onclick="playSound(event, 49)" ></button>
+          <button id="h3" class="grid-item" onclick="playSound(event, 50)" ></button>
+          <button id="h4" class="grid-item" onclick="playSound(event, 51)"></button>
+          <button id="h5" class="grid-item" onclick="playSound(event, 52)" ></button>
+          <button id="h6" class="grid-item" onclick="playSound(event, 53)" ></button>
+          <button id="h7" class="grid-item" onclick="playSound(event, 54)" ></button>
+          <button id="h8" class="grid-item" onclick="playSound(event, 55)" ></button>
+          <button id="m7" class="grid-item-menu" onclick="changeSoundSet(6)"></button>
+          <div class="testo_su_launchpad">Solo</div>
+      
+          <button id="i1" class="grid-item" onclick="playSound(event, 56)" ></button>
+          <button id="i2" class="grid-item" onclick="playSound(event, 57)" ></button>
+          <button id="i3" class="grid-item" onclick="playSound(event, 58)" ></button>
+          <button id="i4"class="grid-item"  onclick="playSound(event, 59)" ></button>
+          <button id="i5" class="grid-item" onclick="playSound(event, 60)" ></button>
+          <button id="i6" class="grid-item" onclick="playSound(event, 61)" ></button>
+          <button id="i7" class="grid-item" onclick="playSound(event, 62)" ></button>
+          <button id="i8" class="grid-item" onclick="playSound(event, 63)" ></button>
+          <button id="m8" class="grid-item-menu" onclick="changeSoundSet(7)" ></button>
+          <div class="testo_su_launchpad">Record</div>
+        </div>
+      </main>
+    </div>
 </body>
 </html>

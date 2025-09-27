@@ -1,406 +1,479 @@
-/* Stili base per l'HTML e il corpo della pagina */
+/*
+  Questo file contiene gli stili CSS generali per l'applicazione Launchpad.
+  Definisce l'aspetto di base della pagina, il layout, la sidebar, i menu
+  e altri elementi dell'interfaccia utente. Modificando questo file, è possibile
+  personalizzare l'aspetto e la sensazione generale dell'applicazione.
+*/
+
+/*
+  STILI DI BASE
+  - Impostano le proprietà fondamentali per l'intera pagina.
+  - PERSONALIZZAZIONE: Puoi cambiare il `font-family` per usare un font diverso,
+    o modificare `background-color` e `color` per cambiare il tema di colori (es. tema chiaro).
+*/
 html, body {
-    height: 100%; /* Assicura che l'altezza sia il 100% della viewport */
+    height: 100%; /* Assicura che l'HTML e il body occupino sempre il 100% dell'altezza dello schermo. */
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; /* Font di sistema */
-    background-color: #1a1a1a; /* Colore di sfondo scuro */
-    color: #f0f0f0; /* Colore del testo chiaro */
-    margin: 0; /* Rimuove i margini predefiniti del body */
-    overflow: hidden; /* Nasconde l'overflow per evitare scroll indesiderati */
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; /* Utilizza un set di font di sistema moderni e puliti. */
+    background-color: #1a1a1a; /* Colore di sfondo principale, un grigio molto scuro. */
+    color: #f0f0f0; /* Colore del testo principale, un grigio molto chiaro per contrasto. */
+    margin: 0; /* Rimuove i margini predefiniti del browser per un controllo completo sul layout. */
+    overflow: hidden; /* Impedisce lo scrolling a livello del body, utile per layout a schermo intero. */
 }
 
-/* Stili per i titoli h1 e h2 */
+/*
+  STILI PER I TITOLI
+  - PERSONALIZZAZIONE: Cambia il colore `#00aaff` per modificare il colore principale dei titoli.
+*/
 h1, h2 {
-    color: #00aaff; /* Colore blu acceso per i titoli */
-    margin: 0; /* Rimuove i margini predefiniti */
+    color: #00aaff; /* Un blu acceso per dare risalto ai titoli. */
+    margin: 0; /* Rimuove i margini per un allineamento preciso. */
 }
 
-/* Stili per l'intestazione della sidebar */
+/*
+  HEADER DELLA SIDEBAR
+  - Stili per l'intestazione del menu laterale.
+*/
 .sidebar-header {
-    display: flex; /* Utilizza flexbox per allineare gli elementi */
-    align-items: center; /* Allinea verticalmente al centro */
-    margin-bottom: 15px; /* Margine inferiore */
-    margin-top: 5px; /* Margine superiore */
+    display: flex; /* Usa Flexbox per allineare gli elementi interni (il titolo e lo spaziatore). */
+    align-items: center; /* Allinea verticalmente gli elementi al centro. */
+    margin-bottom: 15px;
+    margin-top: 5px;
 }
 
-/* Spaziatore per l'intestazione della sidebar */
+/* Spaziatore vuoto per allineare il titolo con i contenuti sottostanti. */
 .sidebar-spacer {
-    width: 30px; /* Stessa larghezza del bottone + gap */
-    height: 28px; /* Stessa altezza del bottone */
-    flex-shrink: 0; /* Impedisce che l'elemento si restringa */
+    width: 30px; /* Larghezza fissa per corrispondere allo spazio del pulsante di apertura/chiusura. */
+    height: 28px;
+    flex-shrink: 0; /* Impedisce che si rimpicciolisca se lo spazio è poco. */
 }
 
-/* Stili per il titolo h2 all'interno dell'intestazione della sidebar */
 .sidebar-header h2 {
-    margin: 0; /* Rimuove i margini predefiniti */
-    color: #fff; /* Colore del testo bianco */
-    font-size: 16px; /* Dimensione del font */
-    font-weight: normal; /* Peso del font normale */
-    text-align: center; /* Allineamento del testo al centro */
-    transition: opacity 0.2s ease; /* Transizione per l'opacitÃ  */
-    white-space: nowrap; /* Impedisce il wrapping del testo */
-    overflow: hidden; /* Nasconde il testo in eccesso */
+    margin: 0;
+    color: #fff; /* Testo bianco per il titolo del menu. */
+    font-size: 16px;
+    font-weight: normal; /* Font più leggero del normale. */
+    text-align: center;
+    transition: opacity 0.2s ease; /* Transizione fluida per l'opacità. */
+    white-space: nowrap; /* Impedisce al testo di andare a capo. */
+    overflow: hidden; /* Nasconde il testo se esce dal contenitore. */
 }
 
-/* Stili per l'elemento main */
+/*
+  ELEMENTO MAIN
+  - Contenitore per il contenuto principale (il Launchpad).
+*/
 main {
-    width: 100%; /* Larghezza al 100% */
-    display: flex; /* Utilizza flexbox */
-    justify-content: center; /* Centra orizzontalmente */
-    align-items: center; /* Centra verticalmente */
+    width: 100%;
+    display: flex;
+    justify-content: center; /* Centra il contenuto (il Launchpad) orizzontalmente. */
+    align-items: center; /* Centra il contenuto verticalmente. */
 }
 
-/* Stili per il layout principale */
+/*
+  LAYOUT PRINCIPALE
+  - Utilizza CSS Grid per definire la struttura a due colonne: sidebar e contenuto principale.
+  - `grid-template-columns: 0 1fr;` definisce due colonne: la prima (sidebar) ha larghezza 0,
+    la seconda (body) occupa tutto lo spazio rimanente (`1fr`).
+  - La transizione su `grid-template-columns` crea l'animazione di apertura/chiusura della sidebar.
+*/
 .layout {
-    width: 100%; /* Larghezza al 100% */
-    height: 100vh; /* Altezza al 100% della viewport */
-    display: grid; /* Utilizza CSS Grid per il layout */
-    grid-template-columns: 0 1fr; /* Due colonne: la prima larga 0, la seconda occupa lo spazio rimanente */
-    gap: 8px; /* Spazio tra le colonne */
-    transition: grid-template-columns .3s ease-in-out; /* Transizione per il cambio di layout */
-    position: relative; /* Posizionamento relativo per gli elementi figli */
+    width: 100%;
+    height: 100vh; /* Occupa l'intera altezza della finestra. */
+    display: grid;
+    grid-template-columns: 0 1fr;
+    gap: 8px; /* Spazio tra la sidebar e il contenuto. */
+    transition: grid-template-columns .3s ease-in-out; /* Animazione fluida per la larghezza delle colonne. */
+    position: relative;
 }
 
-/* Stili per il video di sfondo */
+/*
+  STILI PER LO SFONDO VIDEO
+  - Posiziona un video a schermo intero dietro a tutto il resto del contenuto.
+  - `object-fit: cover;` assicura che il video copra l'intera area senza distorcersi.
+  - `z-index: -2;` lo pone sul livello più basso.
+*/
 .background-video {
-    position: fixed; /* Posizionamento fisso */
-    top: 0; /* Allinea in alto */
-    left: 0; /* Allinea a sinistra */
-    width: 100%; /* Larghezza al 100% */
-    height: 100%; /* Altezza al 100% */
-    object-fit: cover; /* Copre l'intera area mantenendo le proporzioni */
-    z-index: -2; /* Posiziona il video dietro gli altri elementi */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: -2;
 }
 
-/* Stili per l'overlay del video */
+/*
+  OVERLAY DEL VIDEO
+  - Un livello che si sovrappone al video per applicare effetti come colore, opacità e sfocatura.
+  - PERSONALIZZAZIONE: Modifica `background-color` per cambiare il colore del filtro.
+    Il valore `rgba(18, 18, 18, 0.15)` è un nero semitrasparente.
+    L'opacità e la sfocatura sono controllate dinamicamente via JavaScript, ma qui puoi impostare i valori di transizione.
+*/
 .video-overlay {
-    position: fixed; /* Posizionamento fisso */
-    top: 0; /* Allinea in alto */
-    left: 0; /* Allinea a sinistra */
-    width: 100%; /* Larghezza al 100% */
-    height: 100%; /* Altezza al 100% */
-    background-color: rgba(18, 18, 18, 0.15); /* Colore di sfondo semi-trasparente */
-    z-index: -1; /* Posiziona l'overlay sopra il video ma sotto gli altri elementi */
-    transition: opacity 0.3s ease, backdrop-filter 0.3s ease; /* Transizioni per opacitÃ  e filtro */
-    opacity: 0; /* Inizialmente trasparente */
-    pointer-events: none; /* Non intercettare eventi del mouse */
-    backdrop-filter: blur(0px); /* Inizialmente nessun blur */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(18, 18, 18, 0.15);
+    z-index: -1; /* Si posiziona tra il video e il contenuto. */
+    transition: opacity 0.3s ease, backdrop-filter 0.3s ease; /* Transizioni per opacità e sfocatura. */
+    opacity: 0; /* Inizialmente invisibile. */
+    pointer-events: none; /* Non intercetta i click del mouse. */
+    backdrop-filter: blur(0px); /* Nessuna sfocatura iniziale. */
 }
 
-/* Stili per l'overlay del video quando Ã¨ attivo */
+/* La classe `.active` viene aggiunta via JS per mostrare l'overlay. */
 .video-overlay.active {
-    opacity: 1; /* Rende l'overlay visibile */
+    opacity: 1;
 }
 
-/* Stili per i controlli video con transizione */
+/*
+  CONTROLLI VIDEO (SLIDER)
+  - Stili per il contenitore degli slider (opacità, sfocatura, luminosità).
+  - L'animazione a comparsa/scomparsa è creata con `max-height` e `padding`.
+*/
 .video-controls {
-    background-color: #252525; /* Stesso sfondo dei dropdown */
+    background-color: #252525; /* Sfondo leggermente diverso dal menu per distinguerlo. */
     border-radius: 4px;
     margin-top: 5px;
-    padding: 0 15px; /* Padding orizzontale, no verticale per la transizione */
-    max-height: 0;
+    padding: 0 15px;
+    max-height: 0; /* Inizialmente chiuso (altezza zero). */
     overflow: hidden;
     transition: max-height 0.3s ease-out, padding 0.3s ease-out;
 }
 
+/* La classe `.visible` viene aggiunta via JS per mostrare i controlli. */
 .video-controls.visible {
-    padding: 15px; /* Padding completo quando visibile */
-    max-height: 500px; /* Altezza sufficiente per contenere gli slider */
+    padding: 15px;
+    max-height: 500px; /* Altezza sufficiente a contenere tutto. */
     transition: max-height 0.4s ease-in, padding 0.4s ease-in;
 }
 
-/* Stili per i gruppi di controlli */
+/*
+  GRUPPI DI CONTROLLO (Etichetta + Slider)
+*/
 .control-group {
-    margin-bottom: 12px; /* Margine inferiore */
-    position: relative; /* Posizionamento relativo */
+    margin-bottom: 12px;
+    position: relative;
 }
 
-/* Rimuove il margine inferiore per l'ultimo gruppo di controlli */
 .control-group:last-child {
-    margin-bottom: 0; /* Nessun margine inferiore */
+    margin-bottom: 0;
 }
 
-/* Stili per le etichette dei controlli */
 .control-group label {
-    display: block; /* Mostra come blocco */
-    font-size: 12px; /* Dimensione del font */
-    color: #ccc; /* Colore del testo */
-    margin-bottom: 5px; /* Margine inferiore */
-    font-weight: 500; /* Peso del font */
+    display: block;
+    font-size: 12px;
+    color: #ccc;
+    margin-bottom: 5px;
+    font-weight: 500;
 }
 
-/* Stili per il gruppo di input (slider e input numerico) */
 .input-group {
-    display: flex; /* Utilizza flexbox */
-    align-items: center; /* Allinea verticalmente al centro */
-    gap: 4px; /* Spazio tra gli elementi */
-    margin-bottom: 4px; /* Margine inferiore */
-    flex-wrap: nowrap; /* Impedisce il wrapping degli elementi */
-    justify-content: space-between; /* Spazia gli elementi in modo uniforme */
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 4px;
+    flex-wrap: nowrap;
+    justify-content: space-between;
 }
 
-/* Stili per gli slider (input di tipo range) */
+/*
+  STILI PER GLI SLIDER
+  - PERSONALIZZAZIONE: Il colore principale dello slider è dato dal `background` del `thumb` (il pallino).
+    Cambia `#00ff88` per modificare il colore del pallino dello slider.
+    Cambia il `background` di `input[type="range"]` per il colore della barra.
+*/
 .control-group input[type="range"] {
-    width: calc(100% - 85px); /* Larghezza calcolata */
-    height: 4px; /* Altezza dello slider */
-    background: #333; /* Colore di sfondo */
-    border-radius: 2px; /* Bordo arrotondato */
-    outline: none; /* Rimuove l'outline al focus */
-    -webkit-appearance: none; /* Rimuove lo stile predefinito di Webkit */
-    appearance: none; /* Rimuove lo stile predefinito per compatibilitÃ  */
-    margin: 0; /* Rimuove i margini */
-    flex-shrink: 1; /* Permette all'elemento di restringersi */
-    min-width: 50px; /* Larghezza minima */
+    width: calc(100% - 85px);
+    height: 4px;
+    background: #333; /* Colore della barra dello slider. */
+    border-radius: 2px;
+    outline: none;
+    -webkit-appearance: none; /* Rimuove stili di default del browser. */
+    appearance: none;
+    margin: 0;
+    flex-shrink: 1;
+    min-width: 50px;
 }
 
-/* Stili per gli input numerici manuali */
+/* Input numerico accanto allo slider. */
 .manual-input {
-    width: 40px; /* Larghezza fissa */
-    height: 16px; /* Altezza fissa */
-    background: #333; /* Colore di sfondo */
-    border: 1px solid #555; /* Bordo */
-    border-radius: 2px; /* Bordo arrotondato */
-    color: #ccc; /* Colore del testo */
-    font-size: 10px; /* Dimensione del font */
-    text-align: center; /* Centra il testo */
-    padding: 0; /* Rimuove il padding */
-    flex-shrink: 0; /* Impedisce all'elemento di restringersi */
+    width: 40px;
+    height: 16px;
+    background: #333;
+    border: 1px solid #555;
+    border-radius: 2px;
+    color: #ccc;
+    font-size: 10px;
+    text-align: center;
+    padding: 0;
+    flex-shrink: 0;
 }
 
-/* Stili per la visualizzazione del valore */
+/* Testo che mostra l'unità di misura (es. 'px', '%'). */
 .value-display {
-    font-size: 10px; /* Dimensione del font */
-    color: #888; /* Colore del testo */
-    margin-left: 1px; /* Margine sinistro */
-    white-space: nowrap; /* Impedisce il wrapping del testo */
-    flex-shrink: 0; /* Impedisce all'elemento di restringersi */
-    display: inline; /* Mostra come inline */
+    font-size: 10px;
+    color: #888;
+    margin-left: 1px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    display: inline;
 }
 
-/* Stili per il thumb dello slider (Webkit) */
+/* Pallino dello slider per browser Webkit (Chrome, Safari). */
 .control-group input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none; /* Rimuove lo stile predefinito di Webkit */
-    width: 14px; /* Larghezza del thumb */
-    height: 14px; /* Altezza del thumb */
-    background: #00ff88; /* Colore di sfondo verde acceso */
-    border-radius: 50%; /* Rende il thumb circolare */
-    cursor: pointer; /* Cambia il cursore a puntatore */
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: #00ff88; /* Colore del pallino (verde neon). */
+    border-radius: 50%; /* Lo rende rotondo. */
+    cursor: pointer;
 }
 
-/* Stili per il thumb dello slider (Mozilla Firefox) */
+/* Pallino dello slider per Firefox. */
 .control-group input[type="range"]::-moz-range-thumb {
-    width: 14px; /* Larghezza del thumb */
-    height: 14px; /* Altezza del thumb */
-    background: #00ff88; /* Colore di sfondo verde acceso */
-    border-radius: 50%; /* Rende il thumb circolare */
-    cursor: pointer; /* Cambia il cursore a puntatore */
-    border: none; /* Rimuove il bordo */
+    width: 14px;
+    height: 14px;
+    background: #00ff88;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
 }
 
-/* Stili per l'elemento body (contenuto principale) */
+/*
+  STILI PER IL CONTENUTO PRINCIPALE (BODY)
+*/
 .body {
-    position: relative; /* Posizionamento relativo */
-    z-index: 2; /* Posiziona sopra il visualizzatore */
+    position: relative;
+    z-index: 2; /* Si posiziona sopra il visualizzatore e lo sfondo. */
 }
 
-/* Stili per il layout quando la sidebar Ã¨ aperta */
+/*
+  LAYOUT CON SIDEBAR APERTA
+  - Quando il `.layout` ha la classe `.sidebar-open`, la prima colonna (sidebar) si espande a 260px.
+  - Questo cambiamento attiva la transizione definita in `.layout`.
+*/
 .layout.sidebar-open {
-    grid-template-columns: 260px 1fr; /* La sidebar occupa 260px, il resto lo spazio rimanente */
+    grid-template-columns: 260px 1fr;
 }
 
-/* Stili per la sidebar */
+/*
+  SIDEBAR
+  - Stili per il menu laterale.
+  - Inizialmente è nascosta (`opacity: 0`, `visibility: hidden`).
+*/
 .sidebar {
-    grid-column: 1; /* Posiziona nella prima colonna della griglia */
-    background-color: #2a2a2a; /* Colore di sfondo scuro */
-    padding: 0px 16px 16px 16px; /* Spaziatura interna */
-    height: 100%; /* Altezza al 100% */
-    position: relative; /* Posizionamento relativo */
-    z-index: 1; /* Posiziona sopra altri elementi */
-    overflow: hidden; /* Nasconde l'overflow */
-    opacity: 0; /* Inizialmente trasparente */
-    visibility: hidden; /* Inizialmente nascosta */
-    transition: opacity 0.3s ease, visibility 0.3s ease; /* Transizioni per opacitÃ  e visibilitÃ  */
+    grid-column: 1; /* Occupa la prima colonna della griglia. */
+    background-color: #2a2a2a;
+    padding: 0px 16px 16px 16px;
+    height: 100%;
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
-/* Stili per la sidebar quando Ã¨ aperta */
+/* La classe `.sidebar-open` sul layout rende visibile la sidebar. */
 .layout.sidebar-open .sidebar {
-    opacity: 1; /* Rende la sidebar visibile */
-    visibility: visible; /* Rende la sidebar visibile */
+    opacity: 1;
+    visibility: visible;
 }
 
-/* Stili per il contenuto della sidebar */
 .sidebar-content {
-    display: flex; /* Utilizza flexbox */
-    flex-direction: column; /* Dispone gli elementi in colonna */
-    gap: 10px; /* Spazio tra gli elementi */
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Spazio tra i vari menu (Progetto, Background, etc.). */
 }
 
-/* Stili per gli elementi del menu */
 .menu-item {
-    display: flex; /* Utilizza flexbox */
-    flex-direction: column; /* Dispone gli elementi in colonna */
+    display: flex;
+    flex-direction: column;
 }
 
-/* Stili per i pulsanti di toggle del menu */
+/*
+  PULSANTI DEL MENU
+  - PERSONALIZZAZIONE: Cambia `background` e `color` per lo stile dei pulsanti.
+    Il colore `:hover` definisce l'aspetto al passaggio del mouse.
+*/
 .menu-toggle {
-    background: #2a2a2a; /* Colore di sfondo */
-    color: white; /* Colore del testo */
-    border: none; /* Rimuove il bordo */
-    padding: 12px 15px; /* Spaziatura interna */
-    border-radius: 4px; /* Bordo arrotondato */
-    cursor: pointer; /* Cambia il cursore a puntatore */
-    text-align: left; /* Allinea il testo a sinistra */
-    font-size: 14px; /* Dimensione del font */
-    transition: background-color 0.2s ease; /* Transizione per il colore di sfondo */
-    white-space: nowrap; /* Impedisce il wrapping del testo */
-    overflow: hidden; /* Nasconde il testo in eccesso */
+    background: #2a2a2a;
+    color: white;
+    border: none;
+    padding: 12px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: left;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;
+    overflow: hidden;
 }
 
-/* Stili per i pulsanti di toggle del menu al passaggio del mouse */
 .menu-toggle:hover {
-    background: #3a3a3a; /* Cambia il colore di sfondo al passaggio del mouse */
+    background: #3a3a3a; /* Colore più chiaro al passaggio del mouse. */
 }
 
-/* Stili per i menu a discesa */
+/*
+  MENU A TENDINA (DROPDOWN)
+  - Contenitori per le opzioni di ogni menu.
+  - L'animazione è gestita tramite `max-height`, passando da 0 a un valore sufficiente a mostrare il contenuto.
+*/
 .menu-dropdown {
-    max-height: 0; /* Inizialmente nascosto */
-    overflow: hidden; /* Nasconde l'overflow */
-    transition: max-height 0.3s ease; /* Transizione per l'altezza massima */
-    background: #252525; /* Colore di sfondo */
-    border-radius: 4px; /* Bordo arrotondato */
-    margin-top: 5px; /* Margine superiore */
+    max-height: 0; /* Inizialmente chiuso. */
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    background: #252525;
+    border-radius: 4px;
+    margin-top: 5px;
 }
 
-/* Stili per i menu a discesa quando sono aperti */
+/* La classe `.open` viene aggiunta via JS per aprire il dropdown. */
 .menu-dropdown.open {
-    max-height: 200px; /* Altezza massima quando aperto */
-    overflow-y: auto; /* Abilita lo scroll verticale se necessario */
+    max-height: 200px; /* Altezza massima. Aumentala se il contenuto non è visibile. */
+    overflow-y: auto; /* Mostra una scrollbar se il contenuto supera l'altezza massima. */
 }
 
-/* Stili per i pulsanti all'interno dei menu a discesa */
+/*
+  PULSANTI DENTRO I MENU A TENDINA
+  - PERSONALIZZAZIONE: Cambia `background` e `color` di `button:hover` e `button.selected`
+    per modificare l'aspetto dell'opzione selezionata o al passaggio del mouse.
+*/
 .menu-dropdown button {
-    display: block; /* Mostra come blocco */
-    width: 100%; /* Larghezza al 100% */
-    background: none; /* Nessun colore di sfondo */
-    color: #ccc; /* Colore del testo */
-    border: none; /* Rimuove il bordo */
-    padding: 10px 15px; /* Spaziatura interna */
-    text-align: left; /* Allinea il testo a sinistra */
-    cursor: pointer; /* Cambia il cursore a puntatore */
-    font-size: 13px; /* Dimensione del font */
-    transition: background-color 0.2s ease, color 0.2s ease; /* Transizioni per colore di sfondo e testo */
+    display: block;
+    width: 100%;
+    background: none;
+    color: #ccc;
+    border: none;
+    padding: 10px 15px;
+    text-align: left;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Stili per i pulsanti all'interno dei menu a discesa al passaggio del mouse */
 .menu-dropdown button:hover,
 .menu-dropdown button.selected {
-    background: #333; /* Cambia il colore di sfondo al passaggio del mouse */
-    color: white; /* Cambia il colore del testo al passaggio del mouse */
+    background: #333;
+    color: white;
 }
 
-/* Stili personalizzati per la scrollbar */
+/*
+  SCROLLBAR PERSONALIZZATA
+  - Stili per la barra di scorrimento all'interno dei menu a tendina.
+  - PERSONALIZZAZIONE: Cambia i colori di `background` per `-track` e `-thumb` per adattarla al tuo tema.
+*/
 .menu-dropdown::-webkit-scrollbar {
-    width: 8px; /* Larghezza della scrollbar */
+    width: 8px;
 }
 
 .menu-dropdown::-webkit-scrollbar-track {
-    background: #2a2a2a; /* Colore dello sfondo della traccia della scrollbar */
-    border-radius: 10px; /* Bordo arrotondato per la traccia */
+    background: #2a2a2a;
+    border-radius: 10px;
 }
 
 .menu-dropdown::-webkit-scrollbar-thumb {
-    background: #00aaff; /* Colore del "pollice" della scrollbar */
-    border-radius: 10px; /* Bordo arrotondato per il pollice */
+    background: #00aaff; /* Colore della barra di scorrimento (blu). */
+    border-radius: 10px;
 }
 
 .menu-dropdown::-webkit-scrollbar-thumb:hover {
-    background: #0088cc; /* Colore del pollice al passaggio del mouse */
+    background: #0088cc; /* Colore al passaggio del mouse. */
 }
 
-/* Stili per il pulsante di apertura della sidebar */
+/*
+  PULSANTE APRI/CHIUDI SIDEBAR (Hamburger menu)
+  - PERSONALIZZAZIONE: Cambia `background-color` per modificare il colore del pulsante.
+*/
 #openSidebar {
-    position: fixed; /* Posizionamento fisso */
-    top: 0; /* Allinea in alto */
-    left: 0; /* Allinea a sinistra */
-    background-color: #00aaff; /* Colore di sfondo blu acceso */
-    border: none; /* Rimuove il bordo */
-    color: white; /* Colore del testo bianco */
-    padding: 10px 10px; /* Spaziatura interna */
-    border-radius: 3px; /* Bordo arrotondato */
-    cursor: pointer; /* Cambia il cursore a puntatore */
-    z-index: 3; /* Posiziona sopra tutti gli altri elementi */
-    transition: background-color 0.3s ease; /* Transizione per il colore di sfondo */
-    font-size: 18px; /* Dimensione del font */
-    line-height: 1; /* Altezza della linea */
-    margin: 0; /* Rimuove i margini */
+    position: fixed;
+    top: 0;
+    left: 0;
+    background-color: #00aaff; /* Colore blu. */
+    border: none;
+    color: white;
+    padding: 10px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    z-index: 3; /* Si posiziona sopra quasi tutto. */
+    transition: background-color 0.3s ease;
+    font-size: 18px;
+    line-height: 1;
+    margin: 0;
 }
 
-/* Stili per il pulsante di apertura della sidebar al passaggio del mouse */
 #openSidebar:hover {
-    background-color: #0088cc; /* Cambia il colore di sfondo al passaggio del mouse */
+    background-color: #0088cc;
 }
 
-/* Stili per l'icona all'interno del pulsante di apertura della sidebar */
+/* Icona dentro il pulsante (le tre linee). */
 #openSidebar .icon {
-    display: inline-block; /* Mostra come inline-block */
-    transition: transform 0.3s ease; /* Transizione per la trasformazione */
-    font-size: 20px; /* Dimensione del font */
-    line-height: 1; /* Altezza della linea */
-    margin: 0; /* Rimuove i margini */
-    padding: 0; /* Rimuove il padding */
+    display: inline-block;
+    transition: transform 0.3s ease; /* Anima la rotazione. */
+    font-size: 20px;
+    line-height: 1;
+    margin: 0;
+    padding: 0;
 }
 
-/* Stili per l'icona quando la sidebar Ã¨ aperta (rotazione) */
+/* Quando la sidebar è aperta, l'icona ruota per diventare una 'X' (o simile). */
 .layout.sidebar-open #openSidebar .icon {
-    transform: rotate(90deg); /* Ruota l'icona di 90 gradi */
+    transform: rotate(90deg);
 }
 
-/* Stili per il contenuto principale (body) */
+/*
+  CONTENITORE DEL CORPO PRINCIPALE
+  - Occupa la seconda colonna della griglia.
+*/
 .body {
-    grid-column: 2; /* Posiziona nella seconda colonna della griglia */
-    display: flex; /* Utilizza flexbox */
-    justify-content: center; /* Centra orizzontalmente */
-    align-items: center; /* Centra verticalmente */
-    min-height: 100vh; /* Altezza minima al 100% della viewport */
-    position: relative; /* Posizionamento relativo */
+    grid-column: 2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    position: relative;
 }
 
-/* Visualizer Canvas Styles */
+/*
+  STILI PER IL VISUALIZZATORE AUDIO (CANVAS)
+  - Posiziona i due canvas (superiore e inferiore) ai bordi della finestra.
+  - `pointer-events: none;` permette di cliccare attraverso il canvas sugli elementi sottostanti.
+  - La transizione su `left` e `width` permette al canvas di adattarsi fluidamente all'apertura/chiusura della sidebar.
+*/
 .visualizer-canvas {
     position: fixed;
     left: 0;
     width: 100%;
-    height: 25%;
-    z-index: 1;
+    height: 25%; /* Altezza del visualizzatore. Puoi cambiarla per renderlo più grande o più piccolo. */
+    z-index: 1; /* Si posiziona sotto il contenuto principale ma sopra lo sfondo. */
     pointer-events: none;
-    transition: left 0.3s ease-in-out, width 0.3s ease-in-out; /* Added transition */
+    transition: left 0.3s ease-in-out, width 0.3s ease-in-out;
 }
 #visualizer-canvas-top { top: 0; }
 #visualizer-canvas-bottom { bottom: 0; }
 
-/* Adjust visualizer when sidebar is open */
+/* Adatta la posizione e la larghezza del visualizzatore quando la sidebar è aperta. */
 .layout.sidebar-open .visualizer-canvas {
-    left: 260px;
-    width: calc(100% - 260px);
+    left: 260px; /* Sposta l'inizio del canvas a destra della sidebar. */
+    width: calc(100% - 260px); /* Riduce la larghezza per non sovrapporsi alla sidebar. */
 }
 
-
-/* Animazione per feedback di errore */
+/*
+  ANIMAZIONE DI ERRORE
+  - Un'animazione 'shake' (scuotimento) usata per dare un feedback visivo, per esempio
+    quando si cerca di usare una funzione non disponibile (come il MIDI).
+*/
 @keyframes shake {
-  10%, 90% {
-    transform: translate3d(-1px, 0, 0);
-  }
-  20%, 80% {
-    transform: translate3d(2px, 0, 0);
-  }
-  30%, 50%, 70% {
-    transform: translate3d(-4px, 0, 0);
-  }
-  40%, 60% {
-    transform: translate3d(4px, 0, 0);
-  }
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
 }
 
 .error-shake {
