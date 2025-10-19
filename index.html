@@ -173,6 +173,44 @@
                 <input type="number" id="smoothing-input" min="0" max="0.95" step="0.05" value="0.8" class="manual-input">
               </div>
             </div>
+
+            <!-- Controlli per colore e trasparenza -->
+            <div class="control-group" style="padding: 15px 15px 5px 15px;">
+              <label for="color1-picker">Colore 1</label>
+              <div class="input-group">
+                <input type="color" id="color1-picker" value="#00aaff">
+              </div>
+            </div>
+            <div class="control-group" style="padding: 15px 15px 5px 15px;">
+              <label for="enable-color2-checkbox">
+                <input type="checkbox" id="enable-color2-checkbox">
+                Abilita Gradiente
+              </label>
+            </div>
+            <div id="gradient-controls" style="display: none;">
+              <div class="control-group" style="padding: 15px 15px 5px 15px;">
+                <label for="color2-picker">Colore 2</label>
+                <div class="input-group">
+                  <input type="color" id="color2-picker" value="#00aaff">
+                </div>
+              </div>
+              <div class="control-group" style="padding: 15px 15px 5px 15px;">
+                <label for="gradient-direction">Direzione Gradiente</label>
+                <select id="gradient-direction">
+                  <option value="vertical">Verticale</option>
+                  <option value="horizontal">Orizzontale</option>
+                  <option value="vertical-reverse">Verticale (inverso)</option>
+                  <option value="horizontal-reverse">Orizzontale (inverso)</option>
+                </select>
+              </div>
+            </div>
+            <div class="control-group" style="padding: 15px 15px 5px 15px;">
+              <label for="alpha-slider">Trasparenza</label>
+              <div class="input-group">
+                <input type="range" id="alpha-slider" min="0" max="1" step="0.05" value="0.6">
+                <input type="number" id="alpha-input" min="0" max="1" step="0.05" value="0.6" class="manual-input">
+              </div>
+            </div>
           </div>
         </div>
 

@@ -36,20 +36,37 @@ export class Visualizer {
         this.dataArray = new Uint8Array(this.bufferLength);
 
         // Imposta una modalità di visualizzazione iniziale.
-        // PERSONALIZZAZIONE: Puoi cambiare questo valore in 'off', 'top', 'bottom', o 'both'.
         this.mode = 'both'; 
+
+        // Impostazioni di personalizzazione
+        this.color1 = '#00aaff';
+        this.color2 = '#00aaff';
+        this.gradientDirection = 'vertical';
+        this.alpha = 0.6;
+    }
+
+    /**
+     * Converte un colore esadecimale in formato RGBA.
+     * @param {string} hex - Il colore esadecimale (es. '#RRGGBB').
+     * @param {number} alpha - Il valore di trasparenza (da 0 a 1).
+     * @returns {string} - La stringa del colore in formato `rgba(r, g, b, alpha)`.
+     */
+    hexToRgba(hex, alpha) {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     }
 
     /**
      * Ridimensiona i canvas per adattarli alla larghezza della finestra e a un'altezza fissa.
-     * Questo metodo viene chiamato al momento della creazione e ogni volta che la finestra del browser viene ridimensionata.
      */
     resize() {
         this.canvasTop.width = window.innerWidth;
-        this.canvasTop.height = window.innerHeight * 0.25; // Occupa il 25% superiore dello schermo.
+        this.canvasTop.height = window.innerHeight * 0.25;
         
         this.canvasBottom.width = window.innerWidth;
-        this.canvasBottom.height = window.innerHeight * 0.25; // Occupa il 25% inferiore dello schermo.
+        this.canvasBottom.height = window.innerHeight * 0.25;
     }
 
     /**
@@ -58,78 +75,100 @@ export class Visualizer {
      */
     setMode(mode) {
         this.mode = mode;
-        // Pulisce immediatamente i canvas quando la modalità cambia per evitare che l'ultimo frame rimanga visibile.
         this.ctxTop.clearRect(0, 0, this.canvasTop.width, this.canvasTop.height);
         this.ctxBottom.clearRect(0, 0, this.canvasBottom.width, this.canvasBottom.height);
     }
 
     /**
-     * Imposta la fluidità dell'animazione del visualizzatore.
-     * @param {number} value - Un valore tra 0 e 1 che imposta `smoothingTimeConstant` dell'analizzatore.
+     * Imposta la fluidità dell'animazione.
+     * @param {number} value - Valore tra 0 e 1 per `smoothingTimeConstant`.
      */
     setSmoothing(value) {
         this.analyser.smoothingTimeConstant = value;
     }
 
     /**
+     * Imposta i colori per il visualizzatore.
+     * @param {string} color1 - Il primo colore.
+     * @param {string} color2 - Il secondo colore (opzionale, per il gradiente).
+     */
+    setColors(color1, color2) {
+        this.color1 = color1;
+        this.color2 = color2 || color1;
+    }
+
+    /**
+     * Imposta la direzione del gradiente.
+     * @param {string} direction - 'vertical', 'horizontal', etc.
+     */
+    setGradientDirection(direction) {
+        this.gradientDirection = direction;
+    }
+
+    /**
+     * Imposta la trasparenza del visualizzatore.
+     * @param {number} alpha - Valore di trasparenza da 0 a 1.
+     */
+    setAlpha(alpha) {
+        this.alpha = alpha;
+    }
+
+    /**
      * Il ciclo di disegno principale (animation loop).
-     * Viene chiamato ricorsivamente tramite `requestAnimationFrame` per un'animazione fluida ed efficiente.
      */
     draw() {
-        // Richiede al browser di eseguire questo metodo `draw` al prossimo frame di animazione disponibile.
         requestAnimationFrame(() => this.draw());
 
-        // Se la modalità è 'off', interrompe il ciclo di disegno qui, risparmiando risorse.
         if (this.mode === 'off') return;
 
-        // 1. OTTENERE I DATI AUDIO
-        // Copia i dati di frequenza correnti (in decibel) nell'array `dataArray`.
         this.analyser.getByteFrequencyData(this.dataArray);
 
-        // 2. PULIRE I CANVAS
-        // È necessario pulire l'intero canvas a ogni frame per non sovrapporre i disegni precedenti.
         this.ctxTop.clearRect(0, 0, this.canvasTop.width, this.canvasTop.height);
         this.ctxBottom.clearRect(0, 0, this.canvasBottom.width, this.canvasBottom.height);
 
-        // 3. IMPOSTARE I PARAMETRI DI DISEGNO
-        // PERSONALIZZAZIONE:
-        // - `* 1.5`: Aumenta la larghezza delle barre. Un valore più alto crea barre più spesse e meno numerose.
         const barWidth = (this.canvasBottom.width / this.bufferLength) * 1.5;
         let barHeight;
-        let x = 0; // Posizione orizzontale della prima barra.
+        let x = 0;
 
-        // 4. CICLARE SUI DATI E DISEGNARE
         for (let i = 0; i < this.bufferLength; i++) {
-            // Il valore in `dataArray[i]` va da 0 a 255. Lo scaliamo per ottenere un'altezza visivamente piacevole.
-            // PERSONALIZZAZIONE: Aumenta il moltiplicatore (es. `* 1.0`) per barre più alte e reattive.
             barHeight = this.dataArray[i] * 0.7;
 
-            // PERSONALIZZAZIONE DEL COLORE:
-            // Puoi creare gradienti o colori dinamici qui. Per esempio, basando il colore sull'altezza della barra:
-            // const g = barHeight; // Verde
-            // const b = 255 - barHeight; // Blu
-            // this.ctxBottom.fillStyle = `rgb(0, ${g}, ${b})`;
-            const fillColor = `rgba(0, 170, 255, 0.6)`; // Blu semitrasparente.
+            // Creazione dello stile di riempimento (gradiente o colore singolo)
+            const createGradient = (ctx, y1, y2) => {
+                let grad;
+                switch (this.gradientDirection) {
+                    case 'horizontal':
+                        grad = ctx.createLinearGradient(0, 0, this.canvasBottom.width, 0);
+                        break;
+                    case 'horizontal-reverse':
+                        grad = ctx.createLinearGradient(this.canvasBottom.width, 0, 0, 0);
+                        break;
+                    case 'vertical-reverse':
+                        grad = ctx.createLinearGradient(0, y2, 0, y1);
+                        break;
+                    default: // vertical
+                        grad = ctx.createLinearGradient(0, y1, 0, y2);
+                        break;
+                }
+                grad.addColorStop(0, this.hexToRgba(this.color1, this.alpha));
+                grad.addColorStop(1, this.hexToRgba(this.color2, this.alpha));
+                return grad;
+            };
 
-            // --- Disegna sul canvas inferiore (le barre crescono dal basso verso l'alto) ---
+            // Disegna sul canvas inferiore
             if (this.mode === 'bottom' || this.mode === 'both') {
-                this.ctxBottom.fillStyle = fillColor;
-                this.ctxBottom.fillRect(
-                    x, // Posizione X
-                    this.canvasBottom.height - barHeight, // Posizione Y (parte dall'altezza del canvas e va verso l'alto)
-                    barWidth, // Larghezza della barra
-                    barHeight // Altezza della barra
-                );
+                const grad = createGradient(this.ctxBottom, this.canvasBottom.height, this.canvasBottom.height - barHeight);
+                this.ctxBottom.fillStyle = grad;
+                this.ctxBottom.fillRect(x, this.canvasBottom.height - barHeight, barWidth, barHeight);
             }
 
-            // --- Disegna sul canvas superiore (le barre crescono dall'alto verso il basso) ---
+            // Disegna sul canvas superiore
             if (this.mode === 'top' || this.mode === 'both') {
-                this.ctxTop.fillStyle = fillColor;
+                const grad = createGradient(this.ctxTop, 0, barHeight);
+                this.ctxTop.fillStyle = grad;
                 this.ctxTop.fillRect(x, 0, barWidth, barHeight);
             }
 
-            // Sposta la posizione orizzontale per la barra successiva.
-            // PERSONALIZZAZIONE: Aumenta il valore `+ 2` per avere più spazio tra le barre.
             x += barWidth + 2;
         }
     }

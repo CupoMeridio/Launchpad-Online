@@ -245,6 +245,47 @@ main {
     border: none;
 }
 
+/* Stili per i selettori di colore */
+.control-group input[type="color"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 40px; /* Larghezza simile all'input numerico */
+    height: 20px;
+    background-color: transparent; /* Rimuove lo sfondo di default */
+    border: 1px solid #555;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 0;
+}
+
+.control-group input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 2px; /* Spazio interno per il campione di colore */
+    border-radius: 3px;
+}
+
+.control-group input[type="color"]::-webkit-color-swatch {
+    border: none;
+    border-radius: 2px;
+}
+
+/* Stili per il menu a tendina (select) */
+.control-group select {
+    background-color: #333;
+    color: #ccc;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    width: 100%; /* Occupa tutta la larghezza disponibile */
+    box-sizing: border-box;
+}
+
+.control-group select:focus {
+    outline: none;
+    border-color: #00aaff;
+}
+
+
 /*
   STILI PER IL CONTENUTO PRINCIPALE (BODY)
 */
