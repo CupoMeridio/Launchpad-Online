@@ -79,7 +79,9 @@ The app automatically detects compatible MIDI controllers. For optimal experienc
 
 ## 📱 PWA Installation
 
-1. Open the app in a supported browser (Chrome, Edge, Safari)
+While optional, installing the app as a PWA provides a native-like experience. You can also use the app directly from your browser without installation.
+
+1. Open the app in a **Chrome** browser. While other Chromium-based browsers might support PWA installation, Chrome is recommended. Firefox compatibility is not guaranteed, and Safari is currently not supported due to missing library support.
 2. Look for the "Install" button in the address bar
 3. Follow the prompts to install as a standalone app
 4. Launch from your device's app drawer for a native-like experience
