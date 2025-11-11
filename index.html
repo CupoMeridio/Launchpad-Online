@@ -235,6 +235,21 @@
             <button class="menu-option" onclick="setLaunchpadBackground(null)">Default</button>
           </div>
         </div>
+
+        <!--
+          MENU MIDI
+          - Mostra lo stato di connessione del Launchpad.
+        -->
+        <div class="menu-item">
+          <button class="menu-toggle" onclick="toggleMenu('midi-menu')">MIDI</button>
+          <div class="menu-dropdown" id="midi-menu">
+            <div class="control-group" style="padding: 15px 15px 5px 15px;">
+              <div id="midi-status" style="text-align: center; padding: 10px; border-radius: 5px; font-weight: bold;">
+                Launchpad Non Connesso ✗
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     
