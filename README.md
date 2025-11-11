@@ -1,6 +1,6 @@
 # Launchpad Online
 
-A Progressive Web App (PWA) that transforms your browser into a playable launchpad. This project aims to be a simplified alternative to complex software like Ableton, which, while comprehensive, can be overwhelming for newcomers due to its broad range of functionalities not specific to launchpads. Our goal is to provide an intuitive and accessible tool specifically designed for launchpad enthusiasts, making music creation fun and immediate for everyone.
+A Progressive Web App (PWA) that transforms your browser into a playable launchpad. This project aims to be a simplified alternative to complex software like Ableton, which, while comprehensive, can be overwhelming for newcomers due to its broad range of functionalities not specific to launchpads. The goal is to provide an intuitive and accessible tool specifically designed for launchpad enthusiasts, making music creation fun and immediate for everyone.
 
 ## 🚀 Features
 
