@@ -1,5 +1,4 @@
 import { audioEngine } from './audio.js';
-import { setActivePageLED } from './midi.js';
 import { currentPage, currentProject, activePageButton, setCurrentPage, setActivePageButton } from './app.js';
 
 /**
@@ -48,8 +47,6 @@ export function changeSoundSet(index) {
         if (activePageButton) {
             activePageButton.classList.add('selected');
         }
-        
-        setActivePageLED(index);
     } else {
         console.warn(`Tentativo di accesso a pagina non esistente: ${index}`);
         const launchpadElement = document.getElementById('Launchpad');
