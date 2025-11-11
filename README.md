@@ -115,9 +115,8 @@ This project is open for contributions! Areas where help is welcome:
 ## 🙏 Acknowledgments
 
 Inspired by:
-- **Super Pads Lights DJ Launchpad**: An application for Android and iOS <mcurl name="Super Pads Lights DJ Launchpad" url="https://play.google.com/store/apps/details?id=com.opalastudios.superlaunchpad&hl=en&pli=1"></mcurl>
+- **[Super Pads Lights DJ Launchpad](https://play.google.com/store/apps/details?id=com.opalastudios.superlaunchpad&hl=en&pli=1)**: An application for Android and iOS
 - **Unipad**: A program available for both desktop and mobile devices
-- **Websites like launchpad.digitalraven.studio**: <mcurl name="launchpad.digitalraven.studio" url="https://launchpad.digitalraven.studio/"></mcurl>
-- **And intro.novationmusic.com/viral-hiphop**: <mcurl name="intro.novationmusic.com/viral-hiphop" url="https://intro.novationmusic.com/viral-hiphop"></mcurl>
+- **Websites like [Launchpad Arcade](https://intro.novationmusic.com/)**
 
 Special thanks to the Web Audio API and Web MIDI API communities for making browser-based music creation possible.
