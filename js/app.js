@@ -16,11 +16,11 @@ import { loadProject, initializeProjectMenu, initializeBackgroundMenu } from './
 import { initializePersonalizeLaunchpadMenu } from './ui.js';
 
 // ----------------------------------------------------------------------------
-// STATO GLOBALE DELL'APPLICAZIONE
+// APPLICATION GLOBAL STATE
 // ----------------------------------------------------------------------------
-// Esportiamo le variabili di stato e le funzioni per modificarle.
-// In questo modo, gli altri moduli possono importare e modificare lo stato
-// in modo controllato, senza usare variabili globali non sicure.
+// Export state variables and functions to modify them.
+// This way, other modules can import and modify state
+// in a controlled manner, without using unsafe global variables.
 
 export let currentProject = null;
 export let selectedProjectButton = null;
@@ -35,10 +35,10 @@ export function setCurrentPage(p) { currentPage = p; }
 export function setActivePageButton(b) { activePageButton = b; }
 
 // ----------------------------------------------------------------------------
-// PUNTO DI INGRESSO PRINCIPALE (DOMContentLoaded)
+// MAIN ENTRY POINT (DOMContentLoaded)
 // ----------------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', async function() {
-    // --- 1. Sblocco dell'AudioContext ---
+    // --- 1. AudioContext Unlock ---
     const unlockOverlay = document.getElementById('audio-unlock-overlay');
     const unlockAudioAndHideOverlay = () => {
         if (unlockOverlay) {
@@ -46,22 +46,22 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
         if (audioEngine.audioContext.state === 'suspended') {
             audioEngine.audioContext.resume().then(() => {
-                console.log('AudioContext ripreso con successo.');
+                console.log('AudioContext resumed successfully.');
             });
         }
     };
     document.addEventListener('click', unlockAudioAndHideOverlay, { once: true });
     document.addEventListener('touchstart', unlockAudioAndHideOverlay, { once: true });
 
-    // --- 2. Inizializzazione dei controlli UI ---
+    // --- 2. UI Controls Initialization ---
     initializeVideoControls();
     initializeVisualizerControls();
 
-    // --- 3. Caricamento dei dati statici per i menu ---
+    // --- 3. Static Data Loading for Menus ---
     try {
         const response = await fetch('js/static-data.json');
         if (!response.ok) {
-            throw new Error(`Errore HTTP: ${response.status}`);
+            throw new Error(`HTTP Error: ${response.status}`);
         }
         const data = await response.json();
 
@@ -69,17 +69,17 @@ document.addEventListener('DOMContentLoaded', async function() {
         initializePersonalizeLaunchpadMenu(data.skins);
         initializePersonalizeLaunchpadMenu(data.skins);
 
-        // --- 4. Caricamento del progetto di default ---
+        // --- 4. Default Project Loading ---
         if (data.projects && data.projects.length > 0) {
             const firstProjectButton = document.querySelector('#project-menu .menu-option');
             await loadProject(data.projects[0].configPath, firstProjectButton);
         }
 
     } catch (error) {
-        console.error("Impossibile caricare i dati statici per i menu:", error);
+        console.error("Unable to load static data for menus:", error);
     }
 
-    // --- 5. Inizializzazione del visualizzatore audio ---
+    // --- 5. Audio Visualizer Initialization ---
     try {
         const analyser = audioEngine.getAnalyser();
         const canvasTop = document.getElementById('visualizer-canvas-top');
@@ -87,26 +87,26 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         const visualizer = new Visualizer(analyser, canvasTop, canvasBottom);
         visualizer.draw();
-        // L'oggetto visualizer deve essere globale perché è usato dagli attributi onclick nell'HTML
+        // The visualizer object must be global as it's used by onclick attributes in HTML
         window.visualizer = visualizer;
 
     } catch (error) {
-        console.error("Impossibile inizializzare il visualizzatore:", error);
+        console.error("Unable to initialize visualizer:", error);
     }
 
-    // --- 6. Inizializzazione del supporto MIDI ---
+    // --- 6. MIDI Support Initialization ---
     try {
         await initMidi();
     } catch (error) {
-        console.error("Errore durante l'inizializzazione MIDI:", error);
+        console.error("Error during MIDI initialization:", error);
     }
 
-    // --- 7. Registrazione del Service Worker ---
+    // --- 7. Service Worker Registration ---
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('/service-worker.js')
-                .then(registration => console.log('Service Worker registrato: ', registration))
-                .catch(registrationError => console.log('Registrazione Service Worker fallita: ', registrationError));
+                .then(registration => console.log('Service Worker registered: ', registration))
+                .catch(registrationError => console.log('Service Worker registration failed: ', registrationError));
         });
     }
 });

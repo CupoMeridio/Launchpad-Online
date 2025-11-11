@@ -3,33 +3,33 @@
  * MIDI MODULE (midi.js)
  * =============================================================================
  * 
- * Questo modulo gestisce l'interazione con controller MIDI fisici, in particolare
- * il Novation Launchpad, utilizzando la libreria launchpad-webmidi.
- * È una funzionalità avanzata che richiede:
- * 1. Un browser che supporti la Web MIDI API (es. Chrome, Edge, Opera).
- * 2. Un controller Launchpad (o compatibile) collegato al computer.
+ * This module handles interaction with physical MIDI controllers, specifically
+ * the Novation Launchpad, using the launchpad-webmidi library.
+ * This is an advanced feature that requires:
+ * 1. A browser that supports Web MIDI API (e.g., Chrome, Edge, Opera).
+ * 2. A connected Launchpad controller (or compatible device).
  *
- * Le sue responsabilità sono:
- * - Rilevare e connettersi al dispositivo Launchpad tramite launchpad-webmidi.
- * - Mappare i segnali MIDI in ingresso (pressione dei pad) alle azioni dell'applicazione.
+ * Its responsibilities are:
+ * - Detect and connect to the Launchpad device via launchpad-webmidi.
+ * - Map incoming MIDI signals (pad presses) to application actions.
  */
 
-// Importa la libreria launchpad-webmidi
+// Import launchpad-webmidi library
 import Launchpad from './vendor/launchpad-webmidi.js';
 
-// Istanza del Launchpad
+// Launchpad instance
 let launchpad = null;
 
 /**
- * Aggiorna l'indicatore visivo dello stato MIDI nell'interfaccia.
- * @param {boolean} connected - True se il Launchpad è connesso, false altrimenti.
+ * Updates the visual MIDI status indicator in the interface.
+ * @param {boolean} connected - True if Launchpad is connected, false otherwise.
  */
 function updateMidiStatus(connected) {
-    // Cerca di trovare o creare un indicatore di stato MIDI
+    // Try to find or create a MIDI status indicator
     let statusIndicator = document.getElementById('midi-status');
     
     if (!statusIndicator) {
-        // Se non esiste, creane uno temporaneo
+        // If it doesn't exist, create a temporary one
         statusIndicator = document.createElement('div');
         statusIndicator.id = 'midi-status';
         statusIndicator.style.position = 'fixed';
@@ -44,83 +44,83 @@ function updateMidiStatus(connected) {
     }
     
     if (connected) {
-        statusIndicator.textContent = 'Launchpad Connesso ✓';
+        statusIndicator.textContent = 'Launchpad Connected ✓';
         statusIndicator.style.backgroundColor = '#4CAF50';
         statusIndicator.style.color = 'white';
     } else {
-        statusIndicator.textContent = 'Launchpad Non Connesso ✗';
+        statusIndicator.textContent = 'Launchpad Disconnected ✗';
         statusIndicator.style.backgroundColor = '#f44336';
         statusIndicator.style.color = 'white';
     }
 }
 
 /**
- * Configura i gestori eventi per il Launchpad utilizzando la libreria.
+ * Sets up event handlers for the Launchpad using the library.
  */
 function setupLaunchpadEvents() {
     if (!launchpad) return;
     
-    // Gestore per gli eventi dei tasti (pressione e rilascio)
+    // Handler for key events (press and release)
     launchpad.on('key', (event) => {
         const { x, y, pressed } = event;
         
-        // Solo quando il tasto viene premuto (non quando viene rilasciato)
+        // Only when key is pressed (not when released)
         if (!pressed) return;
         
-        // I pulsanti laterali (Scene) hanno x=8
+        // Side buttons (Scene) have x=8
         if (x === 8 && y < 8) {
-            // Cambio pagina
+            // Page change
             const pageIndex = y + 1;
             window.changeSoundSet(pageIndex);
         } else if (x < 8 && y < 8) {
-            // Pad della griglia 8x8 (escludiamo gli Automap che hanno y=8)
+            // 8x8 grid pads (excluding Automap buttons which have y=8)
             const padIndex = y * 8 + x;
             window.triggerPad(padIndex);
         }
-        // Gestore per i tasti automap in alto (y=8)
+        // Handler for top automap buttons (y=8)
         else if (y === 8 && x < 8) {
-            // Tasti automap - funzionalità future
+            // Automap buttons - future functionality
         }
     });
 }
 
 /**
- * Inizializza la connessione con il Launchpad tramite launchpad-webmidi.
- * Questo è il punto di ingresso del modulo, chiamato da `app.js`.
+ * Initializes connection with the Launchpad via launchpad-webmidi.
+ * This is the module entry point, called by `app.js`.
  */
 export async function initMidi() {
-    console.log("[MIDI] Inizializzazione connessione Launchpad...");
+    console.log("[MIDI] Initializing Launchpad connection...");
     
     try {
-        // Controlla se la libreria è disponibile
+        // Check if library is available
         if (!Launchpad) {
-            throw new Error("Libreria launchpad-webmidi non caricata correttamente");
+            throw new Error("launchpad-webmidi library not loaded correctly");
         }
 
-        // Crea l'istanza Launchpad
-        launchpad = new Launchpad(''); // Nome vuoto per trovare qualsiasi Launchpad
+        // Create Launchpad instance
+        launchpad = new Launchpad(''); // Empty name to find any Launchpad
         
-        // Connettiti al Launchpad
+        // Connect to Launchpad
         await launchpad.connect();
-        console.log(`[MIDI] Launchpad ${launchpad.name || ''} connesso`);
+        console.log(`[MIDI] Launchpad ${launchpad.name || ''} connected`);
         
-        // Aggiungi indicatore visivo di connessione
+        // Add visual connection indicator
         updateMidiStatus(true);
         
-        // Imposta i gestori eventi per i pad
+        // Set up pad event handlers
         setupLaunchpadEvents();
         
-        // Gestisci la disconnessione
+        // Handle disconnection
         if (launchpad && launchpad.on) {
             launchpad.on('disconnect', () => {
-                console.log("[MIDI] Launchpad disconnesso");
+                console.log("[MIDI] Launchpad disconnected");
                 updateMidiStatus(false);
                 launchpad = null;
             });
         }
         
     } catch (error) {
-        console.log("[MIDI] Launchpad non trovato");
+        console.log("[MIDI] Launchpad not found");
         updateMidiStatus(false);
     }
 }

@@ -3,127 +3,124 @@
  * AUDIO ENGINE (audio.js)
  * =============================================================================
  * 
- * Questo modulo incapsula tutta la logica relativa all'audio utilizzando la Web Audio API.
- * È strutturato come una classe `AudioEngine` per mantenere uno stato pulito e organizzato.
- * Le sue responsabilità principali sono:
- * 1. Creare e gestire il contesto audio (`AudioContext`).
- * 2. Caricare i file audio in modo asincrono e decodificarli in `AudioBuffer`.
- * 3. Riprodurre i suoni quando richiesto.
- * 4. Fornire un `AnalyserNode` per permettere ad altri moduli (come il visualizzatore)
- *    di analizzare i dati audio in tempo reale.
+ * This module encapsulates all audio-related logic using the Web Audio API.
+ * It is structured as an `AudioEngine` class to maintain clean and organized state.
+ * Its main responsibilities are:
+ * 1. Create and manage the audio context (`AudioContext`).
+ * 2. Load audio files asynchronously and decode them into `AudioBuffer`.
+ * 3. Play sounds when requested.
+ * 4. Provide an `AnalyserNode` to allow other modules (like the visualizer)
+ *    to analyze audio data in real-time.
  */
 
 class AudioEngine {
     /**
-     * Il costruttore inizializza il motore audio.
+     * Constructor initializes the audio engine.
      */
     constructor() {
-        // 1. CREAZIONE DEL CONTESTO AUDIO
-        // `AudioContext` è il punto di accesso centrale per la Web Audio API.
-        // Il costrutto `(window.AudioContext || window.webkitAudioContext)` garantisce la compatibilità
-        // con browser più vecchi che usavano una versione prefissata.
+        // 1. AUDIO CONTEXT CREATION
+        // `AudioContext` is the central access point for Web Audio API.
+        // The construct `(window.AudioContext || window.webkitAudioContext)` ensures compatibility
+        // with older browsers that used a prefixed version.
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         
-        // 2. CREAZIONE DELL'ANALIZZATORE
-        // `AnalyserNode` è un componente che fornisce dati sulla frequenza e sulla forma d'onda
-        // dell'audio che lo attraversa, senza modificarlo. È fondamentale per il visualizzatore.
+        // 2. ANALYZER CREATION
+        // `AnalyserNode` is a component that provides frequency and waveform data
+        // of audio passing through it, without modifying it. Essential for the visualizer.
         this.analyser = this.audioContext.createAnalyser();
 
         /*
-         * PERSONALIZZAZIONE DEL VISUALIZZATORE:
-         * - `fftSize`: Dimensione della Fast Fourier Transform. Deve essere una potenza di 2.
-         *   Un valore più alto (es. 2048) dà più dettagli sulle frequenze (più barre nel visualizzatore),
-         *   ma richiede più potenza di calcolo. Un valore più basso (es. 256) è più performante.
-         *   Il numero di barre disponibili sarà `fftSize / 2`.
-         * - `smoothingTimeConstant`: Un valore tra 0 e 1. Valori più alti (es. 0.8) creano un effetto
-         *   più "fluido" e smussato nel tempo, mentre valori più bassi (es. 0.1) rendono il visualizzatore
-         *   estremamente reattivo e "scattoso".
+         * VISUALIZER CUSTOMIZATION:
+         * - `fftSize`: Size of the Fast Fourier Transform. Must be a power of 2.
+         *   Higher values (e.g., 2048) give more frequency details (more bars in visualizer),
+         *   but require more processing power. Lower values (e.g., 256) are more performant.
+         *   The number of available bars will be `fftSize / 2`.
+         * - `smoothingTimeConstant`: A value between 0 and 1. Higher values (e.g., 0.8) create a
+         *   more "fluid" and smoothed effect over time, while lower values (e.g., 0.1) make the
+         *   visualizer extremely reactive and "jerky".
          */
         this.analyser.fftSize = 256;
-        this.analyser.smoothingTimeConstant = 0.8; // Valore di default per un'animazione fluida, sincronizzato con la UI.
+        this.analyser.smoothingTimeConstant = 0.8; // Default value for smooth animation, synchronized with UI.
 
-        // 3. COLLEGAMENTO DEL GRAFO AUDIO
-        // Colleghiamo l'analizzatore alla destinazione finale (gli altoparlanti).
-        // In questo modo, qualsiasi suono che vogliamo sentire e visualizzare dovrà essere
-        // collegato all'analizzatore, che poi lo passerà agli altoparlanti.
-        // Grafo: [Suono Sorgente] -> [Analyser] -> [Destination (Altoparlanti)]
+        // 3. AUDIO GRAPH CONNECTION
+        // Connect the analyzer to the final destination (speakers).
+        // This way, any sound we want to hear and visualize must be
+        // connected to the analyzer, which then passes it to the speakers.
+        // Graph: [Sound Source] -> [Analyser] -> [Destination (Speakers)]
         this.analyser.connect(this.audioContext.destination);
 
-        // 4. BUFFER DEI SUONI
-        // Questo array conterrà i dati audio decodificati (`AudioBuffer`) pronti per essere riprodotti.
+        // 4. SOUND BUFFERS
+        // This array will contain decoded audio data (`AudioBuffer`) ready to be played.
         this.soundBuffers = [];
     }
 
     /**
-     * Carica un singolo file audio dall'URL specificato.
-     * @param {string|null} url - L'URL del file audio da caricare.
-     * @param {number} index - L'indice a cui memorizzare il buffer audio nell'array `soundBuffers`.
+     * Loads a single audio file from the specified URL.
+     * @param {string|null} url - The URL of the audio file to load.
+     * @param {number} index - The index to store the audio buffer in the `soundBuffers` array.
      */
     async loadSound(url, index) {
-        // Se l'URL è nullo o non definito (per pad vuoti), memorizza `null` e termina.
+        // If URL is null or undefined (for empty pads), store `null` and exit.
         if (!url) {
             this.soundBuffers[index] = null;
             return;
         }
         try {
-            // `fetch` scarica il file audio come dato grezzo.
+            // `fetch` downloads the audio file as raw data.
             const response = await fetch(url);
-            // `arrayBuffer` converte la risposta in un formato che la Web Audio API può capire.
+            // `arrayBuffer` converts the response to a format that Web Audio API can understand.
             const arrayBuffer = await response.arrayBuffer();
-            // `decodeAudioData` converte i dati grezzi in un `AudioBuffer`, che è un formato audio
-            // PCM (Pulse-Code Modulation) ottimizzato per la riproduzione.
+            // `decodeAudioData` converts raw data into an `AudioBuffer`, which is a
+            // PCM (Pulse-Code Modulation) audio format optimized for playback.
             const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
-            // Memorizza il buffer decodificato nell'array alla posizione corretta.
+            // Store the decoded buffer in the array at the correct position.
             this.soundBuffers[index] = audioBuffer;
-            console.log(`Suono caricato: ${url}`);
+            console.log(`Sound loaded: ${url}`);
         } catch (error) {
-            console.error(`Errore durante il caricamento del suono ${url}:`, error);
-            this.soundBuffers[index] = null; // Imposta a null in caso di errore.
+            console.error(`Error loading sound ${url}:`, error);
+            this.soundBuffers[index] = null; // Set to null on error.
         }
     }
 
     /**
-     * Carica un intero array di URL di suoni.
-     * @param {string[]} soundUrls - Un array di URL da caricare.
+     * Loads an entire array of sound URLs.
+     * @param {string[]} soundUrls - An array of URLs to load.
      */
     async loadSounds(soundUrls) {
-        this.soundBuffers = []; // Svuota i buffer del progetto precedente.
-        // `map` crea un array di promesse, dove ogni promessa rappresenta il caricamento di un suono.
+        this.soundBuffers = []; // Clear previous project buffers.
+        // `map` creates an array of promises, where each promise represents loading a sound.
         const loadPromises = soundUrls.map((url, index) => this.loadSound(url, index));
-        // `Promise.all` attende che tutte le promesse di caricamento siano completate.
-        // Questo permette di caricare tutti i suoni in parallelo, accelerando il processo.
+        // `Promise.all` waits for all loading promises to complete.
+        // This allows loading all sounds in parallel, speeding up the process.
         await Promise.all(loadPromises);
-        console.log('Tutti i suoni del progetto sono stati caricati!');
+        console.log('All project sounds have been loaded!');
     }
 
     /**
-     * Riproduce un suono basandosi sul suo indice nell'array dei buffer.
-     * @param {number} index - L'indice del suono da riprodurre.
+     * Plays the sound associated with a specific pad.
+     * @param {number} padIndex - The index of the pad (0-63) to play.
      */
-    playPadSound(index) {
-        const audioBuffer = this.soundBuffers[index];
-        // Se non c'è un buffer per questo indice (pad vuoto o errore di caricamento), non fare nulla.
-        if (!audioBuffer) {
-            console.warn(`Nessun suono caricato per l'indice ${index}`);
+    playPadSound(padIndex) {
+        // Check if an audio buffer exists for the specified pad.
+        if (!this.soundBuffers[padIndex]) {
+            console.warn(`No sound loaded for pad ${padIndex}`);
             return;
         }
-
-        // Crea un `BufferSourceNode`. Questo è un oggetto sorgente audio che può riprodurre
-        // i dati contenuti in un `AudioBuffer`.
+        // Create a new `AudioBufferSourceNode` for playback.
+        // Each call creates a new independent "player".
         const source = this.audioContext.createBufferSource();
-        source.buffer = audioBuffer; // Assegna il buffer alla sorgente.
-        
-        // Collega la sorgente all'analizzatore. Questo è il passaggio cruciale che permette
-        // al visualizzatore di "vedere" i dati di questo suono.
+        // Connect the audio buffer to the source node.
+        source.buffer = this.soundBuffers[padIndex];
+        // Connect the source node to the analyzer and then to the final output (speakers).
         source.connect(this.analyser);
-        
-        // Avvia la riproduzione immediatamente.
-        source.start(0);
+        this.analyser.connect(this.audioContext.destination);
+        // Start playback immediately.
+        source.start();
     }
 
     /**
-     * Metodo getter per esporre l'analizzatore ad altri moduli.
-     * @returns {AnalyserNode} L'istanza dell'analizzatore del motore audio.
+     * Getter to obtain the AnalyserNode. Used by the visualizer.
+     * @returns {AnalyserNode} The audio engine's analyzer node.
      */
     getAnalyser() {
         return this.analyser;

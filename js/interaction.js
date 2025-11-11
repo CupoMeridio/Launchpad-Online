@@ -2,9 +2,9 @@ import { audioEngine } from './audio.js';
 import { currentPage, currentProject, activePageButton, setCurrentPage, setActivePageButton } from './app.js';
 
 /**
- * Chiamata quando un pad della griglia 8x8 viene premuto.
- * @param {Event} event - L'oggetto evento del click.
- * @param {number} index - L'indice del pad (0-63) premuto.
+ * Called when an 8x8 grid pad is pressed.
+ * @param {Event} event - The click event object.
+ * @param {number} index - The index of the pressed pad (0-63).
  */
 export function playSound(event, index) {
     const pad = event.target;
@@ -16,8 +16,8 @@ export function playSound(event, index) {
 }
 
 /**
- * Attiva un pad programmaticamente (es. tramite input MIDI).
- * @param {number} index - L'indice del pad da attivare (0-63).
+ * Activates a pad programmatically (e.g., via MIDI input).
+ * @param {number} index - The index of the pad to activate (0-63).
  */
 export function triggerPad(index) {
     const pads = document.querySelectorAll('.grid-item');
@@ -31,13 +31,13 @@ export function triggerPad(index) {
 }
 
 /**
- * Cambia la pagina di suoni corrente.
- * @param {number} index - L'indice della pagina da caricare (0-7).
+ * Changes the current sound page.
+ * @param {number} index - The index of the page to load (0-7).
  */
 export function changeSoundSet(index) {
     if (currentProject && index < currentProject.pages.length) {
         setCurrentPage(index);
-        console.log(`Cambiata pagina: ${index}`);
+        console.log(`Page changed: ${index}`);
 
         const pageButtons = document.querySelectorAll('.grid-item-menu[onclick^="changeSoundSet"]');
         if (activePageButton) {
@@ -48,7 +48,7 @@ export function changeSoundSet(index) {
             activePageButton.classList.add('selected');
         }
     } else {
-        console.warn(`Tentativo di accesso a pagina non esistente: ${index}`);
+        console.warn(`Attempt to access non-existent page: ${index}`);
         const launchpadElement = document.getElementById('Launchpad');
         if (launchpadElement) {
             launchpadElement.classList.add('error-shake');
@@ -59,7 +59,7 @@ export function changeSoundSet(index) {
     }
 }
 
-// Le funzioni sono esposte globalmente per essere usate nell'HTML
+// Functions are exposed globally to be used in HTML
 window.playSound = playSound;
 window.triggerPad = triggerPad;
 window.changeSoundSet = changeSoundSet;
