@@ -7,7 +7,7 @@
 // Moduli principali dell'applicazione
 import { audioEngine } from './audio.js';
 import { Visualizer } from './visualizer.js';
-import { initMidi, resetLaunchpadLEDs } from './midi.js';
+import { initMidi } from './midi.js';
 
 // Funzioni di inizializzazione e gestione dai moduli separati
 import { initializeVisualizerControls } from './visualizer-controls.js';
@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         initializeBackgroundMenu(data.videos);
         initializePersonalizeLaunchpadMenu(data.skins);
-        initializeProjectMenu(data.projects);
+        initializePersonalizeLaunchpadMenu(data.skins);
 
         // --- 4. Caricamento del progetto di default ---
         if (data.projects && data.projects.length > 0) {
@@ -95,11 +95,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // --- 6. Inizializzazione del supporto MIDI ---
-    initMidi();
-    
-    window.addEventListener('pagehide', () => {
-        resetLaunchpadLEDs();
-    });
+    try {
+        await initMidi();
+    } catch (error) {
+        console.error("Errore durante l'inizializzazione MIDI:", error);
+    }
 
     // --- 7. Registrazione del Service Worker ---
     if ('serviceWorker' in navigator) {
