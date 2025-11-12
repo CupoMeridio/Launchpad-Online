@@ -94,7 +94,7 @@ function setupLaunchpadEvents() {
         // Side buttons (Scene) have x=8
         if (x === 8 && y < 8) {
             // Page change
-            const pageIndex = y + 1;
+            const pageIndex = y;
             window.changeSoundSet(pageIndex);
         } else if (x < 8 && y < 8) {
             // 8x8 grid pads (excluding Automap buttons which have y=8)
