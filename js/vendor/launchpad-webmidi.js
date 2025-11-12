@@ -355,7 +355,7 @@ class Launchpad extends Observable {
             if (!navigator.requestMIDIAccess){
                 rej(`Browser doesn't seem to support Web MIDI API`);
             } else {
-                navigator.requestMIDIAccess()
+                navigator.requestMIDIAccess({ sysex: true })
                     .then((midiAccess) => {
                         return {
                             'input': this.extractLaunchpadIO(midiAccess.inputs.values()),

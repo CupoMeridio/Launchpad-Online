@@ -40,7 +40,12 @@ export function setActivePageButton(b) { activePageButton = b; }
 document.addEventListener('DOMContentLoaded', async function() {
     // --- 1. AudioContext Unlock ---
     const unlockOverlay = document.getElementById('audio-unlock-overlay');
+    let audioUnlocked = false; // Flag per evitare doppie esecuzioni
+    
     const unlockAudioAndHideOverlay = () => {
+        if (audioUnlocked) return; // Esci se già sbloccato
+        audioUnlocked = true; // Imposta il flag
+        
         if (unlockOverlay) {
             unlockOverlay.classList.add('hidden');
         }
@@ -49,9 +54,16 @@ document.addEventListener('DOMContentLoaded', async function() {
                 console.log('AudioContext resumed successfully.');
             });
         }
+        
+        // Rimuovi entrambi gli event listeners per essere sicuri
+        document.removeEventListener('click', unlockAudioAndHideOverlay);
+        document.removeEventListener('touchstart', unlockAudioAndHideOverlay);
     };
-    document.addEventListener('click', unlockAudioAndHideOverlay, { once: true });
-    document.addEventListener('touchstart', unlockAudioAndHideOverlay, { once: true });
+    
+    // Aggiungi entrambi gli event listeners ma senza { once: true }
+    // così possiamo rimuoverli manualmente dopo la prima esecuzione
+    document.addEventListener('click', unlockAudioAndHideOverlay);
+    document.addEventListener('touchstart', unlockAudioAndHideOverlay);
 
     // --- 2. UI Controls Initialization ---
     initializeVideoControls();
@@ -66,7 +78,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         const data = await response.json();
 
         initializeBackgroundMenu(data.videos);
-        initializePersonalizeLaunchpadMenu(data.skins);
         initializePersonalizeLaunchpadMenu(data.skins);
 
         // --- 4. Default Project Loading ---

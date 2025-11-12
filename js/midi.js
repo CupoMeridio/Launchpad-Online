@@ -20,37 +20,60 @@ import Launchpad from './vendor/launchpad-webmidi.js';
 // Launchpad instance
 let launchpad = null;
 
-/**
- * Updates the visual MIDI status indicator in the interface.
- * @param {boolean} connected - True if Launchpad is connected, false otherwise.
- */
-function updateMidiStatus(connected) {
-    // Try to find or create a MIDI status indicator
-    let statusIndicator = document.getElementById('midi-status');
-    
-    if (!statusIndicator) {
-        // If it doesn't exist, create a temporary one
-        statusIndicator = document.createElement('div');
-        statusIndicator.id = 'midi-status';
-        statusIndicator.style.position = 'fixed';
-        statusIndicator.style.top = '10px';
-        statusIndicator.style.right = '10px';
-        statusIndicator.style.padding = '5px 10px';
-        statusIndicator.style.borderRadius = '5px';
-        statusIndicator.style.fontSize = '12px';
-        statusIndicator.style.fontFamily = 'Arial, sans-serif';
-        statusIndicator.style.zIndex = '1000';
-        document.body.appendChild(statusIndicator);
-    }
-    
-    if (connected) {
-        statusIndicator.textContent = 'Launchpad Connected ✓';
-        statusIndicator.style.backgroundColor = '#4CAF50';
-        statusIndicator.style.color = 'white';
+  function showTemporaryNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.textContent = message;
+    notification.style.position = 'fixed';
+    notification.style.top = '10px';
+    notification.style.right = '10px';
+    notification.style.padding = '10px 15px';
+    notification.style.borderRadius = '5px';
+    notification.style.color = 'white';
+    notification.style.zIndex = '1000';
+    notification.style.opacity = '0';
+    notification.style.transition = 'opacity 0.5s ease-in-out';
+
+    if (type === 'success') {
+      notification.style.backgroundColor = '#4CAF50'; // Green
+    } else if (type === 'error') {
+      notification.style.backgroundColor = '#f44336'; // Red
     } else {
-        statusIndicator.textContent = 'Launchpad Disconnected ✗';
-        statusIndicator.style.backgroundColor = '#f44336';
-        statusIndicator.style.color = 'white';
+      notification.style.backgroundColor = '#2196F3'; // Blue (default)
+    }
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      notification.style.opacity = '1';
+    }, 10);
+
+    setTimeout(() => {
+      notification.style.opacity = '0';
+      notification.addEventListener('transitionend', () => notification.remove());
+    }, 3000);
+  }
+
+  /**
+   * Updates the MIDI connection status indicator.
+   * @param {boolean} isConnected - True if Launchpad is connected, false otherwise.
+   */
+function updateMidiStatus(connected) {
+    let statusText = document.getElementById('midi-status-text');
+    let statusDot = document.getElementById('midi-status-dot');
+
+    if (!statusText || !statusDot) {
+        console.error('MIDI status elements not found in DOM.');
+        return;
+    }
+
+    if (connected) {
+        statusText.textContent = 'Launchpad Connected';
+        statusDot.classList.remove('disconnected');
+        statusDot.classList.add('connected');
+    } else {
+        statusText.textContent = 'Launchpad Disconnected';
+        statusDot.classList.remove('connected');
+        statusDot.classList.add('disconnected');
     }
 }
 
@@ -106,6 +129,7 @@ export async function initMidi() {
         
         // Add visual connection indicator
         updateMidiStatus(true);
+        showTemporaryNotification('Launchpad Connected', 'success');
         
         // Set up pad event handlers
         setupLaunchpadEvents();
@@ -115,6 +139,7 @@ export async function initMidi() {
             launchpad.on('disconnect', () => {
                 console.log("[MIDI] Launchpad disconnected");
                 updateMidiStatus(false);
+                showTemporaryNotification('Launchpad Disconnected', 'error');
                 launchpad = null;
             });
         }
@@ -122,5 +147,6 @@ export async function initMidi() {
     } catch (error) {
         console.log("[MIDI] Launchpad not found");
         updateMidiStatus(false);
+        showTemporaryNotification('Launchpad Not Found', 'error');
     }
 }

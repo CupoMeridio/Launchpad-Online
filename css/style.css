@@ -15,6 +15,14 @@ html, body {
     height: 100%; /* Assicura che l'HTML e il body occupino sempre il 100% dell'altezza dello schermo. */
 }
 
+.midi-status-dot.connected {
+  background-color: #4CAF50; /* Green */
+}
+
+.midi-status-dot.disconnected {
+  background-color: #f44336; /* Red */
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; /* Utilizza un set di font di sistema moderni e puliti. */
     background-color: #1a1a1a; /* Colore di sfondo principale, un grigio molto scuro. */
@@ -171,6 +179,11 @@ main {
     color: #ccc;
     margin-bottom: 5px;
     font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Aggiunge ... se il testo è troppo lungo */
+    max-width: 100%; /* Limita la larghezza massima */
+    box-sizing: border-box; /* Include il padding nel calcolo della larghezza */
 }
 
 .input-group {
@@ -311,7 +324,7 @@ main {
 .sidebar {
     grid-column: 1; /* Occupa la prima colonna della griglia. */
     background-color: #2a2a2a;
-    padding: 0px 16px 16px 16px;
+    padding: 0px 16px 50px 16px; /* Aumentato il padding inferiore da 16px a 50px per accomodare l'indicatore MIDI */
     height: 100%;
     position: relative;
     z-index: 1;
@@ -319,6 +332,7 @@ main {
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease, visibility 0.3s ease;
+    box-sizing: border-box; /* Assicura che il padding sia incluso nel calcolo dell'altezza */
 }
 
 /* La classe `.sidebar-open` sul layout rende visibile la sidebar. */
@@ -355,6 +369,9 @@ main {
     transition: background-color 0.2s ease;
     white-space: nowrap;
     overflow: hidden;
+    text-overflow: ellipsis; /* Aggiunge ... se il testo è troppo lungo */
+    width: 100%; /* Assicura che il pulsante occupi tutta la larghezza disponibile */
+    box-sizing: border-box; /* Include il padding nel calcolo della larghezza */
 }
 
 .menu-toggle:hover {
@@ -373,6 +390,8 @@ main {
     background: #252525;
     border-radius: 4px;
     margin-top: 5px;
+    max-width: 100%; /* Limita la larghezza massima al contenitore genitore */
+    box-sizing: border-box; /* Include il padding nel calcolo della larghezza */
 }
 
 /* La classe `.open` viene aggiunta via JS per aprire il dropdown. */
@@ -397,6 +416,10 @@ main {
     cursor: pointer;
     font-size: 13px;
     transition: background-color 0.2s ease, color 0.2s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Aggiunge ... se il testo è troppo lungo */
+    box-sizing: border-box; /* Include il padding nel calcolo della larghezza */
 }
 
 .menu-dropdown button:hover,
@@ -519,4 +542,35 @@ main {
 
 .error-shake {
   animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+.midi-status-fixed {
+  position: absolute;
+  bottom: 10px;
+  left: 16px; /* Allineato con il padding della sidebar */
+  right: 16px; /* Limita la larghezza massima */
+  display: flex;
+  align-items: center;
+  color: #fff;
+  font-size: 0.85em; /* Leggermente ridotto per adattarsi meglio */
+  background-color: rgba(0, 0, 0, 0.3); /* Sfondo semi-trasparente per migliorare la leggibilità */
+  padding: 8px 12px;
+  border-radius: 4px;
+  box-sizing: border-box; /* Include il padding nel calcolo della larghezza */
+}
+
+.midi-status-dot {
+  width: 8px; /* Leggermente ridotto */
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+  flex-shrink: 0; /* Non si riduce mai */
+}
+
+#midi-status-text {
+  overflow: hidden;
+  text-overflow: ellipsis; /* Aggiunge ... se il testo è troppo lungo */
+  white-space: nowrap; /* Impedisce al testo di andare a capo */
+  flex-grow: 1; /* Occupa lo spazio rimanente */
+  min-width: 0; /* Permette al flex item di restringersi */
 }
