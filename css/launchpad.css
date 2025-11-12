@@ -45,6 +45,7 @@
     - `box-shadow`: Ombra interna per dare un effetto "incassato".
 */
 .grid-item {
+    aspect-ratio: 1 / 1; /* Mantiene i pad quadrati per evitare distorsioni. */
     background-color: #d3d3d3; /* Grigio chiaro di default. */
     border-radius: 5px;
     cursor: pointer;
@@ -80,6 +81,7 @@
       Cambia `background-color` e `box-shadow` per personalizzare l'effetto.
 */
 .grid-item-menu {
+    aspect-ratio: 1 / 1; /* Mantiene i pad quadrati per cerchi perfetti. */
     background-color: #d3d3d3;
     border-radius: 50%; /* Li rende perfettamente rotondi. */
     cursor: pointer;

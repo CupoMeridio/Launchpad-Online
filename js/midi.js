@@ -158,7 +158,7 @@ export async function initMidi() {
 
     try {
         // Request MIDI access from the browser
-        const midiAccess = await navigator.requestMIDIAccess();
+        const midiAccess = await navigator.requestMIDIAccess({ sysex: true });
         console.log("[MIDI] Web MIDI API access granted.");
 
         // Set up the handler for device state changes (hot-plugging)
