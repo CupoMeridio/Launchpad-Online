@@ -21,6 +21,7 @@ export function initializeBackgroundMenu(videoFiles) {
     videoFiles.forEach(videoFile => {
         const button = document.createElement('button');
         button.className = 'menu-option';
+        button.setAttribute('data-video', videoFile);
         button.textContent = videoFile.replace('.mp4', '');
         button.onclick = () => setBackgroundVideo(videoFile);
         backgroundMenu.insertBefore(button, videoControls);

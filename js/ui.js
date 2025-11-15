@@ -16,6 +16,18 @@ export function toggleMenu(menuId) {
     const menu = document.getElementById(menuId);
     menu.classList.toggle('open');
 
+    const menuItem = menu.closest('.menu-item');
+    if (menuItem) {
+        const toggleButton = menuItem.querySelector('.menu-toggle');
+        if (toggleButton) {
+            if (menu.classList.contains('open')) {
+                toggleButton.classList.add('active');
+            } else {
+                toggleButton.classList.remove('active');
+            }
+        }
+    }
+
     if (menuId === 'background-menu') {
         updateVideoControlsVisibility();
     }
@@ -27,6 +39,14 @@ export function toggleMenu(menuId) {
  */
 export function setLaunchpadBackground(imageFile) {
     const launchpad = document.getElementById('Launchpad');
+    const menu = document.getElementById('personalize-launchpad-menu');
+    if (menu) {
+        const buttons = menu.querySelectorAll('.menu-option');
+        buttons.forEach(b => b.classList.remove('selected'));
+        const selector = imageFile ? `.menu-option[data-skin="${imageFile}"]` : '.menu-option[data-skin="none"]';
+        const active = menu.querySelector(selector);
+        if (active) active.classList.add('selected');
+    }
     if (imageFile) {
         launchpad.style.backgroundImage = `url('/assets/images/launchpad covers/${imageFile}?t=${new Date().getTime()}')`;
     } else {
@@ -57,6 +77,7 @@ export function initializePersonalizeLaunchpadMenu(imageFiles) {
     imageFiles.forEach(imageFile => {
         const button = document.createElement('button');
         button.className = 'menu-option';
+        button.setAttribute('data-skin', imageFile);
         button.textContent = imageFile.split('.')[0].replace(/_/g, ' ');
         button.onclick = () => setLaunchpadBackground(imageFile);
         menu.appendChild(button);

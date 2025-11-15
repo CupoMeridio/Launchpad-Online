@@ -378,6 +378,11 @@ main {
     background: #3a3a3a; /* Colore più chiaro al passaggio del mouse. */
 }
 
+.menu-toggle.active {
+    background: #3a3a3a;
+    border-left: 3px solid #00aaff;
+}
+
 /*
   MENU A TENDINA (DROPDOWN)
   - Contenitori per le opzioni di ogni menu.

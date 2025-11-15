@@ -97,9 +97,24 @@ export function initializeVisualizerControls() {
 
     window.addEventListener('visualizer:mode', (e) => {
         updateControlsVisibility(e.detail?.mode);
+        const menu = document.getElementById('visualizer-menu');
+        if (menu) {
+            const buttons = menu.querySelectorAll('.menu-option[data-mode]');
+            buttons.forEach(b => b.classList.remove('selected'));
+            const active = menu.querySelector(`.menu-option[data-mode="${e.detail?.mode}"]`);
+            if (active) active.classList.add('selected');
+        }
     });
 
-    updateControlsVisibility(window.visualizer ? window.visualizer.mode : 'both');
+    const initialMode = window.visualizer ? window.visualizer.mode : 'both';
+    updateControlsVisibility(initialMode);
+    const menu = document.getElementById('visualizer-menu');
+    if (menu) {
+        const buttons = menu.querySelectorAll('.menu-option[data-mode]');
+        buttons.forEach(b => b.classList.remove('selected'));
+        const active = menu.querySelector(`.menu-option[data-mode="${initialMode}"]`);
+        if (active) active.classList.add('selected');
+    }
 }
 
 /**

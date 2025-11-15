@@ -23,6 +23,14 @@ export function updateVideoControlsVisibility() {
 
 export function setBackgroundVideo(videoFile) {
     const overlay = document.querySelector('.video-overlay');
+    const backgroundMenu = document.getElementById('background-menu');
+    if (backgroundMenu) {
+        const buttons = backgroundMenu.querySelectorAll('.menu-option');
+        buttons.forEach(b => b.classList.remove('selected'));
+        const selector = videoFile ? `[data-video="${videoFile}"]` : '[data-video="none"]';
+        const active = backgroundMenu.querySelector(selector);
+        if (active) active.classList.add('selected');
+    }
     
     const existingVideo = document.querySelector('.background-video');
     if (existingVideo) {

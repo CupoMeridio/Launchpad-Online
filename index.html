@@ -112,7 +112,7 @@
         <div class="menu-item">
           <button class="menu-toggle" onclick="toggleMenu('background-menu')">Background</button>
           <div class="menu-dropdown" id="background-menu">
-            <button class="menu-option" onclick="setBackgroundVideo(null)">Nessun background</button>
+            <button class="menu-option selected" data-video="none" onclick="setBackgroundVideo(null)">Nessun background</button>
             <!--
               CONTROLLI VIDEO
               Questi slider permettono di modificare in tempo reale:
@@ -165,10 +165,10 @@
         <div class="menu-item">
           <button class="menu-toggle" onclick="toggleMenu('visualizer-menu')">Visualizzatore</button>
           <div class="menu-dropdown" id="visualizer-menu">
-            <button class="menu-option" onclick="visualizer.setMode('both')">Entrambi</button>
-            <button class="menu-option" onclick="visualizer.setMode('top')">Superiore</button>
-            <button class="menu-option" onclick="visualizer.setMode('bottom')">Inferiore</button>
-            <button class="menu-option" onclick="visualizer.setMode('off')">Spento</button>
+            <button class="menu-option selected" data-mode="both" onclick="visualizer.setMode('both')">Entrambi</button>
+            <button class="menu-option" data-mode="top" onclick="visualizer.setMode('top')">Superiore</button>
+            <button class="menu-option" data-mode="bottom" onclick="visualizer.setMode('bottom')">Inferiore</button>
+            <button class="menu-option" data-mode="off" onclick="visualizer.setMode('off')">Spento</button>
 
             <div class="control-group" id="symmetric-group" style="padding: 15px 15px 5px 15px;">
               <label for="symmetric-checkbox">
@@ -244,7 +244,7 @@
                 Mostra Adesivi
               </label>
             </div>
-            <button class="menu-option" onclick="setLaunchpadBackground(null)">Default</button>
+            <button class="menu-option selected" data-skin="none" onclick="setLaunchpadBackground(null)">Default</button>
           </div>
         </div>
 

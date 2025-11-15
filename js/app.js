@@ -69,6 +69,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     initializeVideoControls();
     initializeVisualizerControls();
 
+    document.querySelectorAll('.menu-dropdown.open').forEach(dropdown => {
+        const menuItem = dropdown.closest('.menu-item');
+        const toggleButton = menuItem ? menuItem.querySelector('.menu-toggle') : null;
+        if (toggleButton) toggleButton.classList.add('active');
+    });
+
     // --- 3. Static Data Loading for Menus ---
     try {
         const response = await fetch('js/static-data.json');
@@ -78,6 +84,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const data = await response.json();
 
         initializeBackgroundMenu(data.videos);
+        initializeProjectMenu(data.projects);
         initializePersonalizeLaunchpadMenu(data.skins);
 
         // --- 4. Default Project Loading ---
