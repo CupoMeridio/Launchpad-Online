@@ -1,4 +1,213 @@
 import { updateVideoControlsVisibility } from './video.js';
+const translations = {
+    it: {
+        'sidebar.title': 'Menu',
+        'menu.language.toggle': 'Lingua interfaccia',
+        'menu.language.label': 'Seleziona lingua',
+        'menu.language.option.it': 'Italiano',
+        'menu.language.option.en': 'English',
+        'menu.language.option.es': 'Español',
+        'menu.language.option.de': 'Deutsch',
+        'menu.language.option.fr': 'Français',
+        'menu.project.toggle': 'Seleziona progetto',
+        'menu.background.toggle': 'Video di sfondo',
+        'menu.visualizer.toggle': 'Visualizzatore',
+        'menu.launchpad.toggle': 'Personalizza Launchpad',
+        'background.none': 'Nessuno sfondo',
+        'background.opacity': 'Opacità del livello',
+        'background.blur': 'Sfocatura',
+        'background.brightness': 'Luminosità',
+        'visualizer.mode.both': 'Entrambi i pannelli',
+        'visualizer.mode.top': 'Solo superiore',
+        'visualizer.mode.bottom': 'Solo inferiore',
+        'visualizer.mode.off': 'Disattivato',
+        'visualizer.symmetric': 'Simmetrico',
+        'visualizer.smoothing': 'Fluidità animazione',
+        'visualizer.color1': 'Colore iniziale',
+        'visualizer.color2': 'Colore finale',
+        'visualizer.gradient.enable': 'Abilita gradiente di colore',
+        'visualizer.gradient.direction': 'Direzione del gradiente',
+        'visualizer.gradient.vertical': 'Verticale',
+        'visualizer.gradient.horizontal': 'Orizzontale',
+        'visualizer.gradient.verticalReverse': 'Verticale (inverso)',
+        'visualizer.gradient.horizontalReverse': 'Orizzontale (inverso)',
+        'visualizer.alpha': 'Trasparenza',
+        'launchpad.stickers.show': 'Mostra adesivi sul Launchpad',
+        'launchpad.default': 'Predefinito',
+        'overlay.clickToStart': 'Clicca per avviare'
+    },
+    en: {
+        'sidebar.title': 'Menu',
+        'menu.language.toggle': 'Interface Language',
+        'menu.language.label': 'Select language',
+        'menu.language.option.it': 'Italian',
+        'menu.language.option.en': 'English',
+        'menu.language.option.es': 'Spanish',
+        'menu.language.option.de': 'German',
+        'menu.language.option.fr': 'French',
+        'menu.project.toggle': 'Select Project',
+        'menu.background.toggle': 'Background Video',
+        'menu.visualizer.toggle': 'Visualizer',
+        'menu.launchpad.toggle': 'Personalize Launchpad',
+        'background.none': 'No Background',
+        'background.opacity': 'Overlay opacity',
+        'background.blur': 'Blur',
+        'background.brightness': 'Brightness',
+        'visualizer.mode.both': 'Both Panels',
+        'visualizer.mode.top': 'Top Only',
+        'visualizer.mode.bottom': 'Bottom Only',
+        'visualizer.mode.off': 'Off',
+        'visualizer.symmetric': 'Symmetric',
+        'visualizer.smoothing': 'Animation smoothness',
+        'visualizer.color1': 'Start color',
+        'visualizer.color2': 'End color',
+        'visualizer.gradient.enable': 'Enable color gradient',
+        'visualizer.gradient.direction': 'Gradient direction',
+        'visualizer.gradient.vertical': 'Vertical',
+        'visualizer.gradient.horizontal': 'Horizontal',
+        'visualizer.gradient.verticalReverse': 'Vertical (reverse)',
+        'visualizer.gradient.horizontalReverse': 'Horizontal (reverse)',
+        'visualizer.alpha': 'Transparency',
+        'launchpad.stickers.show': 'Show stickers on Launchpad',
+        'launchpad.default': 'Default',
+        'overlay.clickToStart': 'Click to start'
+    },
+    es: {
+        'sidebar.title': 'Menú',
+        'menu.language.toggle': 'Idioma de la interfaz',
+        'menu.language.label': 'Seleccionar idioma',
+        'menu.language.option.it': 'Italiano',
+        'menu.language.option.en': 'English',
+        'menu.language.option.es': 'Español',
+        'menu.language.option.de': 'Deutsch',
+        'menu.language.option.fr': 'Français',
+        'menu.project.toggle': 'Seleccionar proyecto',
+        'menu.background.toggle': 'Vídeo de fondo',
+        'menu.visualizer.toggle': 'Visualizador',
+        'menu.launchpad.toggle': 'Personalizar Launchpad',
+        'background.none': 'Sin fondo',
+        'background.opacity': 'Opacidad de la superposición',
+        'background.blur': 'Desenfoque',
+        'background.brightness': 'Brillo',
+        'visualizer.mode.both': 'Ambos paneles',
+        'visualizer.mode.top': 'Solo superior',
+        'visualizer.mode.bottom': 'Solo inferior',
+        'visualizer.mode.off': 'Desactivado',
+        'visualizer.symmetric': 'Simétrico',
+        'visualizer.smoothing': 'Suavizado de animación',
+        'visualizer.color1': 'Color inicial',
+        'visualizer.color2': 'Color final',
+        'visualizer.gradient.enable': 'Habilitar degradado',
+        'visualizer.gradient.direction': 'Dirección del degradado',
+        'visualizer.gradient.vertical': 'Vertical',
+        'visualizer.gradient.horizontal': 'Horizontal',
+        'visualizer.gradient.verticalReverse': 'Vertical (invertido)',
+        'visualizer.gradient.horizontalReverse': 'Horizontal (invertido)',
+        'visualizer.alpha': 'Transparencia',
+        'launchpad.stickers.show': 'Mostrar pegatinas en el Launchpad',
+        'launchpad.default': 'Predeterminado',
+        'overlay.clickToStart': 'Haz clic para iniciar'
+    },
+    de: {
+        'sidebar.title': 'Menü',
+        'menu.language.toggle': 'Interface-Sprache',
+        'menu.language.label': 'Sprache auswählen',
+        'menu.language.option.it': 'Italienisch',
+        'menu.language.option.en': 'Englisch',
+        'menu.language.option.es': 'Spanisch',
+        'menu.language.option.de': 'Deutsch',
+        'menu.language.option.fr': 'Französisch',
+        'menu.project.toggle': 'Projekt auswählen',
+        'menu.background.toggle': 'Hintergrundvideo',
+        'menu.visualizer.toggle': 'Visualizer',
+        'menu.launchpad.toggle': 'Launchpad anpassen',
+        'background.none': 'Kein Hintergrund',
+        'background.opacity': 'Deckkraft der Überlagerung',
+        'background.blur': 'Unschärfe',
+        'background.brightness': 'Helligkeit',
+        'visualizer.mode.both': 'Beide Panels',
+        'visualizer.mode.top': 'Nur oben',
+        'visualizer.mode.bottom': 'Nur unten',
+        'visualizer.mode.off': 'Aus',
+        'visualizer.symmetric': 'Symmetrisch',
+        'visualizer.smoothing': 'Animationsglättung',
+        'visualizer.color1': 'Startfarbe',
+        'visualizer.color2': 'Endfarbe',
+        'visualizer.gradient.enable': 'Farbverlauf aktivieren',
+        'visualizer.gradient.direction': 'Verlaufsrichtung',
+        'visualizer.gradient.vertical': 'Vertikal',
+        'visualizer.gradient.horizontal': 'Horizontal',
+        'visualizer.gradient.verticalReverse': 'Vertikal (invertiert)',
+        'visualizer.gradient.horizontalReverse': 'Horizontal (invertiert)',
+        'visualizer.alpha': 'Transparenz',
+        'launchpad.stickers.show': 'Sticker auf Launchpad anzeigen',
+        'launchpad.default': 'Standard',
+        'overlay.clickToStart': 'Klicken zum Starten'
+    },
+    fr: {
+        'sidebar.title': 'Menu',
+        'menu.language.toggle': 'Langue de l’interface',
+        'menu.language.label': 'Sélectionner la langue',
+        'menu.language.option.it': 'Italien',
+        'menu.language.option.en': 'Anglais',
+        'menu.language.option.es': 'Espagnol',
+        'menu.language.option.de': 'Allemand',
+        'menu.language.option.fr': 'Français',
+        'menu.project.toggle': 'Sélectionner le projet',
+        'menu.background.toggle': 'Vidéo de fond',
+        'menu.visualizer.toggle': 'Visualiseur',
+        'menu.launchpad.toggle': 'Personnaliser le Launchpad',
+        'background.none': 'Aucun fond',
+        'background.opacity': 'Opacité de la superposition',
+        'background.blur': 'Flou',
+        'background.brightness': 'Luminosité',
+        'visualizer.mode.both': 'Deux panneaux',
+        'visualizer.mode.top': 'Seulement supérieur',
+        'visualizer.mode.bottom': 'Seulement inférieur',
+        'visualizer.mode.off': 'Désactivé',
+        'visualizer.symmetric': 'Symétrique',
+        'visualizer.smoothing': 'Fluidité de l’animation',
+        'visualizer.color1': 'Couleur de départ',
+        'visualizer.color2': 'Couleur d’arrivée',
+        'visualizer.gradient.enable': 'Activer le dégradé',
+        'visualizer.gradient.direction': 'Direction du dégradé',
+        'visualizer.gradient.vertical': 'Vertical',
+        'visualizer.gradient.horizontal': 'Horizontal',
+        'visualizer.gradient.verticalReverse': 'Vertical (inversé)',
+        'visualizer.gradient.horizontalReverse': 'Horizontal (inversé)',
+        'visualizer.alpha': 'Transparence',
+        'launchpad.stickers.show': 'Afficher les autocollants sur le Launchpad',
+        'launchpad.default': 'Par défaut',
+        'overlay.clickToStart': 'Cliquez pour démarrer'
+    }
+};
+let currentLanguage = 'it';
+
+function applyTranslations() {
+    const t = translations[currentLanguage] || translations.it;
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        const text = t[key];
+        if (typeof text === 'string') {
+            el.textContent = text;
+        }
+    });
+}
+
+export function initializeLanguageControls() {
+    const select = document.getElementById('language-select');
+    const saved = localStorage.getItem('ui.language');
+    currentLanguage = saved || 'it';
+    if (select) {
+        select.value = currentLanguage;
+        select.addEventListener('change', function() {
+            currentLanguage = this.value;
+            localStorage.setItem('ui.language', currentLanguage);
+            applyTranslations();
+        });
+    }
+    applyTranslations();
+}
 
 /**
  * Mostra o nasconde la sidebar.
@@ -89,3 +298,4 @@ window.toggleSidebar = toggleSidebar;
 window.toggleMenu = toggleMenu;
 window.setLaunchpadBackground = setLaunchpadBackground;
 window.toggleLaunchpadStickers = toggleLaunchpadStickers;
+window.initializeLanguageControls = initializeLanguageControls;

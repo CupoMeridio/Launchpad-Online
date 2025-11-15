@@ -13,7 +13,7 @@ import { initMidi } from './midi.js';
 import { initializeVisualizerControls } from './visualizer-controls.js';
 import { initializeVideoControls } from './video.js';
 import { loadProject, initializeProjectMenu, initializeBackgroundMenu } from './project.js';
-import { initializePersonalizeLaunchpadMenu } from './ui.js';
+import { initializePersonalizeLaunchpadMenu, initializeLanguageControls } from './ui.js';
 
 // ----------------------------------------------------------------------------
 // APPLICATION GLOBAL STATE
@@ -67,6 +67,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // --- 2. UI Controls Initialization ---
     initializeVideoControls();
+    initializeLanguageControls();
     initializeVisualizerControls();
 
     document.querySelectorAll('.menu-dropdown.open').forEach(dropdown => {
