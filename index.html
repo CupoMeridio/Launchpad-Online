@@ -169,9 +169,16 @@
             <button class="menu-option" onclick="visualizer.setMode('top')">Superiore</button>
             <button class="menu-option" onclick="visualizer.setMode('bottom')">Inferiore</button>
             <button class="menu-option" onclick="visualizer.setMode('off')">Spento</button>
+
+            <div class="control-group" id="symmetric-group" style="padding: 15px 15px 5px 15px;">
+              <label for="symmetric-checkbox">
+                <input type="checkbox" id="symmetric-checkbox">
+                Simmetrico
+              </label>
+            </div>
             
             <!-- Controllo per la fluidità del visualizzatore -->
-            <div class="control-group" style="padding: 15px 15px 5px 15px;">
+            <div class="control-group" id="smoothing-group" style="padding: 15px 15px 5px 15px;">
               <label for="smoothing-slider">Fluidità</label>
               <div class="input-group">
                 <input type="range" id="smoothing-slider" min="0" max="0.95" step="0.05" value="0.8">
@@ -180,13 +187,13 @@
             </div>
 
             <!-- Controlli per colore e trasparenza -->
-            <div class="control-group" style="padding: 15px 15px 5px 15px;">
+            <div class="control-group" id="color1-group" style="padding: 15px 15px 5px 15px;">
               <label for="color1-picker">Colore 1</label>
               <div class="input-group">
                 <input type="color" id="color1-picker" value="#00aaff">
               </div>
             </div>
-            <div class="control-group" style="padding: 15px 15px 5px 15px;">
+            <div class="control-group" id="enable-gradient-group" style="padding: 15px 15px 5px 15px;">
               <label for="enable-color2-checkbox">
                 <input type="checkbox" id="enable-color2-checkbox">
                 Abilita Gradiente
@@ -209,7 +216,7 @@
                 </select>
               </div>
             </div>
-            <div class="control-group" style="padding: 15px 15px 5px 15px;">
+            <div class="control-group" id="alpha-group" style="padding: 15px 15px 5px 15px;">
               <label for="alpha-slider">Trasparenza</label>
               <div class="input-group">
                 <input type="range" id="alpha-slider" min="0" max="1" step="0.05" value="0.6">

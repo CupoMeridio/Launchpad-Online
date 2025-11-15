@@ -37,6 +37,7 @@ export class Visualizer {
 
         // Imposta una modalità di visualizzazione iniziale.
         this.mode = 'both'; 
+        this.isSymmetric = false;
 
         // Impostazioni di personalizzazione
         this.color1 = '#00aaff';
@@ -75,6 +76,13 @@ export class Visualizer {
      */
     setMode(mode) {
         this.mode = mode;
+        this.ctxTop.clearRect(0, 0, this.canvasTop.width, this.canvasTop.height);
+        this.ctxBottom.clearRect(0, 0, this.canvasBottom.width, this.canvasBottom.height);
+        window.dispatchEvent(new CustomEvent('visualizer:mode', { detail: { mode } }));
+    }
+
+    setSymmetric(enabled) {
+        this.isSymmetric = !!enabled;
         this.ctxTop.clearRect(0, 0, this.canvasTop.width, this.canvasTop.height);
         this.ctxBottom.clearRect(0, 0, this.canvasBottom.width, this.canvasBottom.height);
     }
@@ -129,6 +137,86 @@ export class Visualizer {
         const barWidth = (this.canvasBottom.width / this.bufferLength) * 1.5;
         let barHeight;
         let x = 0;
+
+        if (this.isSymmetric) {
+            const spacing = 2;
+            const halfLength = Math.floor(this.bufferLength / 2);
+
+            if (this.mode === 'bottom' || this.mode === 'both') {
+                const width = this.canvasBottom.width;
+                const center = width / 2;
+                const barW = Math.max(1, (width / this.bufferLength) - spacing);
+
+                const createGradientBottom = (y1, y2) => {
+                    let grad;
+                    switch (this.gradientDirection) {
+                        case 'horizontal':
+                            grad = this.ctxBottom.createLinearGradient(0, 0, width, 0);
+                            break;
+                        case 'horizontal-reverse':
+                            grad = this.ctxBottom.createLinearGradient(width, 0, 0, 0);
+                            break;
+                        case 'vertical-reverse':
+                            grad = this.ctxBottom.createLinearGradient(0, y2, 0, y1);
+                            break;
+                        default:
+                            grad = this.ctxBottom.createLinearGradient(0, y1, 0, y2);
+                            break;
+                    }
+                    grad.addColorStop(0, this.hexToRgba(this.color1, this.alpha));
+                    grad.addColorStop(1, this.hexToRgba(this.color2, this.alpha));
+                    return grad;
+                };
+
+                for (let i = 0; i < halfLength; i++) {
+                    barHeight = this.dataArray[i] * 0.7;
+                    const xLeft = center - (i + 1) * (barW + spacing);
+                    const xRight = center + i * (barW + spacing);
+                    const grad = createGradientBottom(this.canvasBottom.height, this.canvasBottom.height - barHeight);
+                    this.ctxBottom.fillStyle = grad;
+                    this.ctxBottom.fillRect(xLeft, this.canvasBottom.height - barHeight, barW, barHeight);
+                    this.ctxBottom.fillRect(xRight, this.canvasBottom.height - barHeight, barW, barHeight);
+                }
+            }
+
+            if (this.mode === 'top' || this.mode === 'both') {
+                const width = this.canvasTop.width;
+                const center = width / 2;
+                const barW = Math.max(1, (width / this.bufferLength) - spacing);
+
+                const createGradientTop = (y1, y2) => {
+                    let grad;
+                    switch (this.gradientDirection) {
+                        case 'horizontal':
+                            grad = this.ctxTop.createLinearGradient(0, 0, width, 0);
+                            break;
+                        case 'horizontal-reverse':
+                            grad = this.ctxTop.createLinearGradient(width, 0, 0, 0);
+                            break;
+                        case 'vertical-reverse':
+                            grad = this.ctxTop.createLinearGradient(0, y2, 0, y1);
+                            break;
+                        default:
+                            grad = this.ctxTop.createLinearGradient(0, y1, 0, y2);
+                            break;
+                    }
+                    grad.addColorStop(0, this.hexToRgba(this.color1, this.alpha));
+                    grad.addColorStop(1, this.hexToRgba(this.color2, this.alpha));
+                    return grad;
+                };
+
+                for (let i = 0; i < halfLength; i++) {
+                    barHeight = this.dataArray[i] * 0.7;
+                    const xLeft = center - (i + 1) * (barW + spacing);
+                    const xRight = center + i * (barW + spacing);
+                    const grad = createGradientTop(0, barHeight);
+                    this.ctxTop.fillStyle = grad;
+                    this.ctxTop.fillRect(xLeft, 0, barW, barHeight);
+                    this.ctxTop.fillRect(xRight, 0, barW, barHeight);
+                }
+            }
+            return;
+        }
 
         for (let i = 0; i < this.bufferLength; i++) {
             barHeight = this.dataArray[i] * 0.7;

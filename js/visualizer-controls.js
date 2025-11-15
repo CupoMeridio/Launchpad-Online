@@ -70,6 +70,36 @@ export function initializeVisualizerControls() {
             window.visualizer.setAlpha(alphaSlider.value);
         }
     }
+
+    const symmetricCheckbox = document.getElementById('symmetric-checkbox');
+    if (symmetricCheckbox) {
+        symmetricCheckbox.addEventListener('change', function() {
+            if (window.visualizer) window.visualizer.setSymmetric(this.checked);
+        });
+        if (window.visualizer) window.visualizer.setSymmetric(symmetricCheckbox.checked);
+    }
+
+    const updateControlsVisibility = (mode) => {
+        const groups = [
+            document.getElementById('smoothing-group'),
+            document.getElementById('color1-group'),
+            document.getElementById('enable-gradient-group'),
+            document.getElementById('gradient-controls'),
+            document.getElementById('alpha-group'),
+            document.getElementById('symmetric-group'),
+        ];
+        const show = mode !== 'off';
+        groups.forEach(el => {
+            if (!el) return;
+            el.style.display = show ? (el.id === 'gradient-controls' ? (document.getElementById('enable-color2-checkbox')?.checked ? 'block' : 'none') : 'block') : 'none';
+        });
+    };
+
+    window.addEventListener('visualizer:mode', (e) => {
+        updateControlsVisibility(e.detail?.mode);
+    });
+
+    updateControlsVisibility(window.visualizer ? window.visualizer.mode : 'both');
 }
 
 /**
