@@ -37,7 +37,8 @@ const translations = {
         'overlay.clickToStart': 'Clicca per avviare',
         'midi.status.connected': 'Launchpad collegato',
         'midi.status.disconnected': 'Launchpad scollegato',
-        'midi.notSupported': 'MIDI non supportato'
+        'midi.notSupported': 'MIDI non supportato',
+        'launchpad.rotation': 'Rotazione Launchpad'
     },
     en: {
         'sidebar.title': 'Menu',
@@ -76,7 +77,8 @@ const translations = {
         'overlay.clickToStart': 'Click to start',
         'midi.status.connected': 'Launchpad Connected',
         'midi.status.disconnected': 'Launchpad Disconnected',
-        'midi.notSupported': 'MIDI Not Supported'
+        'midi.notSupported': 'MIDI Not Supported',
+        'launchpad.rotation': 'Launchpad rotation'
     },
     es: {
         'sidebar.title': 'Menú',
@@ -115,7 +117,8 @@ const translations = {
         'overlay.clickToStart': 'Haz clic para iniciar',
         'midi.status.connected': 'Launchpad conectado',
         'midi.status.disconnected': 'Launchpad desconectado',
-        'midi.notSupported': 'MIDI no soportado'
+        'midi.notSupported': 'MIDI no soportado',
+        'launchpad.rotation': 'Rotación del Launchpad'
     },
     de: {
         'sidebar.title': 'Menü',
@@ -154,7 +157,8 @@ const translations = {
         'overlay.clickToStart': 'Klicken zum Starten',
         'midi.status.connected': 'Launchpad verbunden',
         'midi.status.disconnected': 'Launchpad getrennt',
-        'midi.notSupported': 'MIDI nicht unterstützt'
+        'midi.notSupported': 'MIDI nicht unterstützt',
+        'launchpad.rotation': 'Launchpad-Drehung'
     },
     fr: {
         'sidebar.title': 'Menu',
@@ -193,7 +197,8 @@ const translations = {
         'overlay.clickToStart': 'Cliquez pour démarrer',
         'midi.status.connected': 'Launchpad connecté',
         'midi.status.disconnected': 'Launchpad déconnecté',
-        'midi.notSupported': 'MIDI non pris en charge'
+        'midi.notSupported': 'MIDI non pris en charge',
+        'launchpad.rotation': 'Rotation du Launchpad'
     }
 };
 let currentLanguage = 'it';
@@ -311,6 +316,25 @@ export function initializePersonalizeLaunchpadMenu(imageFiles) {
         button.onclick = () => setLaunchpadBackground(imageFile);
         menu.appendChild(button);
     });
+
+    const rotationSlider = document.getElementById('rotation-slider');
+    const rotationInput = document.getElementById('rotation-input');
+    if (rotationSlider && rotationInput) {
+        rotationSlider.value = '0';
+        rotationInput.value = '0';
+        rotationSlider.addEventListener('input', function() {
+            rotationInput.value = this.value;
+            setLaunchpadRotation(parseInt(this.value, 10));
+        });
+        rotationInput.addEventListener('input', function() {
+            let value = parseInt(this.value, 10);
+            if (isNaN(value)) return;
+            value = Math.max(0, Math.min(360, value));
+            this.value = String(value);
+            rotationSlider.value = String(value);
+            setLaunchpadRotation(value);
+        });
+    }
 }
 
 // Global exposure for usage in HTML
@@ -319,3 +343,16 @@ window.toggleMenu = toggleMenu;
 window.setLaunchpadBackground = setLaunchpadBackground;
 window.toggleLaunchpadStickers = toggleLaunchpadStickers;
 window.initializeLanguageControls = initializeLanguageControls;
+export function setLaunchpadRotation(angle) {
+    const launchpad = document.getElementById('Launchpad');
+    if (launchpad) {
+        launchpad.style.transform = `rotate(${angle}deg)`;
+        const rotationSlider = document.getElementById('rotation-slider');
+        const rotationInput = document.getElementById('rotation-input');
+        if (rotationSlider && rotationInput) {
+            rotationSlider.value = String(angle);
+            rotationInput.value = String(angle);
+        }
+    }
+}
+window.setLaunchpadRotation = setLaunchpadRotation;

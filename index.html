@@ -256,6 +256,14 @@
                 <span data-i18n="launchpad.stickers.show">Mostra Adesivi</span>
               </label>
             </div>
+            <div class="control-group" style="padding: 15px 15px 5px 15px;">
+              <label for="rotation-slider" data-i18n="launchpad.rotation">Rotazione Launchpad</label>
+              <div class="input-group">
+                <input type="range" id="rotation-slider" min="0" max="360" step="1" value="0">
+                <input type="number" id="rotation-input" min="0" max="360" step="1" value="0" class="manual-input">
+                <span class="value-display">°</span>
+              </div>
+            </div>
             <button class="menu-option selected" data-skin="none" onclick="setLaunchpadBackground(null)" data-i18n="launchpad.default">Default</button>
           </div>
         </div>
