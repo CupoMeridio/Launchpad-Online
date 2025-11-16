@@ -230,7 +230,7 @@ export function initializeLanguageControls() {
 }
 
 /**
- * Mostra o nasconde la sidebar.
+ * Shows or hides the sidebar.
  */
 export function toggleSidebar() {
     const layout = document.querySelector('.layout');
@@ -238,8 +238,8 @@ export function toggleSidebar() {
 }
 
 /**
- * Apre o chiude un menu a tendina nella sidebar.
- * @param {string} menuId - L'ID dell'elemento del menu da aprire/chiudere.
+ * Opens or closes a dropdown menu in the sidebar.
+ * @param {string} menuId - The ID of the menu element to toggle.
  */
 export function toggleMenu(menuId) {
     const menu = document.getElementById(menuId);
@@ -263,8 +263,8 @@ export function toggleMenu(menuId) {
 }
 
 /**
- * Imposta un'immagine di sfondo per il Launchpad.
- * @param {string|null} imageFile - Il nome del file immagine, o `null` per rimuoverlo.
+ * Sets a background image for the Launchpad.
+ * @param {string|null} imageFile - The image file name, or `null` to remove it.
  */
 export function setLaunchpadBackground(imageFile) {
     const launchpad = document.getElementById('Launchpad');
@@ -284,8 +284,8 @@ export function setLaunchpadBackground(imageFile) {
 }
 
 /**
- * Mostra o nasconde gli "adesivi" sui pad.
- * @param {boolean} isActive - `true` per mostrare gli adesivi, `false` per nasconderli.
+ * Shows or hides the pad "stickers".
+ * @param {boolean} isActive - `true` to show stickers, `false` to hide them.
  */
 export function toggleLaunchpadStickers(isActive) {
     const launchpad = document.getElementById('Launchpad');
@@ -297,8 +297,8 @@ export function toggleLaunchpadStickers(isActive) {
 }
 
 /**
- * Popola dinamicamente il menu per la personalizzazione dello sfondo del Launchpad.
- * @param {string[]} imageFiles - Un array di nomi di file immagine (skin).
+ * Dynamically populates the menu for customizing the Launchpad background.
+ * @param {string[]} imageFiles - An array of image file names (skins).
  */
 export function initializePersonalizeLaunchpadMenu(imageFiles) {
     const menu = document.getElementById('personalize-launchpad-menu');
@@ -313,7 +313,7 @@ export function initializePersonalizeLaunchpadMenu(imageFiles) {
     });
 }
 
-// Esposizione globale per l'uso nell'HTML
+// Global exposure for usage in HTML
 window.toggleSidebar = toggleSidebar;
 window.toggleMenu = toggleMenu;
 window.setLaunchpadBackground = setLaunchpadBackground;

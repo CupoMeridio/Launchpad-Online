@@ -4,12 +4,12 @@
  * =============================================================================
  */
 
-// Moduli principali dell'applicazione
+// Main application modules
 import { audioEngine } from './audio.js';
 import { Visualizer } from './visualizer.js';
 import { initMidi } from './midi.js';
 
-// Funzioni di inizializzazione e gestione dai moduli separati
+// Initialization and management functions from separate modules
 import { initializeVisualizerControls } from './visualizer-controls.js';
 import { initializeVideoControls } from './video.js';
 import { loadProject, initializeProjectMenu, initializeBackgroundMenu } from './project.js';
@@ -40,11 +40,11 @@ export function setActivePageButton(b) { activePageButton = b; }
 document.addEventListener('DOMContentLoaded', async function() {
     // --- 1. AudioContext Unlock ---
     const unlockOverlay = document.getElementById('audio-unlock-overlay');
-    let audioUnlocked = false; // Flag per evitare doppie esecuzioni
+    let audioUnlocked = false; // Flag to avoid double execution
     
     const unlockAudioAndHideOverlay = () => {
-        if (audioUnlocked) return; // Esci se già sbloccato
-        audioUnlocked = true; // Imposta il flag
+        if (audioUnlocked) return; // Exit if already unlocked
+        audioUnlocked = true; // Set the flag
         
         if (unlockOverlay) {
             unlockOverlay.classList.add('hidden');
@@ -55,13 +55,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
         }
         
-        // Rimuovi entrambi gli event listeners per essere sicuri
+        // Remove both event listeners to be safe
         document.removeEventListener('click', unlockAudioAndHideOverlay);
         document.removeEventListener('touchstart', unlockAudioAndHideOverlay);
     };
     
-    // Aggiungi entrambi gli event listeners ma senza { once: true }
-    // così possiamo rimuoverli manualmente dopo la prima esecuzione
+    // Add both event listeners but without { once: true }
+    // so we can remove them manually after the first execution
     document.addEventListener('click', unlockAudioAndHideOverlay);
     document.addEventListener('touchstart', unlockAudioAndHideOverlay);
 

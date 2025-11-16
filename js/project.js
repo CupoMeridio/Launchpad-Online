@@ -11,8 +11,8 @@ import {
 } from './app.js';
 
 /**
- * Popola dinamicamente il menu dei video di sfondo.
- * @param {string[]} videoFiles - Un array di nomi di file video.
+ * Dynamically populates the background video menu.
+ * @param {string[]} videoFiles - An array of video file names.
  */
 export function initializeBackgroundMenu(videoFiles) {
     const backgroundMenu = document.getElementById('background-menu');
@@ -29,9 +29,9 @@ export function initializeBackgroundMenu(videoFiles) {
 }
 
 /**
- * Carica un progetto, i suoi suoni e imposta lo sfondo associato.
- * @param {string} configPath - Il percorso al file JSON di configurazione del progetto.
- * @param {HTMLElement} button - L'elemento pulsante cliccato, per aggiornare lo stato 'selected'.
+ * Loads a project, its sounds, and sets the associated background.
+ * @param {string} configPath - Path to the project configuration JSON file.
+ * @param {HTMLElement} button - Clicked button element to update 'selected' state.
  */
 export async function loadProject(configPath, button) {
     try {
@@ -63,15 +63,15 @@ export async function loadProject(configPath, button) {
 
         changeSoundSet(0);
 
-        console.log(`Progetto "${project.name}" caricato.`);
+        console.log(`Project "${project.name}" loaded.`);
     } catch (error) {
-        console.error("Impossibile caricare il progetto:", error);
+        console.error("Unable to load project:", error);
     }
 }
 
 /**
- * Popola dinamicamente il menu di selezione del progetto.
- * @param {object[]} projects - Array di oggetti progetto da `static-data.json`.
+ * Dynamically populates the project selection menu.
+ * @param {object[]} projects - Array of project objects from `static-data.json`.
  */
 export function initializeProjectMenu(projects) {
     const projectMenu = document.getElementById('project-menu');
@@ -85,8 +85,15 @@ export function initializeProjectMenu(projects) {
         projectMenu.appendChild(button);
 
         if (index === 0) {
-            // Pre-seleziona il primo progetto.
-            // La logica di gestione del pulsante selezionato è in loadProject
+            // Pre-select the first project.
+            // Selected button handling logic is in loadProject
         }
     });
 }
+/**
+ * =============================================================================
+ * PROJECT MANAGEMENT (project.js)
+ * =============================================================================
+ * Populates background and project menus and loads project configuration,
+ * sounds, and associated Launchpad cover.
+ */

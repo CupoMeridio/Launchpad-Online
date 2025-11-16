@@ -46,11 +46,11 @@
     <link rel="stylesheet" href="css/launchpad.css">
 
     <!--
-      SCRIPT JAVASCRIPT
-      - app.js: È lo script principale che gestisce la logica dell'applicazione.
-                Importa e coordina gli altri moduli JavaScript.
-      - type="module": Permette di usare le funzionalità dei moduli ES6 (import/export).
-      - defer: Assicura che lo script venga eseguito solo dopo che l'intero documento HTML è stato caricato.
+      JAVASCRIPT SCRIPTS
+      - app.js: The main script that handles application logic.
+                It imports and coordinates other JavaScript modules.
+      - type="module": Enables ES6 module functionality (import/export).
+      - defer: Ensures the script runs only after the entire HTML document has loaded.
     -->
     <script src="js/interaction.js" type="module" defer></script>
     <script src="js/ui.js" type="module" defer></script>
@@ -68,20 +68,20 @@
 -->
 <div class="layout">
     <!--
-      ELEMENTI DI SFONDO E VISUALIZZATORE
-      - video-overlay: Un livello semitrasparente che si sovrappone al video di sfondo per migliorarne la leggibilità.
-                       L'opacità è controllabile dal menu.
-      - visualizer-canvas: Due elementi <canvas> usati per disegnare il visualizzatore audio (uno in alto, uno in basso).
-                           La loro visibilità e comportamento sono gestiti da 'js/visualizer.js'.
+      BACKGROUND ELEMENTS AND VISUALIZER
+      - video-overlay: A semi-transparent layer overlaying the background video to improve readability.
+                       The opacity is controlled from the menu.
+      - visualizer-canvas: Two <canvas> elements used to draw the audio visualizer (one at the top, one at the bottom).
+                           Their visibility and behavior are managed by 'js/visualizer.js'.
     -->
     <div class="video-overlay"></div>
     <canvas id="visualizer-canvas-top" class="visualizer-canvas"></canvas>
     <canvas id="visualizer-canvas-bottom" class="visualizer-canvas"></canvas>
 
     <!--
-      SIDEBAR (MENU LATERALE)
-      Contiene i menu per selezionare progetti, cambiare lo sfondo, controllare il visualizzatore e personalizzare il Launchpad.
-      La visibilità della sidebar è gestita tramite JavaScript (funzione toggleSidebar).
+      SIDEBAR (SIDE MENU)
+      Contains menus to select projects, change background, control the visualizer, and customize the Launchpad.
+      Sidebar visibility is managed via JavaScript (function toggleSidebar).
     -->
     <div class="sidebar">
       <div class="sidebar-header">
@@ -107,36 +107,33 @@
           </div>
         </div>
         <!--
-          MENU SELEZIONE PROGETTO
-          - Il contenuto di 'project-menu' viene popolato dinamicamente da 'js/ui/library-ui.js'
-            leggendo i file dei progetti disponibili nella cartella 'projects/'.
+          PROJECT SELECTION MENU
+          - The content of 'project-menu' is populated dynamically
+            using static data loaded in JavaScript.
         -->
         <div class="menu-item">
           <button class="menu-toggle" onclick="toggleMenu('project-menu')" data-i18n="menu.project.toggle">Seleziona progetto</button>
           <div class="menu-dropdown" id="project-menu">
-            <!-- Contenuto progetti verrà aggiunto dinamicamente -->
+            <!-- Project items will be populated dynamically -->
           </div>
         </div>
 
         <!--
-          MENU BACKGROUND
-          - Permette di selezionare un video di sfondo.
-          - I video disponibili vengono caricati dinamicamente da 'js/ui/library-ui.js' leggendo dalla cartella 'assets/videos/'.
-          - Contiene anche i controlli per personalizzare l'aspetto del video di sfondo.
-          - PERSONALIZZAZIONE: Per aggiungere nuovi video, inseriscili nella cartella 'assets/videos/'.
-            Verranno automaticamente aggiunti al menu.
+          BACKGROUND MENU
+          - Allows selecting a background video.
+          - Also contains controls to customize the appearance of the background video.
+          - CUSTOMIZATION: To add new videos, place them in the 'assets/videos/' folder.
         -->
         <div class="menu-item">
           <button class="menu-toggle" onclick="toggleMenu('background-menu')" data-i18n="menu.background.toggle">Background</button>
           <div class="menu-dropdown" id="background-menu">
             <button class="menu-option selected" data-video="none" onclick="setBackgroundVideo(null)" data-i18n="background.none">Nessun background</button>
             <!--
-              CONTROLLI VIDEO
-              Questi slider permettono di modificare in tempo reale:
-              - Opacità dell'overlay: Controlla la trasparenza del livello sopra il video.
-              - Sfocatura: Applica un filtro blur al video.
-              - Luminosità: Regola la luminosità del video.
-              I valori di questi controlli sono gestiti in 'js/app.js'.
+              VIDEO CONTROLS
+              These sliders allow real-time adjustments:
+              - Overlay opacity: Controls transparency of the overlay above the video.
+              - Blur: Applies a blur filter to the video.
+              - Brightness: Adjusts the video brightness.
             -->
             <div class="video-controls">
               <div class="control-group">
@@ -173,11 +170,11 @@
     </div>
 
         <!--
-          MENU VISUALIZZATORE
-          - Controlla il comportamento del visualizzatore audio.
-          - Le funzioni onclick chiamano metodi dell'oggetto 'visualizer' definito in 'js/visualizer.js'.
-          - PERSONALIZZAZIONE: I parametri del visualizzatore (es. colori, tipo di barre)
-            possono essere modificati direttamente nel file 'js/visualizer.js'.
+          VISUALIZER MENU
+          - Controls the behavior of the audio visualizer.
+          - The onclick functions call methods of the 'visualizer' object defined in 'js/visualizer.js'.
+          - CUSTOMIZATION: Visualizer parameters (e.g., colors, bar type)
+            can be modified directly in 'js/visualizer.js'.
         -->
         <div class="menu-item">
           <button class="menu-toggle" onclick="toggleMenu('visualizer-menu')" data-i18n="menu.visualizer.toggle">Visualizzatore</button>
@@ -194,7 +191,7 @@
               </label>
             </div>
             
-            <!-- Controllo per la fluidità del visualizzatore -->
+            <!-- Visualizer smoothness control -->
             <div class="control-group" id="smoothing-group" style="padding: 15px 15px 5px 15px;">
               <label for="smoothing-slider" data-i18n="visualizer.smoothing">Fluidità</label>
               <div class="input-group">
@@ -203,7 +200,7 @@
               </div>
             </div>
 
-            <!-- Controlli per colore e trasparenza -->
+            <!-- Color and transparency controls -->
             <div class="control-group" id="color1-group" style="padding: 15px 15px 5px 15px;">
               <label for="color1-picker" data-i18n="visualizer.color1">Colore 1</label>
               <div class="input-group">
@@ -244,13 +241,11 @@
         </div>
 
         <!--
-          MENU PERSONALIZZAZIONE LAUNCHPAD
-          - Contiene opzioni per modificare l'aspetto del Launchpad.
-          - 'toggle-stickers': Mostra/nasconde gli adesivi decorativi sul Launchpad.
-          - Sfondi Launchpad: Vengono caricati dinamicamente da 'js/ui/library-ui.js'
-            leggendo dalla cartella 'assets/images/launchpad covers/'.
-          - PERSONALIZZAZIONE: Per aggiungere nuovi sfondi per il Launchpad, inserisci le immagini
-            nella cartella 'assets/images/launchpad covers/'.
+          LAUNCHPAD CUSTOMIZATION MENU
+          - Contains options to change the appearance of the Launchpad.
+          - 'toggle-stickers': Shows/hides decorative stickers on the Launchpad.
+          - CUSTOMIZATION: To add new Launchpad backgrounds, place images
+            in the 'assets/images/launchpad covers/' folder.
         -->
         <div class="menu-item">
           <button class="menu-toggle" onclick="toggleMenu('personalize-launchpad-menu')" data-i18n="menu.launchpad.toggle">Personalize Launchpad</button>
@@ -270,34 +265,33 @@
     </div>
     
     <!--
-      CORPO PRINCIPALE
-      Contiene il pulsante per aprire la sidebar e il Launchpad stesso.
+      MAIN BODY
+      Contains the button to open the sidebar and the Launchpad itself.
     -->
     <div class="body">
       <button id="openSidebar" onclick="toggleSidebar()"><span class="icon">☰</span></button>
       <main>
         <!--
           LAUNCHPAD
-          Il cuore dell'applicazione. È una griglia di pulsanti che riproducono suoni.
+          The heart of the application: a grid of buttons that play sounds.
         -->
         <div class="Launchpad" id="Launchpad">
           <!--
-            OVERLAY SBLOCCO AUDIO
-            Molti browser moderni bloccano la riproduzione audio automatica.
-            Questo overlay richiede un'interazione dell'utente (un click) per sbloccare l'AudioContext,
-            garantendo che i suoni possano essere riprodotti.
-            È gestito da 'js/audio.js'.
+            AUDIO UNLOCK OVERLAY
+            Many modern browsers block automatic audio playback.
+            This overlay requires user interaction (a click) to unlock the AudioContext,
+            ensuring that sounds can be played.
           -->
           <div id="audio-unlock-overlay" class="launchpad-overlay">
             <p data-i18n="overlay.clickToStart">Clicca per avviare</p>
           </div>
           
           <!--
-            ELEMENTI DECORATIVI DEL LAUNCHPAD
-            Questi elementi (triangoli, testi, logo) sono puramente estetici.
-            La loro visibilità può essere controllata tramite CSS o JavaScript (es. 'toggleLaunchpadStickers').
-            - PERSONALIZZAZIONE: Puoi cambiare le immagini, i testi o lo stile di questi elementi
-              modificando il CSS in 'launchpad.css' o sostituendo le immagini in 'assets/icons/'.
+            DECORATIVE ELEMENTS OF THE LAUNCHPAD
+            These elements (triangles, texts, logo) are purely aesthetic.
+            Their visibility can be controlled via CSS or JavaScript (e.g., 'toggleLaunchpadStickers').
+            - CUSTOMIZATION: You can change images, texts, or styles by
+              editing CSS in 'launchpad.css' or replacing images in 'assets/icons/'.
           -->
           <div class="grid-item-triangle"><img src="assets/icons/triangle.png"  class="triangolo"></div>
           <div class="grid-item-triangle"><img style="transform: rotate(180deg);" src="assets/icons/triangle.png" class="triangolo"></div>
@@ -310,9 +304,9 @@
           <div id="image-container"><img src="assets/icons/Logo.png" alt="immagine" class="square-image"></div>
       
           <!--
-            PULSANTI DI CONTROLLO SUPERIORI (Riga 'a')
-            Questi pulsanti sono attualmente vuoti e non hanno funzioni associate.
-            Potrebbero essere usati in futuro per funzioni globali.
+            TOP CONTROL BUTTONS (Row 'a')
+            These buttons are currently empty with no associated functions.
+            They may be used in the future for global functions.
           -->
           <button id="a1" class="grid-item-menu"></button>
           <button id="a2" class="grid-item-menu"></button>
@@ -337,7 +331,7 @@
           -->
           <button id="b1" class="grid-item" onclick="playSound(event, 0)" ></button>
           <button id="b2" class="grid-item" onclick="playSound(event, 1)" ></button>
-          <!-- ... altri pad da b3 a b8 ... -->
+          <!-- ... other pads from b3 to b8 ... -->
           <button id="b3" class="grid-item" onclick="playSound(event, 2)" ></button>
           <button id="b4" class="grid-item" onclick="playSound(event, 3)" ></button>
           <button id="b5" class="grid-item" onclick="playSound(event, 4)" ></button>
@@ -346,19 +340,19 @@
           <button id="b8" class="grid-item" onclick="playSound(event, 7)" ></button>
           
           <!--
-            PULSANTI DI CONTROLLO LATERALI (colonna 'm')
-            Questi pulsanti (m1-m8) cambiano la "pagina" o il "set" di suoni.
-            - 'onclick="changeSoundSet(index)"': Chiama la funzione per caricare un nuovo set di campioni.
-              - 'index': Identifica la pagina da caricare (da 0 a 7).
-            La logica è gestita in 'js/app.js' e 'js/audio.js'.
-            I testi accanto a questi pulsanti (Volume, Pan, ecc.) sono puramente decorativi.
+            SIDE CONTROL BUTTONS (column 'm')
+            These buttons (m1-m8) change the sound "page" or "set".
+            - 'onclick="changeSoundSet(index)"': Calls the function to load a new set of samples.
+              - 'index': Identifies the page to load (0 to 7).
+            Logic is handled in 'js/app.js' and 'js/audio.js'.
+            The texts next to these buttons (Volume, Pan, etc.) are purely decorative.
           -->
           <button id="m1" class="grid-item-menu" onclick="changeSoundSet(0)" ></button>
           <div class="testo_su_launchpad">Volume</div>
       
           <button id="c1" class="grid-item" onclick="playSound(event, 8)" ></button>
           <button id="c2" class="grid-item" onclick="playSound(event, 9)" ></button>
-          <!-- ... altri pad ... -->
+          <!-- ... other pads ... -->
           <button id="c3" class="grid-item" onclick="playSound(event, 10)" ></button>
           <button id="c4" class="grid-item" onclick="playSound(event, 11)" ></button>
           <button id="c5" class="grid-item" onclick="playSound(event, 12)" ></button>
@@ -369,7 +363,7 @@
           <div class="testo_su_launchpad">Pan</div>
       
           <button id="d1" class="grid-item" onclick="playSound(event, 16)" ></button>
-          <!-- ... e così via per tutte le righe fino a 'i' e 'm8' ... -->
+          <!-- ... and so on for all rows up to 'i' and 'm8' ... -->
           <button id="d2" class="grid-item" onclick="playSound(event, 17)" ></button>
           <button id="d3" class="grid-item" onclick="playSound(event, 18)" ></button>
           <button id="d4" class="grid-item" onclick="playSound(event, 19)" ></button>

@@ -1,10 +1,10 @@
 import { audioEngine } from './audio.js';
 
 /**
- * Inizializza tutti i controlli per il visualizzatore.
+ * Initializes all controls for the visualizer.
  */
 export function initializeVisualizerControls() {
-    // Controllo Fluidità
+    // Smoothing control
     const smoothingSlider = document.getElementById('smoothing-slider');
     const smoothingInput = document.getElementById('smoothing-input');
     if (smoothingSlider && smoothingInput) {
@@ -16,7 +16,7 @@ export function initializeVisualizerControls() {
         });
     }
 
-    // Controlli Colore e Gradiente
+    // Color and gradient controls
     const color1Picker = document.getElementById('color1-picker');
     const color2Picker = document.getElementById('color2-picker');
     const enableGradientCheckbox = document.getElementById('enable-color2-checkbox');
@@ -39,12 +39,12 @@ export function initializeVisualizerControls() {
         color1Picker.addEventListener('input', updateColors);
         color2Picker.addEventListener('input', updateColors);
         
-        // Imposta lo stato iniziale
+        // Set initial state
         gradientControls.style.display = enableGradientCheckbox.checked ? 'block' : 'none';
         updateColors();
     }
 
-    // Controllo Direzione Gradiente
+    // Gradient direction control
     const gradientDirection = document.getElementById('gradient-direction');
     if (gradientDirection) {
         gradientDirection.addEventListener('change', function() {
@@ -52,20 +52,20 @@ export function initializeVisualizerControls() {
                 window.visualizer.setGradientDirection(this.value);
             }
         });
-        // Imposta la direzione iniziale
+        // Set initial direction
         if (window.visualizer) {
             window.visualizer.setGradientDirection(gradientDirection.value);
         }
     }
 
-    // Controllo Trasparenza
+    // Transparency control
     const alphaSlider = document.getElementById('alpha-slider');
     const alphaInput = document.getElementById('alpha-input');
     if (alphaSlider && alphaInput) {
         syncSliderAndInput(alphaSlider, alphaInput, (value) => {
             if (window.visualizer) window.visualizer.setAlpha(value);
         });
-        // Imposta la trasparenza iniziale
+        // Set initial transparency
         if (window.visualizer) {
             window.visualizer.setAlpha(alphaSlider.value);
         }
@@ -118,10 +118,10 @@ export function initializeVisualizerControls() {
 }
 
 /**
- * Sincronizza un controllo di tipo slider con un input numerico.
- * @param {HTMLInputElement} slider - L'elemento slider.
- * @param {HTMLInputElement} input - L'elemento input numerico.
- * @param {Function} callback - La funzione da chiamare quando il valore cambia.
+ * Synchronizes a range slider with a numeric input.
+ * @param {HTMLInputElement} slider - The slider element.
+ * @param {HTMLInputElement} input - The numeric input element.
+ * @param {Function} callback - Function called when the value changes.
  */
 function syncSliderAndInput(slider, input, callback) {
     slider.addEventListener('input', function() {

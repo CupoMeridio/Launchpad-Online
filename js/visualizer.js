@@ -3,18 +3,18 @@
  * VISUALIZER MODULE (visualizer.js)
  * =============================================================================
  * 
- * Questo modulo definisce la classe `Visualizer`, responsabile della creazione
- * e dell'animazione del visualizzatore audio.
- * Utilizza i dati forniti da un `AnalyserNode` (dal modulo `audio.js`) per disegnare
- * barre di frequenza su due elementi `<canvas>` HTML5 in tempo reale.
+ * This module defines the `Visualizer` class, responsible for creating
+ * and animating the audio visualizer.
+ * It uses data from an `AnalyserNode` (from `audio.js`) to draw
+ * frequency bars on two HTML5 `<canvas>` elements in real time.
  */
 
 export class Visualizer {
     /**
-     * Costruisce l'istanza del visualizzatore.
-     * @param {AnalyserNode} analyser - Il nodo analizzatore della Web Audio API da cui ottenere i dati.
-     * @param {HTMLCanvasElement} canvasTop - L'elemento canvas per la visualizzazione superiore.
-     * @param {HTMLCanvasElement} canvasBottom - L'elemento canvas per la visualizzazione inferiore.
+     * Constructs the visualizer instance.
+     * @param {AnalyserNode} analyser - The Web Audio API analyser node to read data from.
+     * @param {HTMLCanvasElement} canvasTop - The canvas element for the top visualization.
+     * @param {HTMLCanvasElement} canvasBottom - The canvas element for the bottom visualization.
      */
     constructor(analyser, canvasTop, canvasBottom) {
         this.analyser = analyser;
@@ -25,21 +25,21 @@ export class Visualizer {
         this.canvasBottom = canvasBottom;
         this.ctxBottom = this.canvasBottom.getContext('2d');
 
-        // Imposta le dimensioni iniziali dei canvas e aggiunge un listener per il ridimensionamento della finestra.
+        // Set initial canvas sizes and add a window resize listener.
         this.resize();
         window.addEventListener('resize', () => this.resize());
 
-        // `frequencyBinCount` è la metà della `fftSize` dell'analizzatore.
-        // Rappresenta il numero di "contenitori" di dati di frequenza che avremo a disposizione.
+        // `frequencyBinCount` is half of the analyser's `fftSize`.
+        // It represents the number of frequency data "bins" available.
         this.bufferLength = this.analyser.frequencyBinCount;
-        // Creiamo un array di interi a 8 bit (valori da 0 a 255) per contenere i dati di frequenza.
+        // Create an 8-bit integer array (values 0–255) to hold frequency data.
         this.dataArray = new Uint8Array(this.bufferLength);
 
-        // Imposta una modalità di visualizzazione iniziale.
+        // Set an initial display mode.
         this.mode = 'both'; 
         this.isSymmetric = false;
 
-        // Impostazioni di personalizzazione
+        // Customization settings
         this.color1 = '#00aaff';
         this.color2 = '#00aaff';
         this.gradientDirection = 'vertical';
@@ -47,10 +47,10 @@ export class Visualizer {
     }
 
     /**
-     * Converte un colore esadecimale in formato RGBA.
-     * @param {string} hex - Il colore esadecimale (es. '#RRGGBB').
-     * @param {number} alpha - Il valore di trasparenza (da 0 a 1).
-     * @returns {string} - La stringa del colore in formato `rgba(r, g, b, alpha)`.
+     * Converts a hexadecimal color to RGBA format.
+     * @param {string} hex - Hex color (e.g., '#RRGGBB').
+     * @param {number} alpha - Transparency value (0–1).
+     * @returns {string} - Color string in `rgba(r, g, b, alpha)` format.
      */
     hexToRgba(hex, alpha) {
         const r = parseInt(hex.slice(1, 3), 16);
@@ -60,7 +60,7 @@ export class Visualizer {
     }
 
     /**
-     * Ridimensiona i canvas per adattarli alla larghezza della finestra e a un'altezza fissa.
+     * Resizes canvases to match window width and a fixed height.
      */
     resize() {
         this.canvasTop.width = window.innerWidth;
@@ -71,8 +71,8 @@ export class Visualizer {
     }
 
     /**
-     * Imposta la modalità di visualizzazione.
-     * @param {string} mode - La modalità da impostare ('off', 'top', 'bottom', 'both').
+     * Sets the display mode.
+     * @param {string} mode - Mode to set ('off', 'top', 'bottom', 'both').
      */
     setMode(mode) {
         this.mode = mode;
@@ -88,17 +88,17 @@ export class Visualizer {
     }
 
     /**
-     * Imposta la fluidità dell'animazione.
-     * @param {number} value - Valore tra 0 e 1 per `smoothingTimeConstant`.
+     * Sets animation smoothness.
+     * @param {number} value - Value between 0 and 1 for `smoothingTimeConstant`.
      */
     setSmoothing(value) {
         this.analyser.smoothingTimeConstant = value;
     }
 
     /**
-     * Imposta i colori per il visualizzatore.
-     * @param {string} color1 - Il primo colore.
-     * @param {string} color2 - Il secondo colore (opzionale, per il gradiente).
+     * Sets colors for the visualizer.
+     * @param {string} color1 - First color.
+     * @param {string} color2 - Second color (optional, for gradient).
      */
     setColors(color1, color2) {
         this.color1 = color1;
@@ -106,7 +106,7 @@ export class Visualizer {
     }
 
     /**
-     * Imposta la direzione del gradiente.
+     * Sets gradient direction.
      * @param {string} direction - 'vertical', 'horizontal', etc.
      */
     setGradientDirection(direction) {
@@ -114,15 +114,15 @@ export class Visualizer {
     }
 
     /**
-     * Imposta la trasparenza del visualizzatore.
-     * @param {number} alpha - Valore di trasparenza da 0 a 1.
+     * Sets visualizer transparency.
+     * @param {number} alpha - Transparency value from 0 to 1.
      */
     setAlpha(alpha) {
         this.alpha = alpha;
     }
 
     /**
-     * Il ciclo di disegno principale (animation loop).
+     * Main drawing loop (animation).
      */
     draw() {
         requestAnimationFrame(() => this.draw());
@@ -221,7 +221,7 @@ export class Visualizer {
         for (let i = 0; i < this.bufferLength; i++) {
             barHeight = this.dataArray[i] * 0.7;
 
-            // Creazione dello stile di riempimento (gradiente o colore singolo)
+        // Create fill style (gradient or single color)
             const createGradient = (ctx, y1, y2) => {
                 let grad;
                 switch (this.gradientDirection) {
@@ -243,14 +243,14 @@ export class Visualizer {
                 return grad;
             };
 
-            // Disegna sul canvas inferiore
+            // Draw on bottom canvas
             if (this.mode === 'bottom' || this.mode === 'both') {
                 const grad = createGradient(this.ctxBottom, this.canvasBottom.height, this.canvasBottom.height - barHeight);
                 this.ctxBottom.fillStyle = grad;
                 this.ctxBottom.fillRect(x, this.canvasBottom.height - barHeight, barWidth, barHeight);
             }
 
-            // Disegna sul canvas superiore
+            // Draw on top canvas
             if (this.mode === 'top' || this.mode === 'both') {
                 const grad = createGradient(this.ctxTop, 0, barHeight);
                 this.ctxTop.fillStyle = grad;

@@ -140,5 +140,12 @@ export function initializeVideoControls() {
     }
 }
 
-// Esposizione globale per l'uso nell'HTML
+// Global exposure for usage in HTML
 window.setBackgroundVideo = setBackgroundVideo;
+/**
+ * =============================================================================
+ * VIDEO BACKGROUND MODULE (video.js)
+ * =============================================================================
+ * Manages background video selection, effect controls visibility, and
+ * applies visual effects (overlay opacity, blur, brightness).
+ */
