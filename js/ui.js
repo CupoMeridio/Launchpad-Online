@@ -34,7 +34,10 @@ const translations = {
         'visualizer.alpha': 'Trasparenza',
         'launchpad.stickers.show': 'Mostra adesivi sul Launchpad',
         'launchpad.default': 'Predefinito',
-        'overlay.clickToStart': 'Clicca per avviare'
+        'overlay.clickToStart': 'Clicca per avviare',
+        'midi.status.connected': 'Launchpad collegato',
+        'midi.status.disconnected': 'Launchpad scollegato',
+        'midi.notSupported': 'MIDI non supportato'
     },
     en: {
         'sidebar.title': 'Menu',
@@ -70,7 +73,10 @@ const translations = {
         'visualizer.alpha': 'Transparency',
         'launchpad.stickers.show': 'Show stickers on Launchpad',
         'launchpad.default': 'Default',
-        'overlay.clickToStart': 'Click to start'
+        'overlay.clickToStart': 'Click to start',
+        'midi.status.connected': 'Launchpad Connected',
+        'midi.status.disconnected': 'Launchpad Disconnected',
+        'midi.notSupported': 'MIDI Not Supported'
     },
     es: {
         'sidebar.title': 'Menú',
@@ -106,7 +112,10 @@ const translations = {
         'visualizer.alpha': 'Transparencia',
         'launchpad.stickers.show': 'Mostrar pegatinas en el Launchpad',
         'launchpad.default': 'Predeterminado',
-        'overlay.clickToStart': 'Haz clic para iniciar'
+        'overlay.clickToStart': 'Haz clic para iniciar',
+        'midi.status.connected': 'Launchpad conectado',
+        'midi.status.disconnected': 'Launchpad desconectado',
+        'midi.notSupported': 'MIDI no soportado'
     },
     de: {
         'sidebar.title': 'Menü',
@@ -142,7 +151,10 @@ const translations = {
         'visualizer.alpha': 'Transparenz',
         'launchpad.stickers.show': 'Sticker auf Launchpad anzeigen',
         'launchpad.default': 'Standard',
-        'overlay.clickToStart': 'Klicken zum Starten'
+        'overlay.clickToStart': 'Klicken zum Starten',
+        'midi.status.connected': 'Launchpad verbunden',
+        'midi.status.disconnected': 'Launchpad getrennt',
+        'midi.notSupported': 'MIDI nicht unterstützt'
     },
     fr: {
         'sidebar.title': 'Menu',
@@ -178,7 +190,10 @@ const translations = {
         'visualizer.alpha': 'Transparence',
         'launchpad.stickers.show': 'Afficher les autocollants sur le Launchpad',
         'launchpad.default': 'Par défaut',
-        'overlay.clickToStart': 'Cliquez pour démarrer'
+        'overlay.clickToStart': 'Cliquez pour démarrer',
+        'midi.status.connected': 'Launchpad connecté',
+        'midi.status.disconnected': 'Launchpad déconnecté',
+        'midi.notSupported': 'MIDI non pris en charge'
     }
 };
 let currentLanguage = 'it';
@@ -192,6 +207,11 @@ function applyTranslations() {
             el.textContent = text;
         }
     });
+}
+
+export function getTranslation(key) {
+    const t = translations[currentLanguage] || translations.it;
+    return t[key] || key;
 }
 
 export function initializeLanguageControls() {

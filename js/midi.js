@@ -17,6 +17,7 @@
 
 // Import launchpad-webmidi library
 import Launchpad from './vendor/launchpad-webmidi.js';
+import { getTranslation } from './ui.js';
 
 // Launchpad instance
 let launchpad = null;
@@ -68,11 +69,13 @@ function updateMidiStatus(isConnected) {
     }
 
     if (isConnected) {
-        statusText.textContent = 'Launchpad Connected';
+        statusText.setAttribute('data-i18n', 'midi.status.connected');
+        statusText.textContent = getTranslation('midi.status.connected');
         statusDot.classList.remove('disconnected');
         statusDot.classList.add('connected');
     } else {
-        statusText.textContent = 'Launchpad Disconnected';
+        statusText.setAttribute('data-i18n', 'midi.status.disconnected');
+        statusText.textContent = getTranslation('midi.status.disconnected');
         statusDot.classList.remove('connected');
         statusDot.classList.add('disconnected');
     }
@@ -135,7 +138,7 @@ async function connectToLaunchpad() {
 
         // Add visual connection indicator
         updateMidiStatus(true);
-        showTemporaryNotification('Launchpad Connected', 'success');
+        showTemporaryNotification(getTranslation('midi.status.connected'), 'success');
 
         // Set up pad event handlers
         setupLaunchpadEvents();
@@ -170,7 +173,7 @@ export async function initMidi() {
             if (event.port.state === 'disconnected' && isLaunchpad) {
                 console.log("[MIDI] Launchpad disconnected via onstatechange.");
                 updateMidiStatus(false);
-                showTemporaryNotification('Launchpad Disconnected', 'error');
+                showTemporaryNotification(getTranslation('midi.status.disconnected'), 'error');
                 launchpad = null;
             } else if (event.port.state === 'connected') {
                 // A new device is connected, try to find a launchpad
@@ -184,6 +187,6 @@ export async function initMidi() {
     } catch (error) {
         console.error("[MIDI] Web MIDI API not supported or access denied.", error);
         updateMidiStatus(false);
-        showTemporaryNotification('MIDI Not Supported', 'error');
-    }
+        showTemporaryNotification(getTranslation('midi.notSupported'), 'error');
+}
 }
