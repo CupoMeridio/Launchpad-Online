@@ -1,3 +1,11 @@
+/**
+ * =============================================================================
+ * PROJECT MANAGEMENT (project.js)
+ * =============================================================================
+ * Populates background and project menus and loads project configuration,
+ * sounds, and associated Launchpad cover.
+ */
+
 import { audioEngine } from './audio.js';
 import { setLaunchpadBackground } from './ui.js';
 import { setBackgroundVideo } from './video.js';
@@ -90,10 +98,3 @@ export function initializeProjectMenu(projects) {
         }
     });
 }
-/**
- * =============================================================================
- * PROJECT MANAGEMENT (project.js)
- * =============================================================================
- * Populates background and project menus and loads project configuration,
- * sounds, and associated Launchpad cover.
- */

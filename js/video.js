@@ -1,3 +1,11 @@
+/**
+ * =============================================================================
+ * VIDEO BACKGROUND MODULE (video.js)
+ * =============================================================================
+ * Manages background video selection, effect controls visibility, and
+ * applies visual effects (overlay opacity, blur, brightness).
+ */
+
 let currentVideo = null;
 
 const VIDEO_EFFECT_DEFAULTS = {
@@ -142,10 +150,3 @@ export function initializeVideoControls() {
 
 // Global exposure for usage in HTML
 window.setBackgroundVideo = setBackgroundVideo;
-/**
- * =============================================================================
- * VIDEO BACKGROUND MODULE (video.js)
- * =============================================================================
- * Manages background video selection, effect controls visibility, and
- * applies visual effects (overlay opacity, blur, brightness).
- */

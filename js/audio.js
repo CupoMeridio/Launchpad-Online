@@ -127,8 +127,8 @@ class AudioEngine {
     }
 }
 
-// ESPORTAZIONE SINGLETON
-// Creiamo e esportiamo una singola istanza della classe `AudioEngine`.
-// Questo pattern (singleton) assicura che ci sia un solo motore audio in tutta
-// l'applicazione, evitando conflitti e spreco di risorse.
+// SINGLETON EXPORT
+// We create and export a single instance of the `AudioEngine` class.
+// This pattern (singleton) ensures there is only one audio engine in the entire
+// application, avoiding conflicts and wasting resources.
 export const audioEngine = new AudioEngine();

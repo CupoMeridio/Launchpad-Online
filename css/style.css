@@ -1,18 +1,18 @@
 /*
-  Questo file contiene gli stili CSS generali per l'applicazione Launchpad.
-  Definisce l'aspetto di base della pagina, il layout, la sidebar, i menu
-  e altri elementi dell'interfaccia utente. Modificando questo file, è possibile
-  personalizzare l'aspetto e la sensazione generale dell'applicazione.
+  This file contains general CSS styles for the Launchpad application.
+  It defines the basic appearance of the page, layout, sidebar, menus,
+  and other user interface elements. By modifying this file, you can
+  customize the overall look and feel of the application.
 */
 
 /*
-  STILI DI BASE
-  - Impostano le proprietà fondamentali per l'intera pagina.
-  - PERSONALIZZAZIONE: Puoi cambiare il `font-family` per usare un font diverso,
-    o modificare `background-color` e `color` per cambiare il tema di colori (es. tema chiaro).
+  BASE STYLES
+  - Set fundamental properties for the entire page.
+  - CUSTOMIZATION: You can change the `font-family` to use a different font,
+    or modify `background-color` and `color` to change the color theme (e.g., light theme).
 */
 html, body {
-    height: 100%; /* Assicura che l'HTML e il body occupino sempre il 100% dell'altezza dello schermo. */
+    height: 100%; /* Ensures HTML and body always occupy 100% of the screen height. */
 }
 
 .midi-status-dot.connected {
@@ -24,84 +24,84 @@ html, body {
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; /* Utilizza un set di font di sistema moderni e puliti. */
-    background-color: #1a1a1a; /* Colore di sfondo principale, un grigio molto scuro. */
-    color: #f0f0f0; /* Colore del testo principale, un grigio molto chiaro per contrasto. */
-    margin: 0; /* Rimuove i margini predefiniti del browser per un controllo completo sul layout. */
-    overflow: hidden; /* Impedisce lo scrolling a livello del body, utile per layout a schermo intero. */
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; /* Uses a set of modern and clean system fonts. */
+    background-color: #1a1a1a; /* Main background color, a very dark gray. */
+    color: #f0f0f0; /* Main text color, a very light gray for contrast. */
+    margin: 0; /* Removes default browser margins for complete control over layout. */
+    overflow: hidden; /* Prevents scrolling at body level, useful for full-screen layouts. */
 }
 
 /*
-  STILI PER I TITOLI
-  - PERSONALIZZAZIONE: Cambia il colore `#00aaff` per modificare il colore principale dei titoli.
+  HEADING STYLES
+  - CUSTOMIZATION: Change the color `#00aaff` to modify the main color of headings.
 */
 h1, h2 {
-    color: #00aaff; /* Un blu acceso per dare risalto ai titoli. */
-    margin: 0; /* Rimuove i margini per un allineamento preciso. */
+    color: #00aaff; /* A bright blue to highlight headings. */
+    margin: 0; /* Removes margins for precise alignment. */
 }
 
 /*
-  HEADER DELLA SIDEBAR
-  - Stili per l'intestazione del menu laterale.
+  SIDEBAR HEADER
+  - Styles for the side menu header.
 */
 .sidebar-header {
-    display: flex; /* Usa Flexbox per allineare gli elementi interni (il titolo e lo spaziatore). */
-    align-items: center; /* Allinea verticalmente gli elementi al centro. */
+    display: flex; /* Uses Flexbox to align internal elements (title and spacer). */
+    align-items: center; /* Vertically aligns elements to center. */
     margin-bottom: 15px;
     margin-top: 5px;
 }
 
-/* Spaziatore vuoto per allineare il titolo con i contenuti sottostanti. */
+/* Empty spacer to align the title with content below. */
 .sidebar-spacer {
-    width: 30px; /* Larghezza fissa per corrispondere allo spazio del pulsante di apertura/chiusura. */
+    width: 30px; /* Fixed width to match the space of the open/close button. */
     height: 28px;
-    flex-shrink: 0; /* Impedisce che si rimpicciolisca se lo spazio è poco. */
+    flex-shrink: 0; /* Prevents shrinking if space is limited. */
 }
 
 .sidebar-header h2 {
     margin: 0;
-    color: #fff; /* Testo bianco per il titolo del menu. */
+    color: #fff; /* White text for menu title. */
     font-size: 16px;
-    font-weight: normal; /* Font più leggero del normale. */
+    font-weight: normal; /* Lighter font than normal. */
     text-align: center;
-    transition: opacity 0.2s ease; /* Transizione fluida per l'opacità. */
-    white-space: nowrap; /* Impedisce al testo di andare a capo. */
-    overflow: hidden; /* Nasconde il testo se esce dal contenitore. */
+    transition: opacity 0.2s ease; /* Smooth transition for opacity. */
+    white-space: nowrap; /* Prevents text from wrapping. */
+    overflow: hidden; /* Hides text if it overflows the container. */
 }
 
 /*
-  ELEMENTO MAIN
-  - Contenitore per il contenuto principale (il Launchpad).
+  MAIN ELEMENT
+  - Container for main content (the Launchpad).
 */
 main {
     width: 100%;
     display: flex;
-    justify-content: center; /* Centra il contenuto (il Launchpad) orizzontalmente. */
-    align-items: center; /* Centra il contenuto verticalmente. */
+    justify-content: center; /* Centers content (the Launchpad) horizontally. */
+    align-items: center; /* Centers content vertically. */
 }
 
 /*
-  LAYOUT PRINCIPALE
-  - Utilizza CSS Grid per definire la struttura a due colonne: sidebar e contenuto principale.
-  - `grid-template-columns: 0 1fr;` definisce due colonne: la prima (sidebar) ha larghezza 0,
-    la seconda (body) occupa tutto lo spazio rimanente (`1fr`).
-  - La transizione su `grid-template-columns` crea l'animazione di apertura/chiusura della sidebar.
+  MAIN LAYOUT
+  - Uses CSS Grid to define a two-column structure: sidebar and main content.
+  - `grid-template-columns: 0 1fr;` defines two columns: the first (sidebar) has width 0,
+    the second (body) occupies all remaining space (`1fr`).
+  - The transition on `grid-template-columns` creates the sidebar open/close animation.
 */
 .layout {
     width: 100%;
-    height: 100vh; /* Occupa l'intera altezza della finestra. */
+    height: 100vh; /* Occupies the entire window height. */
     display: grid;
     grid-template-columns: 0 1fr;
-    gap: 8px; /* Spazio tra la sidebar e il contenuto. */
-    transition: grid-template-columns .3s ease-in-out; /* Animazione fluida per la larghezza delle colonne. */
+    gap: 8px; /* Space between sidebar and content. */
+    transition: grid-template-columns .3s ease-in-out; /* Smooth animation for column width. */
     position: relative;
 }
 
 /*
-  STILI PER LO SFONDO VIDEO
-  - Posiziona un video a schermo intero dietro a tutto il resto del contenuto.
-  - `object-fit: cover;` assicura che il video copra l'intera area senza distorcersi.
-  - `z-index: -2;` lo pone sul livello più basso.
+  VIDEO BACKGROUND STYLES
+  - Positions a full-screen video behind all other content.
+  - `object-fit: cover;` ensures the video covers the entire area without distortion.
+  - `z-index: -2;` places it at the lowest level.
 */
 .background-video {
     position: fixed;
@@ -114,11 +114,11 @@ main {
 }
 
 /*
-  OVERLAY DEL VIDEO
-  - Un livello che si sovrappone al video per applicare effetti come colore, opacità e sfocatura.
-  - PERSONALIZZAZIONE: Modifica `background-color` per cambiare il colore del filtro.
-    Il valore `rgba(18, 18, 18, 0.15)` è un nero semitrasparente.
-    L'opacità e la sfocatura sono controllate dinamicamente via JavaScript, ma qui puoi impostare i valori di transizione.
+  VIDEO OVERLAY
+  - A layer that overlays the video to apply effects like color, opacity, and blur.
+  - CUSTOMIZATION: Modify `background-color` to change the filter color.
+    The value `rgba(18, 18, 18, 0.15)` is a semi-transparent black.
+    Opacity and blur are controlled dynamically via JavaScript, but here you can set transition values.
 */
 .video-overlay {
     position: fixed;
@@ -127,42 +127,42 @@ main {
     width: 100%;
     height: 100%;
     background-color: rgba(18, 18, 18, 0.15);
-    z-index: -1; /* Si posiziona tra il video e il contenuto. */
-    transition: opacity 0.3s ease, backdrop-filter 0.3s ease; /* Transizioni per opacità e sfocatura. */
-    opacity: 0; /* Inizialmente invisibile. */
-    pointer-events: none; /* Non intercetta i click del mouse. */
-    backdrop-filter: blur(0px); /* Nessuna sfocatura iniziale. */
+    z-index: -1; /* Positioned between video and content. */
+    transition: opacity 0.3s ease, backdrop-filter 0.3s ease; /* Transitions for opacity and blur. */
+    opacity: 0; /* Initially invisible. */
+    pointer-events: none; /* Doesn't intercept mouse clicks. */
+    backdrop-filter: blur(0px); /* No initial blur. */
 }
 
-/* La classe `.active` viene aggiunta via JS per mostrare l'overlay. */
+/* The `.active` class is added via JS to show the overlay. */
 .video-overlay.active {
     opacity: 1;
 }
 
 /*
-  CONTROLLI VIDEO (SLIDER)
-  - Stili per il contenitore degli slider (opacità, sfocatura, luminosità).
-  - L'animazione a comparsa/scomparsa è creata con `max-height` e `padding`.
+  VIDEO CONTROLS (SLIDERS)
+  - Styles for the slider container (opacity, blur, brightness).
+  - The appear/disappear animation is created with `max-height` and `padding`.
 */
 .video-controls {
-    background-color: #252525; /* Sfondo leggermente diverso dal menu per distinguerlo. */
+    background-color: #252525; /* Slightly different background from menu to distinguish it. */
     border-radius: 4px;
     margin-top: 5px;
     padding: 0 15px;
-    max-height: 0; /* Inizialmente chiuso (altezza zero). */
+    max-height: 0; /* Initially closed (zero height). */
     overflow: hidden;
     transition: max-height 0.3s ease-out, padding 0.3s ease-out;
 }
 
-/* La classe `.visible` viene aggiunta via JS per mostrare i controlli. */
+/* The `.visible` class is added via JS to show controls. */
 .video-controls.visible {
     padding: 15px;
-    max-height: 500px; /* Altezza sufficiente a contenere tutto. */
+    max-height: 500px; /* Height sufficient to contain everything. */
     transition: max-height 0.4s ease-in, padding 0.4s ease-in;
 }
 
 /*
-  GRUPPI DI CONTROLLO (Etichetta + Slider)
+  CONTROL GROUPS (Label + Slider)
 */
 .control-group {
     margin-bottom: 12px;
@@ -181,9 +181,9 @@ main {
     font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis; /* Aggiunge ... se il testo è troppo lungo */
-    max-width: 100%; /* Limita la larghezza massima */
-    box-sizing: border-box; /* Include il padding nel calcolo della larghezza */
+    text-overflow: ellipsis; /* Adds ... if text is too long */
+    max-width: 100%; /* Limits maximum width */
+    box-sizing: border-box; /* Includes padding in width calculation */
 }
 
 .input-group {
@@ -196,25 +196,25 @@ main {
 }
 
 /*
-  STILI PER GLI SLIDER
-  - PERSONALIZZAZIONE: Il colore principale dello slider è dato dal `background` del `thumb` (il pallino).
-    Cambia `#00ff88` per modificare il colore del pallino dello slider.
-    Cambia il `background` di `input[type="range"]` per il colore della barra.
+  SLIDER STYLES
+  - CUSTOMIZATION: The main slider color is given by the `background` of the `thumb` (the dot).
+    Change `#00ff88` to modify the slider dot color.
+    Change the `background` of `input[type="range"]` for the bar color.
 */
 .control-group input[type="range"] {
     width: calc(100% - 85px);
     height: 4px;
-    background: #333; /* Colore della barra dello slider. */
+    background: #333; /* Slider bar color. */
     border-radius: 2px;
     outline: none;
-    -webkit-appearance: none; /* Rimuove stili di default del browser. */
+    -webkit-appearance: none; /* Removes browser default styles. */
     appearance: none;
     margin: 0;
     flex-shrink: 1;
     min-width: 50px;
 }
 
-/* Input numerico accanto allo slider. */
+/* Numeric input next to the slider. */
 .manual-input {
     width: 40px;
     height: 16px;
@@ -228,7 +228,7 @@ main {
     flex-shrink: 0;
 }
 
-/* Testo che mostra l'unità di misura (es. 'px', '%'). */
+/* Text showing the unit of measurement (e.g., 'px', '%'). */
 .value-display {
     font-size: 10px;
     color: #888;
@@ -238,17 +238,17 @@ main {
     display: inline;
 }
 
-/* Pallino dello slider per browser Webkit (Chrome, Safari). */
+/* Slider thumb for Webkit browsers (Chrome, Safari). */
 .control-group input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
     width: 14px;
     height: 14px;
-    background: #00ff88; /* Colore del pallino (verde neon). */
-    border-radius: 50%; /* Lo rende rotondo. */
+    background: #00ff88; /* Thumb color (neon green). */
+    border-radius: 50%; /* Makes it round. */
     cursor: pointer;
 }
 
-/* Pallino dello slider per Firefox. */
+/* Slider thumb for Firefox. */
 .control-group input[type="range"]::-moz-range-thumb {
     width: 14px;
     height: 14px;
@@ -258,13 +258,13 @@ main {
     border: none;
 }
 
-/* Stili per i selettori di colore */
+/* Styles for color pickers */
 .control-group input[type="color"] {
     -webkit-appearance: none;
     appearance: none;
-    width: 40px; /* Larghezza simile all'input numerico */
+    width: 40px; /* Width similar to numeric input */
     height: 20px;
-    background-color: transparent; /* Rimuove lo sfondo di default */
+    background-color: transparent; /* Removes default background */
     border: 1px solid #555;
     border-radius: 4px;
     cursor: pointer;
@@ -272,7 +272,7 @@ main {
 }
 
 .control-group input[type="color"]::-webkit-color-swatch-wrapper {
-    padding: 2px; /* Spazio interno per il campione di colore */
+    padding: 2px; /* Internal space for color sample */
     border-radius: 3px;
 }
 
@@ -281,7 +281,7 @@ main {
     border-radius: 2px;
 }
 
-/* Stili per il menu a tendina (select) */
+/* Styles for dropdown menu (select) */
 .control-group select {
     background-color: #333;
     color: #ccc;
@@ -289,7 +289,7 @@ main {
     border-radius: 4px;
     padding: 4px 8px;
     font-size: 12px;
-    width: 100%; /* Occupa tutta la larghezza disponibile */
+    width: 100%; /* Occupies all available width */
     box-sizing: border-box;
 }
 
@@ -300,17 +300,17 @@ main {
 
 
 /*
-  STILI PER IL CONTENUTO PRINCIPALE (BODY)
+  STYLES FOR MAIN CONTENT (BODY)
 */
 .body {
     position: relative;
-    z-index: 2; /* Si posiziona sopra il visualizzatore e lo sfondo. */
+    z-index: 2; /* Positioned above visualizer and background. */
 }
 
 /*
-  LAYOUT CON SIDEBAR APERTA
-  - Quando il `.layout` ha la classe `.sidebar-open`, la prima colonna (sidebar) si espande a 260px.
-  - Questo cambiamento attiva la transizione definita in `.layout`.
+  LAYOUT WITH OPEN SIDEBAR
+  - When `.layout` has the `.sidebar-open` class, the first column (sidebar) expands to 260px.
+  - This change triggers the transition defined in `.layout`.
 */
 .layout.sidebar-open {
     grid-template-columns: 260px 1fr;
@@ -318,13 +318,13 @@ main {
 
 /*
   SIDEBAR
-  - Stili per il menu laterale.
-  - Inizialmente è nascosta (`opacity: 0`, `visibility: hidden`).
+  - Styles for the side menu.
+  - Initially hidden (`opacity: 0`, `visibility: hidden`).
 */
 .sidebar {
-    grid-column: 1; /* Occupa la prima colonna della griglia. */
+    grid-column: 1; /* Occupies the first column of the grid. */
     background-color: #2a2a2a;
-    padding: 0px 16px 50px 16px; /* Aumentato il padding inferiore da 16px a 50px per accomodare l'indicatore MIDI */
+    padding: 0px 16px 50px 16px; /* Increased bottom padding from 16px to 50px to accommodate MIDI indicator */
     height: 100%;
     position: relative;
     z-index: 1;
@@ -332,10 +332,10 @@ main {
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease, visibility 0.3s ease;
-    box-sizing: border-box; /* Assicura che il padding sia incluso nel calcolo dell'altezza */
+    box-sizing: border-box; /* Ensures padding is included in height calculation */
 }
 
-/* La classe `.sidebar-open` sul layout rende visibile la sidebar. */
+/* The `.sidebar-open` class on layout makes the sidebar visible. */
 .layout.sidebar-open .sidebar {
     opacity: 1;
     visibility: visible;
@@ -344,7 +344,7 @@ main {
 .sidebar-content {
     display: flex;
     flex-direction: column;
-    gap: 10px; /* Spazio tra i vari menu (Progetto, Background, etc.). */
+    gap: 10px; /* Space between various menus (Project, Background, etc.). */
 }
 
 .menu-item {
@@ -353,9 +353,9 @@ main {
 }
 
 /*
-  PULSANTI DEL MENU
-  - PERSONALIZZAZIONE: Cambia `background` e `color` per lo stile dei pulsanti.
-    Il colore `:hover` definisce l'aspetto al passaggio del mouse.
+  MENU BUTTONS
+  - CUSTOMIZATION: Change `background` and `color` for button style.
+    The `:hover` color defines the appearance on mouse hover.
 */
 .menu-toggle {
     background: #2a2a2a;
@@ -369,13 +369,13 @@ main {
     transition: background-color 0.2s ease;
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis; /* Aggiunge ... se il testo è troppo lungo */
-    width: 100%; /* Assicura che il pulsante occupi tutta la larghezza disponibile */
-    box-sizing: border-box; /* Include il padding nel calcolo della larghezza */
+    text-overflow: ellipsis; /* Adds ... if text is too long */
+    width: 100%; /* Ensures button occupies all available width */
+    box-sizing: border-box; /* Includes padding in width calculation */
 }
 
 .menu-toggle:hover {
-    background: #3a3a3a; /* Colore più chiaro al passaggio del mouse. */
+    background: #3a3a3a; /* Lighter color on mouse hover. */
 }
 
 .menu-toggle.active {
@@ -384,31 +384,31 @@ main {
 }
 
 /*
-  MENU A TENDINA (DROPDOWN)
-  - Contenitori per le opzioni di ogni menu.
-  - L'animazione è gestita tramite `max-height`, passando da 0 a un valore sufficiente a mostrare il contenuto.
+  DROPDOWN MENU
+  - Containers for options in each menu.
+  - Animation is managed through `max-height`, going from 0 to a value sufficient to show content.
 */
 .menu-dropdown {
-    max-height: 0; /* Inizialmente chiuso. */
+    max-height: 0; /* Initially closed. */
     overflow: hidden;
     transition: max-height 0.3s ease;
     background: #252525;
     border-radius: 4px;
     margin-top: 5px;
-    max-width: 100%; /* Limita la larghezza massima al contenitore genitore */
-    box-sizing: border-box; /* Include il padding nel calcolo della larghezza */
+    max-width: 100%; /* Limits maximum width to parent container */
+    box-sizing: border-box; /* Includes padding in width calculation */
 }
 
-/* La classe `.open` viene aggiunta via JS per aprire il dropdown. */
+/* The `.open` class is added via JS to open the dropdown. */
 .menu-dropdown.open {
-    max-height: 200px; /* Altezza massima. Aumentala se il contenuto non è visibile. */
-    overflow-y: auto; /* Mostra una scrollbar se il contenuto supera l'altezza massima. */
+    max-height: 200px; /* Maximum height. Increase if content is not visible. */
+    overflow-y: auto; /* Shows scrollbar if content exceeds maximum height. */
 }
 
 /*
-  PULSANTI DENTRO I MENU A TENDINA
-  - PERSONALIZZAZIONE: Cambia `background` e `color` di `button:hover` e `button.selected`
-    per modificare l'aspetto dell'opzione selezionata o al passaggio del mouse.
+  BUTTONS INSIDE DROPDOWN MENUS
+  - CUSTOMIZATION: Change `background` and `color` of `button:hover` and `button.selected`
+    to modify the appearance of selected option or on mouse hover.
 */
 .menu-dropdown button {
     display: block;
@@ -423,8 +423,8 @@ main {
     transition: background-color 0.2s ease, color 0.2s ease;
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis; /* Aggiunge ... se il testo è troppo lungo */
-    box-sizing: border-box; /* Include il padding nel calcolo della larghezza */
+    text-overflow: ellipsis; /* Adds ... if text is too long */
+    box-sizing: border-box; /* Includes padding in width calculation */
 }
 
 .menu-dropdown button:hover,
@@ -434,9 +434,9 @@ main {
 }
 
 /*
-  SCROLLBAR PERSONALIZZATA
-  - Stili per la barra di scorrimento all'interno dei menu a tendina.
-  - PERSONALIZZAZIONE: Cambia i colori di `background` per `-track` e `-thumb` per adattarla al tuo tema.
+  CUSTOM SCROLLBAR
+  - Styles for the scrollbar inside dropdown menus.
+  - CUSTOMIZATION: Change the `background` colors for `-track` and `-thumb` to adapt to your theme.
 */
 .menu-dropdown::-webkit-scrollbar {
     width: 8px;
@@ -448,29 +448,29 @@ main {
 }
 
 .menu-dropdown::-webkit-scrollbar-thumb {
-    background: #00aaff; /* Colore della barra di scorrimento (blu). */
+    background: #00aaff; /* Scrollbar color (blue). */
     border-radius: 10px;
 }
 
 .menu-dropdown::-webkit-scrollbar-thumb:hover {
-    background: #0088cc; /* Colore al passaggio del mouse. */
+    background: #0088cc; /* Color on mouse hover. */
 }
 
 /*
-  PULSANTE APRI/CHIUDI SIDEBAR (Hamburger menu)
-  - PERSONALIZZAZIONE: Cambia `background-color` per modificare il colore del pulsante.
+  OPEN/CLOSE SIDEBAR BUTTON (Hamburger menu)
+  - CUSTOMIZATION: Change `background-color` to modify button color.
 */
 #openSidebar {
     position: fixed;
     top: 0;
     left: 0;
-    background-color: #00aaff; /* Colore blu. */
+    background-color: #00aaff; /* Blue color. */
     border: none;
     color: white;
     padding: 10px 10px;
     border-radius: 3px;
     cursor: pointer;
-    z-index: 3; /* Si posiziona sopra quasi tutto. */
+    z-index: 3; /* Positioned above almost everything. */
     transition: background-color 0.3s ease;
     font-size: 18px;
     line-height: 1;
@@ -481,24 +481,24 @@ main {
     background-color: #0088cc;
 }
 
-/* Icona dentro il pulsante (le tre linee). */
+/* Icon inside button (three lines). */
 #openSidebar .icon {
     display: inline-block;
-    transition: transform 0.3s ease; /* Anima la rotazione. */
+    transition: transform 0.3s ease; /* Animates rotation. */
     font-size: 20px;
     line-height: 1;
     margin: 0;
     padding: 0;
 }
 
-/* Quando la sidebar è aperta, l'icona ruota per diventare una 'X' (o simile). */
+/* When sidebar is open, icon rotates to become an 'X' (or similar). */
 .layout.sidebar-open #openSidebar .icon {
     transform: rotate(90deg);
 }
 
 /*
-  CONTENITORE DEL CORPO PRINCIPALE
-  - Occupa la seconda colonna della griglia.
+  MAIN BODY CONTAINER
+  - Occupies the second column of the grid.
 */
 .body {
     grid-column: 2;
@@ -510,33 +510,33 @@ main {
 }
 
 /*
-  STILI PER IL VISUALIZZATORE AUDIO (CANVAS)
-  - Posiziona i due canvas (superiore e inferiore) ai bordi della finestra.
-  - `pointer-events: none;` permette di cliccare attraverso il canvas sugli elementi sottostanti.
-  - La transizione su `left` e `width` permette al canvas di adattarsi fluidamente all'apertura/chiusura della sidebar.
+  AUDIO VISUALIZER STYLES (CANVAS)
+  - Positions the two canvases (top and bottom) at window edges.
+  - `pointer-events: none;` allows clicking through the canvas on underlying elements.
+  - The transition on `left` and `width` allows canvas to smoothly adapt to sidebar opening/closing.
 */
 .visualizer-canvas {
     position: fixed;
     left: 0;
     width: 100%;
-    height: 25%; /* Altezza del visualizzatore. Puoi cambiarla per renderlo più grande o più piccolo. */
-    z-index: 1; /* Si posiziona sotto il contenuto principale ma sopra lo sfondo. */
+    height: 25%; /* Visualizer height. You can change it to make it larger or smaller. */
+    z-index: 1; /* Positioned below main content but above background. */
     pointer-events: none;
     transition: left 0.3s ease-in-out, width 0.3s ease-in-out;
 }
 #visualizer-canvas-top { top: 0; }
 #visualizer-canvas-bottom { bottom: 0; }
 
-/* Adatta la posizione e la larghezza del visualizzatore quando la sidebar è aperta. */
+/* Adapts visualizer position and width when sidebar is open. */
 .layout.sidebar-open .visualizer-canvas {
-    left: 260px; /* Sposta l'inizio del canvas a destra della sidebar. */
-    width: calc(100% - 260px); /* Riduce la larghezza per non sovrapporsi alla sidebar. */
+    left: 260px; /* Moves canvas start to the right of sidebar. */
+    width: calc(100% - 260px); /* Reduces width to avoid overlapping sidebar. */
 }
 
 /*
-  ANIMAZIONE DI ERRORE
-  - Un'animazione 'shake' (scuotimento) usata per dare un feedback visivo, per esempio
-    quando si cerca di usare una funzione non disponibile (come il MIDI).
+  ERROR ANIMATION
+  - A 'shake' animation used to provide visual feedback, for example
+    when trying to use an unavailable function (like MIDI).
 */
 @keyframes shake {
   10%, 90% { transform: translate3d(-1px, 0, 0); }
@@ -552,30 +552,30 @@ main {
 .midi-status-fixed {
   position: absolute;
   bottom: 10px;
-  left: 16px; /* Allineato con il padding della sidebar */
-  right: 16px; /* Limita la larghezza massima */
+  left: 16px; /* Aligned with sidebar padding */
+  right: 16px; /* Limits maximum width */
   display: flex;
   align-items: center;
   color: #fff;
-  font-size: 0.85em; /* Leggermente ridotto per adattarsi meglio */
-  background-color: rgba(0, 0, 0, 0.3); /* Sfondo semi-trasparente per migliorare la leggibilità */
+  font-size: 0.85em; /* Slightly reduced to fit better */
+  background-color: rgba(0, 0, 0, 0.3); /* Semi-transparent background to improve readability */
   padding: 8px 12px;
   border-radius: 4px;
-  box-sizing: border-box; /* Include il padding nel calcolo della larghezza */
+  box-sizing: border-box; /* Includes padding in width calculation */
 }
 
 .midi-status-dot {
-  width: 8px; /* Leggermente ridotto */
+  width: 8px; /* Slightly reduced */
   height: 8px;
   border-radius: 50%;
   margin-right: 8px;
-  flex-shrink: 0; /* Non si riduce mai */
+  flex-shrink: 0; /* Never shrinks */
 }
 
 #midi-status-text {
   overflow: hidden;
-  text-overflow: ellipsis; /* Aggiunge ... se il testo è troppo lungo */
-  white-space: nowrap; /* Impedisce al testo di andare a capo */
-  flex-grow: 1; /* Occupa lo spazio rimanente */
-  min-width: 0; /* Permette al flex item di restringersi */
+  text-overflow: ellipsis; /* Adds ... if text is too long */
+  white-space: nowrap; /* Prevents text from wrapping */
+  flex-grow: 1; /* Occupies remaining space */
+  min-width: 0; /* Allows flex item to shrink */
 }
