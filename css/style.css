@@ -113,6 +113,23 @@ main {
     z-index: -2;
 }
 
+/* Generic media background (video or image) */
+.background-media {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: -2;
+    display: block;
+}
+
+/* Hide native file input to use a translated custom button */
+.file-input-hidden {
+    display: none;
+}
+
 /*
   VIDEO OVERLAY
   - A layer that overlays the video to apply effects like color, opacity, and blur.

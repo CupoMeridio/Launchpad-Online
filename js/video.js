@@ -6,7 +6,7 @@
  * applies visual effects (overlay opacity, blur, brightness).
  */
 
-let currentVideo = null;
+let currentBackgroundEl = null;
 
 const VIDEO_EFFECT_DEFAULTS = {
     opacity: 0,
@@ -19,7 +19,7 @@ export function updateVideoControlsVisibility() {
     const videoControls = document.querySelector('.video-controls');
     if (!videoControls || !backgroundMenu) return;
 
-    const isVideoActive = currentVideo !== null;
+    const isVideoActive = currentBackgroundEl !== null;
     const isMenuOpen = backgroundMenu.classList.contains('open');
 
     if (isVideoActive && isMenuOpen) {
@@ -40,14 +40,11 @@ export function setBackgroundVideo(videoFile) {
         if (active) active.classList.add('selected');
     }
     
-    const existingVideo = document.querySelector('.background-video');
-    if (existingVideo) {
-        existingVideo.remove();
-    }
+    removeExistingBackground();
     
     if (videoFile) {
         const video = document.createElement('video');
-        video.className = 'background-video';
+        video.className = 'background-media';
         video.src = `assets/videos/${videoFile}?t=${new Date().getTime()}`;
         video.autoplay = true;
         video.loop = true;
@@ -55,12 +52,12 @@ export function setBackgroundVideo(videoFile) {
         
         document.body.appendChild(video);
         overlay.classList.add('active');
-        currentVideo = video;
+        currentBackgroundEl = video;
         
         applyVideoEffects();
     } else {
         overlay.classList.remove('active');
-        currentVideo = null;
+        currentBackgroundEl = null;
         resetVideoControls();
     }
 
@@ -102,8 +99,8 @@ function applyVideoEffects() {
         
         const blur = blurInput.value;
         const brightness = brightnessInput.value;
-        if (currentVideo) {
-            currentVideo.style.filter = `blur(${blur}px) brightness(${brightness})`;
+        if (currentBackgroundEl) {
+            currentBackgroundEl.style.filter = `blur(${blur}px) brightness(${brightness})`;
         }
     }
 }
@@ -146,7 +143,85 @@ export function initializeVideoControls() {
         syncSliderInput(blurSlider, blurInput);
         syncSliderInput(brightnessSlider, brightnessInput);
     }
+
+    const fileInput = document.getElementById('background-file-input');
+    const fileTrigger = document.getElementById('background-file-trigger');
+    if (fileTrigger && fileInput) {
+        fileTrigger.addEventListener('click', function() {
+            fileInput.click();
+        });
+    }
+    if (fileInput) {
+        fileInput.addEventListener('change', function() {
+            const file = this.files && this.files[0];
+            if (!file) return;
+            setBackgroundFile(file);
+        });
+    }
+}
+
+function removeExistingBackground() {
+    const existingVideo = document.querySelector('.background-video');
+    if (existingVideo) existingVideo.remove();
+    const existingMedia = document.querySelector('.background-media');
+    if (existingMedia) existingMedia.remove();
+}
+
+export function setBackgroundFile(file) {
+    const overlay = document.querySelector('.video-overlay');
+    const backgroundMenu = document.getElementById('background-menu');
+    if (backgroundMenu) {
+        const buttons = backgroundMenu.querySelectorAll('.menu-option');
+        buttons.forEach(b => b.classList.remove('selected'));
+    }
+    removeExistingBackground();
+    if (file) {
+        const url = URL.createObjectURL(file);
+        let el;
+        if (file.type.startsWith('video/')) {
+            el = document.createElement('video');
+            el.autoplay = true;
+            el.loop = true;
+            el.muted = true;
+        } else {
+            el = document.createElement('img');
+        }
+        el.className = 'background-media';
+        el.src = url;
+        document.body.appendChild(el);
+        overlay.classList.add('active');
+        currentBackgroundEl = el;
+        applyVideoEffects();
+    } else {
+        overlay.classList.remove('active');
+        currentBackgroundEl = null;
+        resetVideoControls();
+    }
+    updateVideoControlsVisibility();
+}
+
+function setNoneSelected() {
+    const backgroundMenu = document.getElementById('background-menu');
+    if (backgroundMenu) {
+        const buttons = backgroundMenu.querySelectorAll('.menu-option');
+        buttons.forEach(b => b.classList.remove('selected'));
+        const noneBtn = backgroundMenu.querySelector('[data-video="none"]');
+        if (noneBtn) noneBtn.classList.add('selected');
+    }
+}
+
+export function clearBackground() {
+    const overlay = document.querySelector('.video-overlay');
+    removeExistingBackground();
+    if (overlay) overlay.classList.remove('active');
+    currentBackgroundEl = null;
+    resetVideoControls();
+    setNoneSelected();
+    updateVideoControlsVisibility();
+    // no file name display
 }
 
 // Global exposure for usage in HTML
 window.setBackgroundVideo = setBackgroundVideo;
+window.setBackgroundFile = setBackgroundFile;
+window.clearBackground = clearBackground;

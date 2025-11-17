@@ -125,9 +125,16 @@
           - CUSTOMIZATION: To add new videos, place them in the 'assets/videos/' folder.
         -->
         <div class="menu-item">
-          <button class="menu-toggle" onclick="toggleMenu('background-menu')" data-i18n="menu.background.toggle">Background</button>
+          <button class="menu-toggle" onclick="toggleMenu('background-menu')" data-i18n="menu.background.toggle">Sfondo</button>
           <div class="menu-dropdown" id="background-menu">
-            <button class="menu-option selected" data-video="none" onclick="setBackgroundVideo(null)" data-i18n="background.none">Nessun background</button>
+            <button class="menu-option selected" data-video="none" onclick="clearBackground()" data-i18n="background.none">Nessuno sfondo</button>
+            <div class="control-group" style="padding: 15px 15px 5px 15px;">
+              <label for="background-file-input" data-i18n="background.upload">Carica file</label>
+              <div class="input-group">
+                <input type="file" id="background-file-input" class="file-input-hidden" accept="video/*,image/*">
+                <button type="button" class="menu-option" id="background-file-trigger" data-i18n="background.upload">Carica file</button>
+              </div>
+            </div>
             <!--
               VIDEO CONTROLS
               These sliders allow real-time adjustments:
