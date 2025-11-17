@@ -268,6 +268,17 @@ export function toggleSidebar() {
  */
 export function toggleMenu(menuId) {
     const menu = document.getElementById(menuId);
+    const willOpen = !menu.classList.contains('open');
+    if (willOpen) {
+        document.querySelectorAll('.menu-dropdown.open').forEach(other => {
+            if (other !== menu) {
+                other.classList.remove('open');
+                const otherItem = other.closest('.menu-item');
+                const otherToggle = otherItem ? otherItem.querySelector('.menu-toggle') : null;
+                if (otherToggle) otherToggle.classList.remove('active');
+            }
+        });
+    }
     menu.classList.toggle('open');
 
     const menuItem = menu.closest('.menu-item');
@@ -282,9 +293,7 @@ export function toggleMenu(menuId) {
         }
     }
 
-    if (menuId === 'background-menu') {
-        updateVideoControlsVisibility();
-    }
+    updateVideoControlsVisibility();
 }
 
 /**
