@@ -271,6 +271,12 @@
                 <span class="value-display">°</span>
               </div>
             </div>
+            <div class="control-group" style="padding: 15px 15px 5px 15px;">
+              <label for="logo-file-input" data-i18n="launchpad.icon.label">Icona in alto a destra</label>
+              <input type="file" id="logo-file-input" class="file-input-hidden" accept="video/*,image/*">
+              <button type="button" class="menu-option" id="logo-file-trigger" data-i18n="launchpad.icon.upload">Carica icona/video</button>
+              <button type="button" class="menu-option" onclick="resetTopRightIcon()" data-i18n="launchpad.icon.reset">Ripristina icona</button>
+            </div>
             <button class="menu-option selected" data-skin="none" onclick="setLaunchpadBackground(null)" data-i18n="launchpad.default">Default</button>
           </div>
         </div>

@@ -39,7 +39,10 @@ const translations = {
         'midi.status.connected': 'Launchpad collegato',
         'midi.status.disconnected': 'Launchpad scollegato',
         'midi.notSupported': 'MIDI non supportato',
-        'launchpad.rotation': 'Rotazione Launchpad'
+        'launchpad.rotation': 'Rotazione Launchpad',
+        'launchpad.icon.label': 'Icona in alto a destra',
+        'launchpad.icon.upload': 'Carica icona/video',
+        'launchpad.icon.reset': 'Ripristina icona'
     },
     en: {
         'sidebar.title': 'Menu',
@@ -80,7 +83,10 @@ const translations = {
         'midi.status.connected': 'Launchpad Connected',
         'midi.status.disconnected': 'Launchpad Disconnected',
         'midi.notSupported': 'MIDI Not Supported',
-        'launchpad.rotation': 'Launchpad rotation'
+        'launchpad.rotation': 'Launchpad rotation',
+        'launchpad.icon.label': 'Top-right icon',
+        'launchpad.icon.upload': 'Upload icon/video',
+        'launchpad.icon.reset': 'Reset icon'
     },
     es: {
         'sidebar.title': 'Menú',
@@ -121,7 +127,10 @@ const translations = {
         'midi.status.connected': 'Launchpad conectado',
         'midi.status.disconnected': 'Launchpad desconectado',
         'midi.notSupported': 'MIDI no soportado',
-        'launchpad.rotation': 'Rotación del Launchpad'
+        'launchpad.rotation': 'Rotación del Launchpad',
+        'launchpad.icon.label': 'Ícono arriba a la derecha',
+        'launchpad.icon.upload': 'Subir ícono/video',
+        'launchpad.icon.reset': 'Restablecer ícono'
     },
     de: {
         'sidebar.title': 'Menü',
@@ -162,7 +171,10 @@ const translations = {
         'midi.status.connected': 'Launchpad verbunden',
         'midi.status.disconnected': 'Launchpad getrennt',
         'midi.notSupported': 'MIDI nicht unterstützt',
-        'launchpad.rotation': 'Launchpad-Drehung'
+        'launchpad.rotation': 'Launchpad-Drehung',
+        'launchpad.icon.label': 'Icon oben rechts',
+        'launchpad.icon.upload': 'Icon/Video hochladen',
+        'launchpad.icon.reset': 'Icon zurücksetzen'
     },
     fr: {
         'sidebar.title': 'Menu',
@@ -203,7 +215,10 @@ const translations = {
         'midi.status.connected': 'Launchpad connecté',
         'midi.status.disconnected': 'Launchpad déconnecté',
         'midi.notSupported': 'MIDI non pris en charge',
-        'launchpad.rotation': 'Rotation du Launchpad'
+        'launchpad.rotation': 'Rotation du Launchpad',
+        'launchpad.icon.label': 'Icône en haut à droite',
+        'launchpad.icon.upload': 'Téléverser icône/vidéo',
+        'launchpad.icon.reset': 'Réinitialiser l’icône'
     }
 };
 let currentLanguage = 'it';
@@ -340,6 +355,20 @@ export function initializePersonalizeLaunchpadMenu(imageFiles) {
             setLaunchpadRotation(value);
         });
     }
+
+    const logoInput = document.getElementById('logo-file-input');
+    const logoTrigger = document.getElementById('logo-file-trigger');
+    if (logoTrigger && logoInput) {
+        logoTrigger.addEventListener('click', function() {
+            logoInput.value = '';
+            logoInput.click();
+        });
+        logoInput.addEventListener('change', function() {
+            const file = this.files && this.files[0];
+            if (!file) return;
+            setTopRightIconFile(file);
+        });
+    }
 }
 
 // Global exposure for usage in HTML
@@ -361,3 +390,50 @@ export function setLaunchpadRotation(angle) {
     }
 }
 window.setLaunchpadRotation = setLaunchpadRotation;
+
+let currentIconUrl = null;
+export function setTopRightIconFile(file) {
+    const container = document.getElementById('image-container');
+    if (!container || !file) return;
+    if (currentIconUrl) {
+        URL.revokeObjectURL(currentIconUrl);
+        currentIconUrl = null;
+    }
+    const url = URL.createObjectURL(file);
+    currentIconUrl = url;
+    let el;
+    if (file.type.startsWith('video/')) {
+        el = document.createElement('video');
+        el.autoplay = true;
+        el.loop = true;
+        el.muted = true;
+        el.playsInline = true;
+    } else {
+        el = document.createElement('img');
+        el.alt = 'immagine';
+    }
+    el.src = url;
+    el.className = 'square-image';
+    container.innerHTML = '';
+    container.appendChild(el);
+}
+
+export function resetTopRightIcon() {
+    const container = document.getElementById('image-container');
+    if (!container) return;
+    if (currentIconUrl) {
+        URL.revokeObjectURL(currentIconUrl);
+        currentIconUrl = null;
+    }
+    const input = document.getElementById('logo-file-input');
+    if (input) input.value = '';
+    const img = document.createElement('img');
+    img.src = 'assets/icons/Logo.png';
+    img.alt = 'immagine';
+    img.className = 'square-image';
+    container.innerHTML = '';
+    container.appendChild(img);
+}
+
+window.setTopRightIconFile = setTopRightIconFile;
+window.resetTopRightIcon = resetTopRightIcon;
