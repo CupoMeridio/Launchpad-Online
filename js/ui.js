@@ -33,6 +33,7 @@ const translations = {
         'visualizer.gradient.verticalReverse': 'Verticale (inverso)',
         'visualizer.gradient.horizontalReverse': 'Orizzontale (inverso)',
         'visualizer.alpha': 'Trasparenza',
+        'visualizer.symmetricReverse': 'Inverti riflessione',
         'launchpad.stickers.show': 'Mostra adesivi sul Launchpad',
         'launchpad.default': 'Predefinito',
         'overlay.clickToStart': 'Clicca per avviare',
@@ -42,7 +43,10 @@ const translations = {
         'launchpad.rotation': 'Rotazione Launchpad',
         'launchpad.icon.label': 'Icona in alto a destra',
         'launchpad.icon.upload': 'Carica icona/video',
-        'launchpad.icon.reset': 'Ripristina icona'
+        'launchpad.icon.reset': 'Ripristina icona',
+        'visualizer.symmetricMode': 'Modalità',
+        'visualizer.symmetric.normal': 'Normale',
+        'visualizer.symmetric.reverse': 'Inversa'
     },
     en: {
         'sidebar.title': 'Menu',
@@ -77,6 +81,7 @@ const translations = {
         'visualizer.gradient.verticalReverse': 'Vertical (reverse)',
         'visualizer.gradient.horizontalReverse': 'Horizontal (reverse)',
         'visualizer.alpha': 'Transparency',
+        'visualizer.symmetricReverse': 'Reverse reflection',
         'launchpad.stickers.show': 'Show stickers on Launchpad',
         'launchpad.default': 'Default',
         'overlay.clickToStart': 'Click to start',
@@ -86,7 +91,10 @@ const translations = {
         'launchpad.rotation': 'Launchpad rotation',
         'launchpad.icon.label': 'Top-right icon',
         'launchpad.icon.upload': 'Upload icon/video',
-        'launchpad.icon.reset': 'Reset icon'
+        'launchpad.icon.reset': 'Reset icon',
+        'visualizer.symmetricMode': 'Mode',
+        'visualizer.symmetric.normal': 'Normal',
+        'visualizer.symmetric.reverse': 'Reverse'
     },
     es: {
         'sidebar.title': 'Menú',
@@ -121,6 +129,7 @@ const translations = {
         'visualizer.gradient.verticalReverse': 'Vertical (invertido)',
         'visualizer.gradient.horizontalReverse': 'Horizontal (invertido)',
         'visualizer.alpha': 'Transparencia',
+        'visualizer.symmetricReverse': 'Reflexión inversa',
         'launchpad.stickers.show': 'Mostrar pegatinas en el Launchpad',
         'launchpad.default': 'Predeterminado',
         'overlay.clickToStart': 'Haz clic para iniciar',
@@ -130,7 +139,10 @@ const translations = {
         'launchpad.rotation': 'Rotación del Launchpad',
         'launchpad.icon.label': 'Ícono arriba a la derecha',
         'launchpad.icon.upload': 'Subir ícono/video',
-        'launchpad.icon.reset': 'Restablecer ícono'
+        'launchpad.icon.reset': 'Restablecer ícono',
+        'visualizer.symmetricMode': 'Modo',
+        'visualizer.symmetric.normal': 'Normal',
+        'visualizer.symmetric.reverse': 'Inversa'
     },
     de: {
         'sidebar.title': 'Menü',
@@ -165,6 +177,7 @@ const translations = {
         'visualizer.gradient.verticalReverse': 'Vertikal (invertiert)',
         'visualizer.gradient.horizontalReverse': 'Horizontal (invertiert)',
         'visualizer.alpha': 'Transparenz',
+        'visualizer.symmetricReverse': 'Spiegelung invertieren',
         'launchpad.stickers.show': 'Sticker auf Launchpad anzeigen',
         'launchpad.default': 'Standard',
         'overlay.clickToStart': 'Klicken zum Starten',
@@ -174,7 +187,10 @@ const translations = {
         'launchpad.rotation': 'Launchpad-Drehung',
         'launchpad.icon.label': 'Icon oben rechts',
         'launchpad.icon.upload': 'Icon/Video hochladen',
-        'launchpad.icon.reset': 'Icon zurücksetzen'
+        'launchpad.icon.reset': 'Icon zurücksetzen',
+        'visualizer.symmetricMode': 'Modus',
+        'visualizer.symmetric.normal': 'Normal',
+        'visualizer.symmetric.reverse': 'Invertiert'
     },
     fr: {
         'sidebar.title': 'Menu',
@@ -209,6 +225,7 @@ const translations = {
         'visualizer.gradient.verticalReverse': 'Vertical (inversé)',
         'visualizer.gradient.horizontalReverse': 'Horizontal (inversé)',
         'visualizer.alpha': 'Transparence',
+        'visualizer.symmetricReverse': 'Inverser la réflexion',
         'launchpad.stickers.show': 'Afficher les autocollants sur le Launchpad',
         'launchpad.default': 'Par défaut',
         'overlay.clickToStart': 'Cliquez pour démarrer',
@@ -218,7 +235,10 @@ const translations = {
         'launchpad.rotation': 'Rotation du Launchpad',
         'launchpad.icon.label': 'Icône en haut à droite',
         'launchpad.icon.upload': 'Téléverser icône/vidéo',
-        'launchpad.icon.reset': 'Réinitialiser l’icône'
+        'launchpad.icon.reset': 'Réinitialiser l’icône',
+        'visualizer.symmetricMode': 'Mode',
+        'visualizer.symmetric.normal': 'Normal',
+        'visualizer.symmetric.reverse': 'Inversée'
     }
 };
 let currentLanguage = 'it';

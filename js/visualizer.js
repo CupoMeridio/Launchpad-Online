@@ -38,6 +38,7 @@ export class Visualizer {
         // Set an initial display mode.
         this.mode = 'both'; 
         this.isSymmetric = false;
+        this.symmetryReverse = false;
 
         // Customization settings
         this.color1 = '#00aaff';
@@ -83,6 +84,12 @@ export class Visualizer {
 
     setSymmetric(enabled) {
         this.isSymmetric = !!enabled;
+        this.ctxTop.clearRect(0, 0, this.canvasTop.width, this.canvasTop.height);
+        this.ctxBottom.clearRect(0, 0, this.canvasBottom.width, this.canvasBottom.height);
+    }
+
+    setSymmetryReverse(enabled) {
+        this.symmetryReverse = !!enabled;
         this.ctxTop.clearRect(0, 0, this.canvasTop.width, this.canvasTop.height);
         this.ctxBottom.clearRect(0, 0, this.canvasBottom.width, this.canvasBottom.height);
     }
@@ -169,7 +176,8 @@ export class Visualizer {
                 };
 
                 for (let i = 0; i < halfLength; i++) {
-                    barHeight = this.dataArray[i] * 0.7;
+                    const sourceIndex = this.symmetryReverse ? (halfLength - 1 - i) : i;
+                    barHeight = this.dataArray[sourceIndex] * 0.7;
                     const xLeft = center - (i + 1) * (barW + spacing);
                     const xRight = center + i * (barW + spacing);
                     const grad = createGradientBottom(this.canvasBottom.height, this.canvasBottom.height - barHeight);
@@ -206,7 +214,8 @@ export class Visualizer {
                 };
 
                 for (let i = 0; i < halfLength; i++) {
-                    barHeight = this.dataArray[i] * 0.7;
+                    const sourceIndex = this.symmetryReverse ? (halfLength - 1 - i) : i;
+                    barHeight = this.dataArray[sourceIndex] * 0.7;
                     const xLeft = center - (i + 1) * (barW + spacing);
                     const xRight = center + i * (barW + spacing);
                     const grad = createGradientTop(0, barHeight);

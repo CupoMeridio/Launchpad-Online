@@ -72,11 +72,20 @@ export function initializeVisualizerControls() {
     }
 
     const symmetricCheckbox = document.getElementById('symmetric-checkbox');
-    if (symmetricCheckbox) {
-        symmetricCheckbox.addEventListener('change', function() {
-            if (window.visualizer) window.visualizer.setSymmetric(this.checked);
-        });
-        if (window.visualizer) window.visualizer.setSymmetric(symmetricCheckbox.checked);
+    const symmetricMode = document.getElementById('symmetric-mode');
+    const symmetricModeSelect = document.getElementById('symmetric-mode-select');
+    if (symmetricCheckbox && symmetricMode && symmetricModeSelect) {
+        const applySymmetry = () => {
+            const enabled = !!symmetricCheckbox.checked;
+            if (window.visualizer) {
+                window.visualizer.setSymmetric(enabled);
+                window.visualizer.setSymmetryReverse(symmetricModeSelect.value === 'reverse');
+            }
+            symmetricMode.style.display = enabled ? 'block' : 'none';
+        };
+        symmetricCheckbox.addEventListener('change', applySymmetry);
+        symmetricModeSelect.addEventListener('change', applySymmetry);
+        applySymmetry();
     }
 
     const updateControlsVisibility = (mode) => {
