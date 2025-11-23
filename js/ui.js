@@ -46,7 +46,8 @@ const translations = {
         'launchpad.icon.reset': 'Ripristina icona',
         'visualizer.symmetricMode': 'Modalità',
         'visualizer.symmetric.normal': 'Normale',
-        'visualizer.symmetric.reverse': 'Inversa'
+        'visualizer.symmetric.reverse': 'Inversa',
+        'launchpad.skins.title': 'Sfondi Launchpad'
     },
     en: {
         'sidebar.title': 'Menu',
@@ -94,7 +95,8 @@ const translations = {
         'launchpad.icon.reset': 'Reset icon',
         'visualizer.symmetricMode': 'Mode',
         'visualizer.symmetric.normal': 'Normal',
-        'visualizer.symmetric.reverse': 'Reverse'
+        'visualizer.symmetric.reverse': 'Reverse',
+        'launchpad.skins.title': 'Launchpad Backgrounds'
     },
     es: {
         'sidebar.title': 'Menú',
@@ -142,7 +144,8 @@ const translations = {
         'launchpad.icon.reset': 'Restablecer ícono',
         'visualizer.symmetricMode': 'Modo',
         'visualizer.symmetric.normal': 'Normal',
-        'visualizer.symmetric.reverse': 'Inversa'
+        'visualizer.symmetric.reverse': 'Inversa',
+        'launchpad.skins.title': 'Fondos de Launchpad'
     },
     de: {
         'sidebar.title': 'Menü',
@@ -190,7 +193,8 @@ const translations = {
         'launchpad.icon.reset': 'Icon zurücksetzen',
         'visualizer.symmetricMode': 'Modus',
         'visualizer.symmetric.normal': 'Normal',
-        'visualizer.symmetric.reverse': 'Invertiert'
+        'visualizer.symmetric.reverse': 'Invertiert',
+        'launchpad.skins.title': 'Launchpad-Hintergründe'
     },
     fr: {
         'sidebar.title': 'Menu',
@@ -238,7 +242,8 @@ const translations = {
         'launchpad.icon.reset': 'Réinitialiser l’icône',
         'visualizer.symmetricMode': 'Mode',
         'visualizer.symmetric.normal': 'Normal',
-        'visualizer.symmetric.reverse': 'Inversée'
+        'visualizer.symmetric.reverse': 'Inversée',
+        'launchpad.skins.title': 'Arrière-plans Launchpad'
     }
 };
 let currentLanguage = 'it';

@@ -21,6 +21,8 @@ import { getTranslation } from './ui.js';
 
 // Launchpad instance
 let launchpad = null;
+let midiAccessRef = null;
+let midiDisposed = false;
 
 function showTemporaryNotification(message, type) {
     const notification = document.createElement('div');
@@ -161,11 +163,11 @@ export async function initMidi() {
 
     try {
         // Request MIDI access from the browser
-        const midiAccess = await navigator.requestMIDIAccess({ sysex: true });
+        midiAccessRef = await navigator.requestMIDIAccess({ sysex: false });
         console.log("[MIDI] Web MIDI API access granted.");
 
         // Set up the handler for device state changes (hot-plugging)
-        midiAccess.onstatechange = (event) => {
+        midiAccessRef.onstatechange = (event) => {
             console.log(`[MIDI] MIDI device state change: ${event.port.name}, ${event.port.state}`);
             
             const isLaunchpad = event.port.name.includes('Launchpad');
@@ -190,3 +192,25 @@ export async function initMidi() {
         showTemporaryNotification(getTranslation('midi.notSupported'), 'error');
 }
 }
+
+export async function disposeMidi() {
+    if (midiDisposed) return;
+    midiDisposed = true;
+    try {
+        if (launchpad) {
+            try { launchpad.reset(0); } catch (e) {}
+            try { if (launchpad.midiIn && typeof launchpad.midiIn.close === 'function') await launchpad.midiIn.close(); } catch (e) {}
+            try { if (launchpad.midiOut && typeof launchpad.midiOut.close === 'function') await launchpad.midiOut.close(); } catch (e) {}
+            launchpad = null;
+            updateMidiStatus(false);
+        }
+        if (midiAccessRef) {
+            midiAccessRef.onstatechange = null;
+            midiAccessRef = null;
+        }
+    } catch (e) {}
+}
+
+window.addEventListener('beforeunload', () => { disposeMidi(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) disposeMidi(); });
+window.disconnectMidi = disposeMidi;

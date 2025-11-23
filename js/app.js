@@ -33,6 +33,7 @@ export function setSelectedProjectButton(b) { selectedProjectButton = b; }
 export function setProjectSounds(s) { projectSounds = s; }
 export function setCurrentPage(p) { currentPage = p; }
 export function setActivePageButton(b) { activePageButton = b; }
+let midiInitialized = false;
 
 // ----------------------------------------------------------------------------
 // MAIN ENTRY POINT (DOMContentLoaded)
@@ -53,6 +54,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             audioEngine.audioContext.resume().then(() => {
                 console.log('AudioContext resumed successfully.');
             });
+        }
+        if (!midiInitialized) {
+            initMidi().catch(error => console.error("Error during MIDI initialization:", error));
+            midiInitialized = true;
         }
         
         // Remove both event listeners to be safe
@@ -113,12 +118,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.error("Unable to initialize visualizer:", error);
     }
 
-    // --- 6. MIDI Support Initialization ---
-    try {
-        await initMidi();
-    } catch (error) {
-        console.error("Error during MIDI initialization:", error);
-    }
+    
 
     // --- 7. Service Worker Registration ---
     if ('serviceWorker' in navigator) {
