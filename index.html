@@ -279,6 +279,14 @@
               </div>
             </div>
             <div class="control-group" style="padding: 15px 15px 5px 15px;">
+              <label for="size-slider" data-i18n="launchpad.size">Dimensione Launchpad</label>
+              <div class="input-group">
+                <input type="range" id="size-slider" min="50" max="140" step="1" value="100">
+                <input type="number" id="size-input" min="50" max="140" step="1" value="100" class="manual-input">
+                <span class="value-display">%</span>
+              </div>
+            </div>
+            <div class="control-group" style="padding: 15px 15px 5px 15px;">
               <label for="logo-file-input" data-i18n="launchpad.icon.label">Icona in alto a destra</label>
               <input type="file" id="logo-file-input" class="file-input-hidden" accept="video/*,image/*">
               <button type="button" class="menu-option" id="logo-file-trigger" data-i18n="launchpad.icon.upload">Carica icona/video</button>

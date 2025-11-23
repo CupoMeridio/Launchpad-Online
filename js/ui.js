@@ -47,7 +47,8 @@ const translations = {
         'visualizer.symmetricMode': 'Modalità',
         'visualizer.symmetric.normal': 'Normale',
         'visualizer.symmetric.reverse': 'Inversa',
-        'launchpad.skins.title': 'Sfondi Launchpad'
+        'launchpad.skins.title': 'Sfondi Launchpad',
+        'launchpad.size': 'Dimensione Launchpad'
     },
     en: {
         'sidebar.title': 'Menu',
@@ -96,7 +97,8 @@ const translations = {
         'visualizer.symmetricMode': 'Mode',
         'visualizer.symmetric.normal': 'Normal',
         'visualizer.symmetric.reverse': 'Reverse',
-        'launchpad.skins.title': 'Launchpad Backgrounds'
+        'launchpad.skins.title': 'Launchpad Backgrounds',
+        'launchpad.size': 'Launchpad size'
     },
     es: {
         'sidebar.title': 'Menú',
@@ -145,7 +147,8 @@ const translations = {
         'visualizer.symmetricMode': 'Modo',
         'visualizer.symmetric.normal': 'Normal',
         'visualizer.symmetric.reverse': 'Inversa',
-        'launchpad.skins.title': 'Fondos de Launchpad'
+        'launchpad.skins.title': 'Fondos de Launchpad',
+        'launchpad.size': 'Tamaño del Launchpad'
     },
     de: {
         'sidebar.title': 'Menü',
@@ -194,7 +197,8 @@ const translations = {
         'visualizer.symmetricMode': 'Modus',
         'visualizer.symmetric.normal': 'Normal',
         'visualizer.symmetric.reverse': 'Invertiert',
-        'launchpad.skins.title': 'Launchpad-Hintergründe'
+        'launchpad.skins.title': 'Launchpad-Hintergründe',
+        'launchpad.size': 'Launchpad-Größe'
     },
     fr: {
         'sidebar.title': 'Menu',
@@ -243,7 +247,8 @@ const translations = {
         'visualizer.symmetricMode': 'Mode',
         'visualizer.symmetric.normal': 'Normal',
         'visualizer.symmetric.reverse': 'Inversée',
-        'launchpad.skins.title': 'Arrière-plans Launchpad'
+        'launchpad.skins.title': 'Arrière-plans Launchpad',
+        'launchpad.size': 'Taille du Launchpad'
     }
 };
 let currentLanguage = 'it';
@@ -390,6 +395,25 @@ export function initializePersonalizeLaunchpadMenu(imageFiles) {
         });
     }
 
+    const sizeSlider = document.getElementById('size-slider');
+    const sizeInput = document.getElementById('size-input');
+    if (sizeSlider && sizeInput) {
+        sizeSlider.value = '100';
+        sizeInput.value = '100';
+        sizeSlider.addEventListener('input', function() {
+            sizeInput.value = this.value;
+            setLaunchpadSize(parseInt(this.value, 10));
+        });
+        sizeInput.addEventListener('input', function() {
+            let value = parseInt(this.value, 10);
+            if (isNaN(value)) return;
+            value = Math.max(50, Math.min(140, value));
+            this.value = String(value);
+            sizeSlider.value = String(value);
+            setLaunchpadSize(value);
+        });
+    }
+
     const logoInput = document.getElementById('logo-file-input');
     const logoTrigger = document.getElementById('logo-file-trigger');
     if (logoTrigger && logoInput) {
@@ -424,6 +448,20 @@ export function setLaunchpadRotation(angle) {
     }
 }
 window.setLaunchpadRotation = setLaunchpadRotation;
+
+export function setLaunchpadSize(size) {
+    const launchpad = document.getElementById('Launchpad');
+    if (launchpad) {
+        launchpad.style.transform = `scale(${size / 100})`;
+        const sizeSlider = document.getElementById('size-slider');
+        const sizeInput = document.getElementById('size-input');
+        if (sizeSlider && sizeInput) {
+            sizeSlider.value = String(size);
+            sizeInput.value = String(size);
+        }
+    }
+}
+window.setLaunchpadSize = setLaunchpadSize;
 
 let currentIconUrl = null;
 export function setTopRightIconFile(file) {
