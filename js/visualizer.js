@@ -3,18 +3,18 @@
  * VISUALIZER MODULE (visualizer.js)
  * =============================================================================
  * 
- * Questo modulo definisce la classe `Visualizer`, responsabile della creazione
- * e dell'animazione del visualizzatore audio.
- * Utilizza i dati forniti da un `AnalyserNode` (dal modulo `audio.js`) per disegnare
- * barre di frequenza su due elementi `<canvas>` HTML5 in tempo reale.
+ * This module defines the `Visualizer` class, responsible for creating
+ * and animating the audio visualizer.
+ * It uses data from an `AnalyserNode` (from `audio.js`) to draw
+ * frequency bars on two HTML5 `<canvas>` elements in real time.
  */
 
 export class Visualizer {
     /**
-     * Costruisce l'istanza del visualizzatore.
-     * @param {AnalyserNode} analyser - Il nodo analizzatore della Web Audio API da cui ottenere i dati.
-     * @param {HTMLCanvasElement} canvasTop - L'elemento canvas per la visualizzazione superiore.
-     * @param {HTMLCanvasElement} canvasBottom - L'elemento canvas per la visualizzazione inferiore.
+     * Constructs the visualizer instance.
+     * @param {AnalyserNode} analyser - The Web Audio API analyser node to read data from.
+     * @param {HTMLCanvasElement} canvasTop - The canvas element for the top visualization.
+     * @param {HTMLCanvasElement} canvasBottom - The canvas element for the bottom visualization.
      */
     constructor(analyser, canvasTop, canvasBottom) {
         this.analyser = analyser;
@@ -25,111 +25,247 @@ export class Visualizer {
         this.canvasBottom = canvasBottom;
         this.ctxBottom = this.canvasBottom.getContext('2d');
 
-        // Imposta le dimensioni iniziali dei canvas e aggiunge un listener per il ridimensionamento della finestra.
+        // Set initial canvas sizes and add a window resize listener.
         this.resize();
         window.addEventListener('resize', () => this.resize());
 
-        // `frequencyBinCount` è la metà della `fftSize` dell'analizzatore.
-        // Rappresenta il numero di "contenitori" di dati di frequenza che avremo a disposizione.
+        // `frequencyBinCount` is half of the analyser's `fftSize`.
+        // It represents the number of frequency data "bins" available.
         this.bufferLength = this.analyser.frequencyBinCount;
-        // Creiamo un array di interi a 8 bit (valori da 0 a 255) per contenere i dati di frequenza.
+        // Create an 8-bit integer array (values 0–255) to hold frequency data.
         this.dataArray = new Uint8Array(this.bufferLength);
 
-        // Imposta una modalità di visualizzazione iniziale.
-        // PERSONALIZZAZIONE: Puoi cambiare questo valore in 'off', 'top', 'bottom', o 'both'.
+        // Set an initial display mode.
         this.mode = 'both'; 
+        this.isSymmetric = false;
+        this.symmetryReverse = false;
+
+        // Customization settings
+        this.color1 = '#00aaff';
+        this.color2 = '#00aaff';
+        this.gradientDirection = 'vertical';
+        this.alpha = 0.6;
     }
 
     /**
-     * Ridimensiona i canvas per adattarli alla larghezza della finestra e a un'altezza fissa.
-     * Questo metodo viene chiamato al momento della creazione e ogni volta che la finestra del browser viene ridimensionata.
+     * Converts a hexadecimal color to RGBA format.
+     * @param {string} hex - Hex color (e.g., '#RRGGBB').
+     * @param {number} alpha - Transparency value (0–1).
+     * @returns {string} - Color string in `rgba(r, g, b, alpha)` format.
+     */
+    hexToRgba(hex, alpha) {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    /**
+     * Resizes canvases to match window width and a fixed height.
      */
     resize() {
         this.canvasTop.width = window.innerWidth;
-        this.canvasTop.height = window.innerHeight * 0.25; // Occupa il 25% superiore dello schermo.
+        this.canvasTop.height = window.innerHeight * 0.25;
         
         this.canvasBottom.width = window.innerWidth;
-        this.canvasBottom.height = window.innerHeight * 0.25; // Occupa il 25% inferiore dello schermo.
+        this.canvasBottom.height = window.innerHeight * 0.25;
     }
 
     /**
-     * Imposta la modalità di visualizzazione.
-     * @param {string} mode - La modalità da impostare ('off', 'top', 'bottom', 'both').
+     * Sets the display mode.
+     * @param {string} mode - Mode to set ('off', 'top', 'bottom', 'both').
      */
     setMode(mode) {
         this.mode = mode;
-        // Pulisce immediatamente i canvas quando la modalità cambia per evitare che l'ultimo frame rimanga visibile.
+        this.ctxTop.clearRect(0, 0, this.canvasTop.width, this.canvasTop.height);
+        this.ctxBottom.clearRect(0, 0, this.canvasBottom.width, this.canvasBottom.height);
+        window.dispatchEvent(new CustomEvent('visualizer:mode', { detail: { mode } }));
+    }
+
+    setSymmetric(enabled) {
+        this.isSymmetric = !!enabled;
+        this.ctxTop.clearRect(0, 0, this.canvasTop.width, this.canvasTop.height);
+        this.ctxBottom.clearRect(0, 0, this.canvasBottom.width, this.canvasBottom.height);
+    }
+
+    setSymmetryReverse(enabled) {
+        this.symmetryReverse = !!enabled;
         this.ctxTop.clearRect(0, 0, this.canvasTop.width, this.canvasTop.height);
         this.ctxBottom.clearRect(0, 0, this.canvasBottom.width, this.canvasBottom.height);
     }
 
     /**
-     * Imposta la fluidità dell'animazione del visualizzatore.
-     * @param {number} value - Un valore tra 0 e 1 che imposta `smoothingTimeConstant` dell'analizzatore.
+     * Sets animation smoothness.
+     * @param {number} value - Value between 0 and 1 for `smoothingTimeConstant`.
      */
     setSmoothing(value) {
         this.analyser.smoothingTimeConstant = value;
     }
 
     /**
-     * Il ciclo di disegno principale (animation loop).
-     * Viene chiamato ricorsivamente tramite `requestAnimationFrame` per un'animazione fluida ed efficiente.
+     * Sets colors for the visualizer.
+     * @param {string} color1 - First color.
+     * @param {string} color2 - Second color (optional, for gradient).
+     */
+    setColors(color1, color2) {
+        this.color1 = color1;
+        this.color2 = color2 || color1;
+    }
+
+    /**
+     * Sets gradient direction.
+     * @param {string} direction - 'vertical', 'horizontal', etc.
+     */
+    setGradientDirection(direction) {
+        this.gradientDirection = direction;
+    }
+
+    /**
+     * Sets visualizer transparency.
+     * @param {number} alpha - Transparency value from 0 to 1.
+     */
+    setAlpha(alpha) {
+        this.alpha = alpha;
+    }
+
+    /**
+     * Main drawing loop (animation).
      */
     draw() {
-        // Richiede al browser di eseguire questo metodo `draw` al prossimo frame di animazione disponibile.
         requestAnimationFrame(() => this.draw());
 
-        // Se la modalità è 'off', interrompe il ciclo di disegno qui, risparmiando risorse.
         if (this.mode === 'off') return;
 
-        // 1. OTTENERE I DATI AUDIO
-        // Copia i dati di frequenza correnti (in decibel) nell'array `dataArray`.
         this.analyser.getByteFrequencyData(this.dataArray);
 
-        // 2. PULIRE I CANVAS
-        // È necessario pulire l'intero canvas a ogni frame per non sovrapporre i disegni precedenti.
         this.ctxTop.clearRect(0, 0, this.canvasTop.width, this.canvasTop.height);
         this.ctxBottom.clearRect(0, 0, this.canvasBottom.width, this.canvasBottom.height);
 
-        // 3. IMPOSTARE I PARAMETRI DI DISEGNO
-        // PERSONALIZZAZIONE:
-        // - `* 1.5`: Aumenta la larghezza delle barre. Un valore più alto crea barre più spesse e meno numerose.
         const barWidth = (this.canvasBottom.width / this.bufferLength) * 1.5;
         let barHeight;
-        let x = 0; // Posizione orizzontale della prima barra.
+        let x = 0;
 
-        // 4. CICLARE SUI DATI E DISEGNARE
-        for (let i = 0; i < this.bufferLength; i++) {
-            // Il valore in `dataArray[i]` va da 0 a 255. Lo scaliamo per ottenere un'altezza visivamente piacevole.
-            // PERSONALIZZAZIONE: Aumenta il moltiplicatore (es. `* 1.0`) per barre più alte e reattive.
-            barHeight = this.dataArray[i] * 0.7;
+        if (this.isSymmetric) {
+            const spacing = 2;
+            const halfLength = Math.floor(this.bufferLength / 2);
 
-            // PERSONALIZZAZIONE DEL COLORE:
-            // Puoi creare gradienti o colori dinamici qui. Per esempio, basando il colore sull'altezza della barra:
-            // const g = barHeight; // Verde
-            // const b = 255 - barHeight; // Blu
-            // this.ctxBottom.fillStyle = `rgb(0, ${g}, ${b})`;
-            const fillColor = `rgba(0, 170, 255, 0.6)`; // Blu semitrasparente.
-
-            // --- Disegna sul canvas inferiore (le barre crescono dal basso verso l'alto) ---
             if (this.mode === 'bottom' || this.mode === 'both') {
-                this.ctxBottom.fillStyle = fillColor;
-                this.ctxBottom.fillRect(
-                    x, // Posizione X
-                    this.canvasBottom.height - barHeight, // Posizione Y (parte dall'altezza del canvas e va verso l'alto)
-                    barWidth, // Larghezza della barra
-                    barHeight // Altezza della barra
-                );
+                const width = this.canvasBottom.width;
+                const center = width / 2;
+                const barW = Math.max(1, (width / this.bufferLength) - spacing);
+
+                const createGradientBottom = (y1, y2) => {
+                    let grad;
+                    switch (this.gradientDirection) {
+                        case 'horizontal':
+                            grad = this.ctxBottom.createLinearGradient(0, 0, width, 0);
+                            break;
+                        case 'horizontal-reverse':
+                            grad = this.ctxBottom.createLinearGradient(width, 0, 0, 0);
+                            break;
+                        case 'vertical-reverse':
+                            grad = this.ctxBottom.createLinearGradient(0, y2, 0, y1);
+                            break;
+                        default:
+                            grad = this.ctxBottom.createLinearGradient(0, y1, 0, y2);
+                            break;
+                    }
+                    grad.addColorStop(0, this.hexToRgba(this.color1, this.alpha));
+                    grad.addColorStop(1, this.hexToRgba(this.color2, this.alpha));
+                    return grad;
+                };
+
+                for (let i = 0; i < halfLength; i++) {
+                    const sourceIndex = this.symmetryReverse ? (halfLength - 1 - i) : i;
+                    barHeight = this.dataArray[sourceIndex] * 0.7;
+                    const xLeft = center - (i + 1) * (barW + spacing);
+                    const xRight = center + i * (barW + spacing);
+                    const grad = createGradientBottom(this.canvasBottom.height, this.canvasBottom.height - barHeight);
+                    this.ctxBottom.fillStyle = grad;
+                    this.ctxBottom.fillRect(xLeft, this.canvasBottom.height - barHeight, barW, barHeight);
+                    this.ctxBottom.fillRect(xRight, this.canvasBottom.height - barHeight, barW, barHeight);
+                }
             }
 
-            // --- Disegna sul canvas superiore (le barre crescono dall'alto verso il basso) ---
             if (this.mode === 'top' || this.mode === 'both') {
-                this.ctxTop.fillStyle = fillColor;
+                const width = this.canvasTop.width;
+                const center = width / 2;
+                const barW = Math.max(1, (width / this.bufferLength) - spacing);
+
+                const createGradientTop = (y1, y2) => {
+                    let grad;
+                    switch (this.gradientDirection) {
+                        case 'horizontal':
+                            grad = this.ctxTop.createLinearGradient(0, 0, width, 0);
+                            break;
+                        case 'horizontal-reverse':
+                            grad = this.ctxTop.createLinearGradient(width, 0, 0, 0);
+                            break;
+                        case 'vertical-reverse':
+                            grad = this.ctxTop.createLinearGradient(0, y2, 0, y1);
+                            break;
+                        default:
+                            grad = this.ctxTop.createLinearGradient(0, y1, 0, y2);
+                            break;
+                    }
+                    grad.addColorStop(0, this.hexToRgba(this.color1, this.alpha));
+                    grad.addColorStop(1, this.hexToRgba(this.color2, this.alpha));
+                    return grad;
+                };
+
+                for (let i = 0; i < halfLength; i++) {
+                    const sourceIndex = this.symmetryReverse ? (halfLength - 1 - i) : i;
+                    barHeight = this.dataArray[sourceIndex] * 0.7;
+                    const xLeft = center - (i + 1) * (barW + spacing);
+                    const xRight = center + i * (barW + spacing);
+                    const grad = createGradientTop(0, barHeight);
+                    this.ctxTop.fillStyle = grad;
+                    this.ctxTop.fillRect(xLeft, 0, barW, barHeight);
+                    this.ctxTop.fillRect(xRight, 0, barW, barHeight);
+                }
+            }
+            return;
+        }
+
+        for (let i = 0; i < this.bufferLength; i++) {
+            barHeight = this.dataArray[i] * 0.7;
+
+        // Create fill style (gradient or single color)
+            const createGradient = (ctx, y1, y2) => {
+                let grad;
+                switch (this.gradientDirection) {
+                    case 'horizontal':
+                        grad = ctx.createLinearGradient(0, 0, this.canvasBottom.width, 0);
+                        break;
+                    case 'horizontal-reverse':
+                        grad = ctx.createLinearGradient(this.canvasBottom.width, 0, 0, 0);
+                        break;
+                    case 'vertical-reverse':
+                        grad = ctx.createLinearGradient(0, y2, 0, y1);
+                        break;
+                    default: // vertical
+                        grad = ctx.createLinearGradient(0, y1, 0, y2);
+                        break;
+                }
+                grad.addColorStop(0, this.hexToRgba(this.color1, this.alpha));
+                grad.addColorStop(1, this.hexToRgba(this.color2, this.alpha));
+                return grad;
+            };
+
+            // Draw on bottom canvas
+            if (this.mode === 'bottom' || this.mode === 'both') {
+                const grad = createGradient(this.ctxBottom, this.canvasBottom.height, this.canvasBottom.height - barHeight);
+                this.ctxBottom.fillStyle = grad;
+                this.ctxBottom.fillRect(x, this.canvasBottom.height - barHeight, barWidth, barHeight);
+            }
+
+            // Draw on top canvas
+            if (this.mode === 'top' || this.mode === 'both') {
+                const grad = createGradient(this.ctxTop, 0, barHeight);
+                this.ctxTop.fillStyle = grad;
                 this.ctxTop.fillRect(x, 0, barWidth, barHeight);
             }
 
-            // Sposta la posizione orizzontale per la barra successiva.
-            // PERSONALIZZAZIONE: Aumenta il valore `+ 2` per avere più spazio tra le barre.
             x += barWidth + 2;
         }
     }

@@ -3,29 +3,29 @@
  * SERVICE WORKER (service-worker.js)
  * =============================================================================
  *
- * Il Service Worker è un componente chiave di una Progressive Web App (PWA).
- * Agisce come un proxy tra l'applicazione web, il browser e la rete.
- * La sua funzione principale è intercettare le richieste di rete e gestire la cache,
- * permettendo all'applicazione di funzionare anche offline e di caricarsi più velocemente.
+ * The Service Worker is a key component of a Progressive Web App (PWA).
+ * It acts as a proxy between the web application, the browser, and the network.
+ * Its main function is to intercept network requests and manage caching,
+ * allowing the application to work offline and load faster.
  *
- * CICLO DI VITA DI UN SERVICE WORKER:
- * 1. Installazione (`install`): Viene eseguito una sola volta quando il Service Worker è nuovo o aggiornato.
- *    È il momento ideale per preparare la cache con i file fondamentali dell'applicazione (l'App Shell).
- * 2. Attivazione (`activate`): Viene eseguito dopo l'installazione. È il momento di pulire le vecchie cache.
- * 3. Fetch (`fetch`): Viene eseguito ogni volta che l'applicazione fa una richiesta di rete (es. per un file CSS, un'immagine, un'API).
+ * SERVICE WORKER LIFECYCLE:
+ * 1. Installation (`install`): Executed only once when the Service Worker is new or updated.
+ *    This is the ideal time to prepare the cache with the application's fundamental files (the App Shell).
+ * 2. Activation (`activate`): Executed after installation. This is the time to clean up old caches.
+ * 3. Fetch (`fetch`): Executed every time the application makes a network request (e.g., for a CSS file, an image, an API).
  */
 
-// NOME DELLA CACHE
-// PERSONALIZZAZIONE: Quando fai modifiche significative ai file dell'App Shell (es. aggiorni il CSS o JS),
-// incrementa la versione nel nome (es. da 'v1' a 'v2'). Questo invaliderà la vecchia cache e forzerà
-// il Service Worker a scaricare i nuovi file durante l'evento 'install'.
+// CACHE NAME
+// CUSTOMIZATION: When you make significant changes to App Shell files (e.g., update CSS or JS),
+// increment the version in the name (e.g., from 'v1' to 'v2'). This will invalidate the old cache and force
+// the Service Worker to download new files during the 'install' event.
 const CACHE_NAME = 'launchpad-pwa-cache-v1';
 
-// APP SHELL: I file fondamentali per l'interfaccia dell'applicazione.
-// Questi file vengono salvati in cache durante l'installazione per garantire che l'app
-// possa essere avviata anche senza connessione a internet.
+// APP SHELL: The fundamental files for the application interface.
+// These files are saved in cache during installation to ensure the app
+// can be launched even without an internet connection.
 const APP_SHELL_FILES = [
-    '/', // La radice, per richieste alla pagina principale
+    '/', // The root, for requests to the main page
     '/index.html',
     '/css/style.css',
     '/css/launchpad.css',
@@ -37,9 +37,9 @@ const APP_SHELL_FILES = [
     '/js/ui/editor-ui.js',
     '/js/ui/library-ui.js',
     '/js/static-data.json',
-    '/projects/Virtual Riot - Idols.json', // Includiamo il progetto di default
+    '/projects/Virtual Riot - Idols.json', // Include the default project
     '/manifest.json',
-    // È buona norma includere le icone principali
+    // It's good practice to include main icons
     '/assets/icons/android-chrome-192x192.png',
     '/assets/icons/android-chrome-512x512.png',
     '/assets/icons/apple-touch-icon.png',
@@ -48,51 +48,51 @@ const APP_SHELL_FILES = [
     '/assets/icons/triangle.png'
 ];
 
-// 1. EVENTO 'INSTALL': Caching dell'App Shell
+// 1. 'INSTALL' EVENT: Caching the App Shell
 self.addEventListener('install', event => {
-    console.log('Service Worker: In installazione...');
-    // `event.waitUntil` dice al browser di attendere che l'operazione all'interno sia completata
-    // prima di considerare l'installazione terminata.
+    console.log('Service Worker: Installing...');
+    // `event.waitUntil` tells the browser to wait for the operation inside to complete
+    // before considering the installation finished.
     event.waitUntil(
         caches.open(CACHE_NAME).then(cache => {
-            console.log('Service Worker: Caching dei file dell\'App Shell');
-            // `cache.addAll` prende un array di URL, li scarica e li aggiunge alla cache.
-            // Se anche solo uno dei file non riesce a essere scaricato, l'intera operazione fallisce.
+            console.log('Service Worker: Caching App Shell files');
+            // `cache.addAll` takes an array of URLs, downloads them and adds them to the cache.
+            // If even one file fails to download, the entire operation fails.
             return cache.addAll(APP_SHELL_FILES);
         })
     );
 });
 
-// 2. EVENTO 'ACTIVATE': Pulizia delle vecchie cache
+// 2. 'ACTIVATE' EVENT: Cleaning up old caches
 self.addEventListener('activate', event => {
-    console.log('Service Worker: In attivazione...');
+    console.log('Service Worker: Activating...');
     event.waitUntil(
         caches.keys().then(cacheNames => {
             return Promise.all(
                 cacheNames.map(cacheName => {
-                    // Se un nome di cache non corrisponde a quello corrente, viene eliminato.
-                    // Questo è fondamentale per rimuovere i file obsoleti e liberare spazio.
+                    // If a cache name doesn't match the current one, it gets deleted.
+                    // This is crucial for removing obsolete files and freeing up space.
                     if (cacheName !== CACHE_NAME) {
-                        console.log('Service Worker: Rimozione vecchia cache', cacheName);
+                        console.log('Service Worker: Removing old cache', cacheName);
                         return caches.delete(cacheName);
                     }
                 })
             );
         })
     );
-    // `self.clients.claim()` permette al Service Worker attivato di prendere il controllo
-    // di tutte le schede aperte dell'applicazione immediatamente, senza bisogno di un refresh.
+    // `self.clients.claim()` allows the activated Service Worker to take control
+    // of all open tabs of the application immediately, without needing a refresh.
     return self.clients.claim();
 });
 
-// 3. EVENTO 'FETCH': Intercettazione delle richieste di rete
+// 3. 'FETCH' EVENT: Intercepting network requests
 self.addEventListener('fetch', event => {
     const { request } = event;
 
-    // Esempio di strategia per API: Stale-While-Revalidate.
-    // Risponde subito con la cache (se disponibile), ma nel frattempo richiede la versione
-    // aggiornata dalla rete per la prossima volta. Ottimo per dati che cambiano spesso.
-    if (request.url.includes('/api/')) { // Attualmente non usato, ma è un buon pattern.
+    // Example API strategy: Stale-While-Revalidate.
+    // Responds immediately with cache (if available), but meanwhile requests the updated
+    // version from the network for next time. Great for frequently changing data.
+    if (request.url.includes('/api/')) { // Currently not used, but it's a good pattern.
         event.respondWith(
             caches.open(CACHE_NAME).then(cache => {
                 return cache.match(request).then(cachedResponse => {
@@ -107,28 +107,28 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    // STRATEGIA DI DEFAULT: CACHE-FIRST, THEN NETWORK
-    // Questa strategia è ideale per le risorse statiche dell'App Shell e per i media.
+    // DEFAULT STRATEGY: CACHE-FIRST, THEN NETWORK
+    // This strategy is ideal for App Shell static resources and media.
     event.respondWith(
         caches.match(request).then(cachedResponse => {
-            // 1. CONTROLLA LA CACHE
-            // Se una risposta corrispondente alla richiesta viene trovata nella cache...
+            // 1. CHECK THE CACHE
+            // If a response matching the request is found in cache...
             if (cachedResponse) {
-                // ...restituiscila immediatamente. L'app è veloce e funziona offline.
-                // console.log('Service Worker: Risorsa trovata in cache', request.url);
+                // ...return it immediately. The app is fast and works offline.
+                // console.log('Service Worker: Resource found in cache', request.url);
                 return cachedResponse;
             }
 
-            // 2. VAI ALLA RETE (se non è in cache)
-            // Altrimenti, esegui la richiesta di rete originale.
-            // console.log('Service Worker: Risorsa non in cache, fetching dalla rete', request.url);
+            // 2. GO TO NETWORK (if not in cache)
+            // Otherwise, execute the original network request.
+            // console.log('Service Worker: Resource not in cache, fetching from network', request.url);
             return fetch(request).then(networkResponse => {
-                // 3. METTI IN CACHE LA NUOVA RISORSA
-                // Una volta ottenuta la risposta dalla rete, la mettiamo in cache per le prossime volte.
+                // 3. CACHE THE NEW RESOURCE
+                // Once we get the response from the network, we cache it for next time.
                 return caches.open(CACHE_NAME).then(cache => {
-                    // `networkResponse` può essere letta una sola volta, quindi la cloniamo.
+                    // `networkResponse` can only be read once, so we clone it.
                     cache.put(request, networkResponse.clone());
-                    // E restituiamo la risposta originale al browser.
+                    // And return the original response to the browser.
                     return networkResponse;
                 });
             });

@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "launchpad-webmidi": "^1.2.0"
+  }
+}

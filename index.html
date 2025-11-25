@@ -1,34 +1,34 @@
 <!--
-  Questo file è il punto di ingresso principale dell'applicazione Launchpad PWA.
-  Esso definisce la struttura di base della pagina HTML, carica gli stili CSS,
-  i file JavaScript necessari e imposta gli elementi dell'interfaccia utente.
+  This file is the main entry point of the Launchpad PWA application.
+  It defines the basic structure of the HTML page, loads CSS styles,
+  necessary JavaScript files, and sets up user interface elements.
 -->
 <!DOCTYPE html>
 <html lang="it">
 <head>
     <!--
-      La sezione <head> contiene metadati importanti per il browser e per i motori di ricerca,
-      oltre ai collegamenti ai file CSS e JavaScript.
+      The <head> section contains important metadata for the browser and search engines,
+      as well as links to CSS and JavaScript files.
     -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Launchpad PWA</title>
 
     <!--
-      MANIFEST PWA (Progressive Web App)
-      Il file manifest.json fornisce informazioni sull'applicazione (come nome, icone, colori)
-      e permette di installarla su dispositivi desktop e mobili come se fosse un'app nativa.
-      Per personalizzare l'aspetto dell'app installata (es. nome, icona), modifica questo file.
+      PWA MANIFEST (Progressive Web App)
+      The manifest.json file provides information about the application (such as name, icons, colors)
+      and allows it to be installed on desktop and mobile devices as if it were a native app.
+      To customize the appearance of the installed app (e.g., name, icon), modify this file.
     -->
     <link rel="manifest" href="manifest.json">
 
     <!--
-      ICONE
-      Queste righe definiscono le icone dell'applicazione per diverse piattaforme e dimensioni.
-      - favicon.ico: Icona tradizionale per i browser.
-      - favicon-32x32.png / favicon-16x16.png: Dimensioni specifiche per le tab del browser.
-      - apple-touch-icon.png: Icona per i dispositivi Apple quando l'app viene aggiunta alla home screen.
-      Puoi sostituire questi file in 'assets/icons/' con le tue icone personalizzate.
+      ICONS
+      These lines define the application icons for different platforms and sizes.
+      - favicon.ico: Traditional icon for browsers.
+      - favicon-32x32.png / favicon-16x16.png: Specific sizes for browser tabs.
+      - apple-touch-icon.png: Icon for Apple devices when the app is added to the home screen.
+      You can replace these files in 'assets/icons/' with your custom icons.
     -->
     <link rel="icon" href="assets/icons/favicon.ico" type="image/x-icon">
     <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32x32.png">
@@ -36,89 +36,115 @@
     <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
 
     <!--
-      FOGLI DI STILE (CSS)
-      - style.css: Contiene gli stili generali per l'layout, la sidebar e altri elementi dell'interfaccia.
-                   Modifica questo file per cambiare l'aspetto generale dell'app (colori, font, ecc.).
-      - launchpad.css: Contiene stili specifici per la griglia del Launchpad e i suoi pad.
-                       Modifica questo file per personalizzare l'aspetto del Launchpad (colori dei pad, animazioni, ecc.).
+      STYLESHEETS (CSS)
+      - style.css: Contains general styles for the layout, sidebar, and other interface elements.
+                   Modify this file to change the general appearance of the app (colors, fonts, etc.).
+      - launchpad.css: Contains specific styles for the Launchpad grid and its pads.
+                       Modify this file to customize the Launchpad appearance (pad colors, animations, etc.).
     -->
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/launchpad.css">
 
     <!--
-      SCRIPT JAVASCRIPT
-      - app.js: È lo script principale che gestisce la logica dell'applicazione.
-                Importa e coordina gli altri moduli JavaScript.
-      - type="module": Permette di usare le funzionalità dei moduli ES6 (import/export).
-      - defer: Assicura che lo script venga eseguito solo dopo che l'intero documento HTML è stato caricato.
+      JAVASCRIPT SCRIPTS
+      - app.js: The main script that handles application logic.
+                It imports and coordinates other JavaScript modules.
+      - type="module": Enables ES6 module functionality (import/export).
+      - defer: Ensures the script runs only after the entire HTML document has loaded.
     -->
-    <script src="js/app.js?v=2" type="module" defer></script>
+    <script src="js/interaction.js" type="module" defer></script>
+    <script src="js/ui.js" type="module" defer></script>
+    <script src="js/video.js" type="module" defer></script>
+    <script src="js/visualizer-controls.js" type="module" defer></script>
+    <script src="js/project.js" type="module" defer></script>
+    <script src="js/app.js" type="module" defer></script>
 </head>
 <body>
 
 <!--
-  LAYOUT PRINCIPALE
-  Il div con classe "layout" è il contenitore principale che organizza la sidebar e il corpo della pagina.
-  L'intera struttura è basata su CSS Grid per un layout flessibile.
+  MAIN LAYOUT
+  The div with class "layout" is the main container that organizes the sidebar and the page body.
+  The entire structure is based on CSS Grid for a flexible layout.
 -->
 <div class="layout">
     <!--
-      ELEMENTI DI SFONDO E VISUALIZZATORE
-      - video-overlay: Un livello semitrasparente che si sovrappone al video di sfondo per migliorarne la leggibilità.
-                       L'opacità è controllabile dal menu.
-      - visualizer-canvas: Due elementi <canvas> usati per disegnare il visualizzatore audio (uno in alto, uno in basso).
-                           La loro visibilità e comportamento sono gestiti da 'js/visualizer.js'.
+      BACKGROUND ELEMENTS AND VISUALIZER
+      - video-overlay: A semi-transparent layer overlaying the background video to improve readability.
+                       The opacity is controlled from the menu.
+      - visualizer-canvas: Two <canvas> elements used to draw the audio visualizer (one at the top, one at the bottom).
+                           Their visibility and behavior are managed by 'js/visualizer.js'.
     -->
     <div class="video-overlay"></div>
     <canvas id="visualizer-canvas-top" class="visualizer-canvas"></canvas>
     <canvas id="visualizer-canvas-bottom" class="visualizer-canvas"></canvas>
 
     <!--
-      SIDEBAR (MENU LATERALE)
-      Contiene i menu per selezionare progetti, cambiare lo sfondo, controllare il visualizzatore e personalizzare il Launchpad.
-      La visibilità della sidebar è gestita tramite JavaScript (funzione toggleSidebar).
+      SIDEBAR (SIDE MENU)
+      Contains menus to select projects, change background, control the visualizer, and customize the Launchpad.
+      Sidebar visibility is managed via JavaScript (function toggleSidebar).
     -->
     <div class="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-spacer"></div>
-        <h2>Menu</h2>
+        <h2 data-i18n="sidebar.title">Menu</h2>
       </div>
       <div class="sidebar-content">
+        <div class="menu-item">
+          <button class="menu-toggle" onclick="toggleMenu('language-menu')" data-i18n="menu.language.toggle">Lingua</button>
+          <div class="menu-dropdown" id="language-menu">
+            <div class="control-group" style="padding: 15px 15px 5px 15px;">
+              <label for="language-select" data-i18n="menu.language.label">Seleziona lingua</label>
+              <div class="input-group">
+                <select id="language-select">
+                  <option value="it" data-i18n="menu.language.option.it">Italiano</option>
+                  <option value="en" data-i18n="menu.language.option.en">English</option>
+                  <option value="es" data-i18n="menu.language.option.es">Español</option>
+                  <option value="de" data-i18n="menu.language.option.de">Deutsch</option>
+                  <option value="fr" data-i18n="menu.language.option.fr">Français</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
         <!--
-          MENU SELEZIONE PROGETTO
-          - Il contenuto di 'project-menu' viene popolato dinamicamente da 'js/ui/library-ui.js'
-            leggendo i file dei progetti disponibili nella cartella 'projects/'.
+          PROJECT SELECTION MENU
+          - The content of 'project-menu' is populated dynamically
+            using static data loaded in JavaScript.
         -->
         <div class="menu-item">
-          <button class="menu-toggle" onclick="toggleMenu('project-menu')">Seleziona progetto</button>
+          <button class="menu-toggle" onclick="toggleMenu('project-menu')" data-i18n="menu.project.toggle">Seleziona progetto</button>
           <div class="menu-dropdown" id="project-menu">
-            <!-- Contenuto progetti verrà aggiunto dinamicamente -->
+            <!-- Project items will be populated dynamically -->
           </div>
         </div>
 
         <!--
-          MENU BACKGROUND
-          - Permette di selezionare un video di sfondo.
-          - I video disponibili vengono caricati dinamicamente da 'js/ui/library-ui.js' leggendo dalla cartella 'assets/videos/'.
-          - Contiene anche i controlli per personalizzare l'aspetto del video di sfondo.
-          - PERSONALIZZAZIONE: Per aggiungere nuovi video, inseriscili nella cartella 'assets/videos/'.
-            Verranno automaticamente aggiunti al menu.
+          BACKGROUND MENU
+          - Allows selecting a background video.
+          - Also contains controls to customize the appearance of the background video.
+          - CUSTOMIZATION: To add new videos, place them in the 'assets/videos/' folder.
         -->
         <div class="menu-item">
-          <button class="menu-toggle" onclick="toggleMenu('background-menu')">Background</button>
+          <button class="menu-toggle" onclick="toggleMenu('background-menu')" data-i18n="menu.background.toggle">Sfondo</button>
           <div class="menu-dropdown" id="background-menu">
-            <button class="menu-option" onclick="setBackgroundVideo(null)">Nessun background</button>
+            <button class="menu-option selected" data-video="none" onclick="clearBackground()" data-i18n="background.none">Nessuno sfondo</button>
+            <div class="control-group" style="padding: 15px 15px 5px 15px;">
+              <label for="background-file-input" data-i18n="background.upload">Carica file</label>
+              <div class="input-group">
+                <input type="file" id="background-file-input" class="file-input-hidden" accept="video/*,image/*">
+                <button type="button" class="menu-option" id="background-file-trigger" data-i18n="background.upload">Carica file</button>
+              </div>
+            </div>
             <!--
-              CONTROLLI VIDEO
-              Questi slider permettono di modificare in tempo reale:
-              - Opacità dell'overlay: Controlla la trasparenza del livello sopra il video.
-              - Sfocatura: Applica un filtro blur al video.
-              - Luminosità: Regola la luminosità del video.
-              I valori di questi controlli sono gestiti in 'js/app.js'.
+              VIDEO CONTROLS
+              These sliders allow real-time adjustments:
+              - Overlay opacity: Controls transparency of the overlay above the video.
+              - Blur: Applies a blur filter to the video.
+              - Brightness: Adjusts the video brightness.
             -->
             <div class="video-controls">
               <div class="control-group">
-                <label for="opacity-slider">Opacità overlay</label>
+                <label for="opacity-slider" data-i18n="background.opacity">Opacità overlay</label>
                 <div class="input-group">
                   <input type="range" id="opacity-slider" min="0" max="1" step="0.1" value="0">
                   <input type="number" id="opacity-input" min="0" max="1" step="0.1" value="0" class="manual-input">
@@ -126,7 +152,7 @@
                 </div>
               </div>
               <div class="control-group">
-                <label for="blur-slider">Sfocatura</label>
+                <label for="blur-slider" data-i18n="background.blur">Sfocatura</label>
                 <div class="input-group">
                   <input type="range" id="blur-slider" min="0" max="10" step="0.1" value="0">
                   <input type="number" id="blur-input" min="0" max="10" step="0.1" value="0" class="manual-input">
@@ -134,7 +160,7 @@
                 </div>
               </div>
               <div class="control-group">
-                <label for="brightness-slider">Luminosità</label>
+                <label for="brightness-slider" data-i18n="background.brightness">Luminosità</label>
                 <div class="input-group">
                   <input type="range" id="brightness-slider" min="0.5" max="1.5" step="0.1" value="1">
                   <input type="number" id="brightness-input" min="0.5" max="1.5" step="0.1" value="1" class="manual-input">
@@ -142,88 +168,169 @@
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+      </div>
+      <!-- Fixed MIDI Status at the bottom of the sidebar -->
+      <div class="midi-status-fixed">
+        <span id="midi-status-dot" class="midi-status-dot disconnected"></span>
+        <span id="midi-status-text" data-i18n="midi.status.disconnected">Launchpad scollegato</span>
+      </div>
+    </div>
 
         <!--
-          MENU VISUALIZZATORE
-          - Controlla il comportamento del visualizzatore audio.
-          - Le funzioni onclick chiamano metodi dell'oggetto 'visualizer' definito in 'js/visualizer.js'.
-          - PERSONALIZZAZIONE: I parametri del visualizzatore (es. colori, tipo di barre)
-            possono essere modificati direttamente nel file 'js/visualizer.js'.
+          VISUALIZER MENU
+          - Controls the behavior of the audio visualizer.
+          - The onclick functions call methods of the 'visualizer' object defined in 'js/visualizer.js'.
+          - CUSTOMIZATION: Visualizer parameters (e.g., colors, bar type)
+            can be modified directly in 'js/visualizer.js'.
         -->
         <div class="menu-item">
-          <button class="menu-toggle" onclick="toggleMenu('visualizer-menu')">Visualizzatore</button>
+          <button class="menu-toggle" onclick="toggleMenu('visualizer-menu')" data-i18n="menu.visualizer.toggle">Visualizzatore</button>
           <div class="menu-dropdown" id="visualizer-menu">
-            <button class="menu-option" onclick="visualizer.setMode('both')">Entrambi</button>
-            <button class="menu-option" onclick="visualizer.setMode('top')">Superiore</button>
-            <button class="menu-option" onclick="visualizer.setMode('bottom')">Inferiore</button>
-            <button class="menu-option" onclick="visualizer.setMode('off')">Spento</button>
+            <button class="menu-option selected" data-mode="both" onclick="visualizer.setMode('both')" data-i18n="visualizer.mode.both">Entrambi</button>
+            <button class="menu-option" data-mode="top" onclick="visualizer.setMode('top')" data-i18n="visualizer.mode.top">Superiore</button>
+            <button class="menu-option" data-mode="bottom" onclick="visualizer.setMode('bottom')" data-i18n="visualizer.mode.bottom">Inferiore</button>
+            <button class="menu-option" data-mode="off" onclick="visualizer.setMode('off')" data-i18n="visualizer.mode.off">Spento</button>
+
+            <div class="control-group" id="symmetric-group" style="padding: 15px 15px 5px 15px;">
+              <label for="symmetric-checkbox">
+                <input type="checkbox" id="symmetric-checkbox">
+                <span data-i18n="visualizer.symmetric">Simmetrico</span>
+              </label>
+              <div class="input-group" id="symmetric-mode" style="display: none; margin-top: 8px;">
+                <label for="symmetric-mode-select" data-i18n="visualizer.symmetricMode">Modalità</label>
+                <select id="symmetric-mode-select">
+                  <option value="normal" data-i18n="visualizer.symmetric.normal">Normale</option>
+                  <option value="reverse" data-i18n="visualizer.symmetric.reverse">Inversa</option>
+                </select>
+              </div>
+            </div>
             
-            <!-- Controllo per la fluidità del visualizzatore -->
-            <div class="control-group" style="padding: 15px 15px 5px 15px;">
-              <label for="smoothing-slider">Fluidità</label>
+            <!-- Visualizer smoothness control -->
+            <div class="control-group" id="smoothing-group" style="padding: 15px 15px 5px 15px;">
+              <label for="smoothing-slider" data-i18n="visualizer.smoothing">Fluidità</label>
               <div class="input-group">
                 <input type="range" id="smoothing-slider" min="0" max="0.95" step="0.05" value="0.8">
                 <input type="number" id="smoothing-input" min="0" max="0.95" step="0.05" value="0.8" class="manual-input">
+              </div>
+            </div>
+
+            <!-- Color and transparency controls -->
+            <div class="control-group" id="color1-group" style="padding: 15px 15px 5px 15px;">
+              <label for="color1-picker" data-i18n="visualizer.color1">Colore 1</label>
+              <div class="input-group">
+                <input type="color" id="color1-picker" value="#00aaff">
+              </div>
+            </div>
+            <div class="control-group" id="enable-gradient-group" style="padding: 15px 15px 5px 15px;">
+              <label for="enable-color2-checkbox">
+                <input type="checkbox" id="enable-color2-checkbox">
+                <span data-i18n="visualizer.gradient.enable">Abilita Gradiente</span>
+              </label>
+            </div>
+            <div id="gradient-controls" style="display: none;">
+              <div class="control-group" style="padding: 15px 15px 5px 15px;">
+                <label for="color2-picker" data-i18n="visualizer.color2">Colore 2</label>
+                <div class="input-group">
+                  <input type="color" id="color2-picker" value="#00aaff">
+                </div>
+              </div>
+              <div class="control-group" style="padding: 15px 15px 5px 15px;">
+                <label for="gradient-direction" data-i18n="visualizer.gradient.direction">Direzione Gradiente</label>
+                <select id="gradient-direction">
+                  <option value="vertical" data-i18n="visualizer.gradient.vertical">Verticale</option>
+                  <option value="horizontal" data-i18n="visualizer.gradient.horizontal">Orizzontale</option>
+                  <option value="vertical-reverse" data-i18n="visualizer.gradient.verticalReverse">Verticale (inverso)</option>
+                  <option value="horizontal-reverse" data-i18n="visualizer.gradient.horizontalReverse">Orizzontale (inverso)</option>
+                </select>
+              </div>
+            </div>
+            <div class="control-group" id="alpha-group" style="padding: 15px 15px 5px 15px;">
+              <label for="alpha-slider" data-i18n="visualizer.alpha">Trasparenza</label>
+              <div class="input-group">
+                <input type="range" id="alpha-slider" min="0" max="1" step="0.05" value="0.6">
+                <input type="number" id="alpha-input" min="0" max="1" step="0.05" value="0.6" class="manual-input">
               </div>
             </div>
           </div>
         </div>
 
         <!--
-          MENU PERSONALIZZAZIONE LAUNCHPAD
-          - Contiene opzioni per modificare l'aspetto del Launchpad.
-          - 'toggle-stickers': Mostra/nasconde gli adesivi decorativi sul Launchpad.
-          - Sfondi Launchpad: Vengono caricati dinamicamente da 'js/ui/library-ui.js'
-            leggendo dalla cartella 'assets/images/launchpad covers/'.
-          - PERSONALIZZAZIONE: Per aggiungere nuovi sfondi per il Launchpad, inserisci le immagini
-            nella cartella 'assets/images/launchpad covers/'.
+          LAUNCHPAD CUSTOMIZATION MENU
+          - Contains options to change the appearance of the Launchpad.
+          - 'toggle-stickers': Shows/hides decorative stickers on the Launchpad.
+          - CUSTOMIZATION: To add new Launchpad backgrounds, place images
+            in the 'assets/images/launchpad covers/' folder.
         -->
         <div class="menu-item">
-          <button class="menu-toggle" onclick="toggleMenu('personalize-launchpad-menu')">Personalize Launchpad</button>
+          <button class="menu-toggle" onclick="toggleMenu('personalize-launchpad-menu')" data-i18n="menu.launchpad.toggle">Personalize Launchpad</button>
           <div class="menu-dropdown" id="personalize-launchpad-menu">
             <div class="control-group" style="padding: 15px 15px 5px 15px;">
               <label for="toggle-stickers">
                 <input type="checkbox" id="toggle-stickers" onchange="toggleLaunchpadStickers(this.checked)">
-                Mostra Adesivi
+                <span data-i18n="launchpad.stickers.show">Mostra Adesivi</span>
               </label>
             </div>
-            <button class="menu-option" onclick="setLaunchpadBackground(null)">Default</button>
+            <div class="control-group" style="padding: 15px 15px 5px 15px;">
+              <label for="rotation-slider" data-i18n="launchpad.rotation">Rotazione Launchpad</label>
+              <div class="input-group">
+                <input type="range" id="rotation-slider" min="0" max="360" step="1" value="0">
+                <input type="number" id="rotation-input" min="0" max="360" step="1" value="0" class="manual-input">
+                <span class="value-display">°</span>
+              </div>
+            </div>
+            <div class="control-group" style="padding: 15px 15px 5px 15px;">
+              <label for="size-slider" data-i18n="launchpad.size">Dimensione Launchpad</label>
+              <div class="input-group">
+                <input type="range" id="size-slider" min="50" max="140" step="1" value="100">
+                <input type="number" id="size-input" min="50" max="140" step="1" value="100" class="manual-input">
+                <span class="value-display">%</span>
+              </div>
+            </div>
+            <div class="control-group" style="padding: 15px 15px 5px 15px;">
+              <label for="logo-file-input" data-i18n="launchpad.icon.label">Icona in alto a destra</label>
+              <input type="file" id="logo-file-input" class="file-input-hidden" accept="video/*,image/*">
+              <button type="button" class="menu-option" id="logo-file-trigger" data-i18n="launchpad.icon.upload">Carica icona/video</button>
+              <button type="button" class="menu-option" onclick="resetTopRightIcon()" data-i18n="launchpad.icon.reset">Ripristina icona</button>
+            </div>
+            <div class="control-group" style="padding: 15px 15px 5px 15px;">
+              <span class="section-title" data-i18n="launchpad.skins.title">Sfondi Launchpad</span>
+            </div>
+            <button class="menu-option selected" data-skin="none" onclick="setLaunchpadBackground(null)" data-i18n="launchpad.default">Default</button>
           </div>
         </div>
+
+
       </div>
     </div>
     
     <!--
-      CORPO PRINCIPALE
-      Contiene il pulsante per aprire la sidebar e il Launchpad stesso.
+      MAIN BODY
+      Contains the button to open the sidebar and the Launchpad itself.
     -->
     <div class="body">
       <button id="openSidebar" onclick="toggleSidebar()"><span class="icon">☰</span></button>
       <main>
         <!--
           LAUNCHPAD
-          Il cuore dell'applicazione. È una griglia di pulsanti che riproducono suoni.
+          The heart of the application: a grid of buttons that play sounds.
         -->
         <div class="Launchpad" id="Launchpad">
           <!--
-            OVERLAY SBLOCCO AUDIO
-            Molti browser moderni bloccano la riproduzione audio automatica.
-            Questo overlay richiede un'interazione dell'utente (un click) per sbloccare l'AudioContext,
-            garantendo che i suoni possano essere riprodotti.
-            È gestito da 'js/audio.js'.
+            AUDIO UNLOCK OVERLAY
+            Many modern browsers block automatic audio playback.
+            This overlay requires user interaction (a click) to unlock the AudioContext,
+            ensuring that sounds can be played.
           -->
           <div id="audio-unlock-overlay" class="launchpad-overlay">
-            <p>Clicca per avviare</p>
+            <p data-i18n="overlay.clickToStart">Clicca per avviare</p>
           </div>
           
           <!--
-            ELEMENTI DECORATIVI DEL LAUNCHPAD
-            Questi elementi (triangoli, testi, logo) sono puramente estetici.
-            La loro visibilità può essere controllata tramite CSS o JavaScript (es. 'toggleLaunchpadStickers').
-            - PERSONALIZZAZIONE: Puoi cambiare le immagini, i testi o lo stile di questi elementi
-              modificando il CSS in 'launchpad.css' o sostituendo le immagini in 'assets/icons/'.
+            DECORATIVE ELEMENTS OF THE LAUNCHPAD
+            These elements (triangles, texts, logo) are purely aesthetic.
+            Their visibility can be controlled via CSS or JavaScript (e.g., 'toggleLaunchpadStickers').
+            - CUSTOMIZATION: You can change images, texts, or styles by
+              editing CSS in 'launchpad.css' or replacing images in 'assets/icons/'.
           -->
           <div class="grid-item-triangle"><img src="assets/icons/triangle.png"  class="triangolo"></div>
           <div class="grid-item-triangle"><img style="transform: rotate(180deg);" src="assets/icons/triangle.png" class="triangolo"></div>
@@ -236,9 +343,9 @@
           <div id="image-container"><img src="assets/icons/Logo.png" alt="immagine" class="square-image"></div>
       
           <!--
-            PULSANTI DI CONTROLLO SUPERIORI (Riga 'a')
-            Questi pulsanti sono attualmente vuoti e non hanno funzioni associate.
-            Potrebbero essere usati in futuro per funzioni globali.
+            TOP CONTROL BUTTONS (Row 'a')
+            These buttons are currently empty with no associated functions.
+            They may be used in the future for global functions.
           -->
           <button id="a1" class="grid-item-menu"></button>
           <button id="a2" class="grid-item-menu"></button>
@@ -250,20 +357,20 @@
           <button id="a8" class="grid-item-menu"></button>
       
           <!--
-            GRIGLIA DEI PAD 8x8 (Righe 'b' a 'i')
-            Ogni pulsante (pad) ha:
-            - Un ID univoco (es. "b1", "c2", ...).
-            - La classe "grid-item" per lo stile.
-            - Un attributo 'onclick' che chiama la funzione 'playSound(event, index)'.
-              - 'event': L'oggetto evento del click.
-              - 'index': Un numero da 0 a 63 che identifica univocamente il pad.
-                         Questo indice è usato per trovare il campione audio corrispondente nel progetto caricato.
-            La logica di riproduzione è in 'js/audio.js'.
-            L'assegnazione dei suoni ai pad è definita nei file di progetto JSON (es. 'projects/Virtual Riot - Idols.json').
+            8x8 PAD GRID (Rows 'b' to 'i')
+            Each button (pad) has:
+            - A unique ID (e.g., "b1", "c2", ...).
+            - The "grid-item" class for styling.
+            - An 'onclick' attribute that calls the function 'playSound(event, index)'.
+              - 'event': The click event object.
+              - 'index': A number from 0 to 63 that uniquely identifies the pad.
+                         This index is used to find the corresponding audio sample in the loaded project.
+            The playback logic is in 'js/audio.js'.
+            The assignment of sounds to pads is defined in the JSON project files (e.g., 'projects/Virtual Riot - Idols.json').
           -->
           <button id="b1" class="grid-item" onclick="playSound(event, 0)" ></button>
           <button id="b2" class="grid-item" onclick="playSound(event, 1)" ></button>
-          <!-- ... altri pad da b3 a b8 ... -->
+          <!-- ... other pads from b3 to b8 ... -->
           <button id="b3" class="grid-item" onclick="playSound(event, 2)" ></button>
           <button id="b4" class="grid-item" onclick="playSound(event, 3)" ></button>
           <button id="b5" class="grid-item" onclick="playSound(event, 4)" ></button>
@@ -272,19 +379,19 @@
           <button id="b8" class="grid-item" onclick="playSound(event, 7)" ></button>
           
           <!--
-            PULSANTI DI CONTROLLO LATERALI (colonna 'm')
-            Questi pulsanti (m1-m8) cambiano la "pagina" o il "set" di suoni.
-            - 'onclick="changeSoundSet(index)"': Chiama la funzione per caricare un nuovo set di campioni.
-              - 'index': Identifica la pagina da caricare (da 0 a 7).
-            La logica è gestita in 'js/app.js' e 'js/audio.js'.
-            I testi accanto a questi pulsanti (Volume, Pan, ecc.) sono puramente decorativi.
+            SIDE CONTROL BUTTONS (column 'm')
+            These buttons (m1-m8) change the sound "page" or "set".
+            - 'onclick="changeSoundSet(index)"': Calls the function to load a new set of samples.
+              - 'index': Identifies the page to load (0 to 7).
+            Logic is handled in 'js/app.js' and 'js/audio.js'.
+            The texts next to these buttons (Volume, Pan, etc.) are purely decorative.
           -->
           <button id="m1" class="grid-item-menu" onclick="changeSoundSet(0)" ></button>
           <div class="testo_su_launchpad">Volume</div>
       
           <button id="c1" class="grid-item" onclick="playSound(event, 8)" ></button>
           <button id="c2" class="grid-item" onclick="playSound(event, 9)" ></button>
-          <!-- ... altri pad ... -->
+          <!-- ... other pads ... -->
           <button id="c3" class="grid-item" onclick="playSound(event, 10)" ></button>
           <button id="c4" class="grid-item" onclick="playSound(event, 11)" ></button>
           <button id="c5" class="grid-item" onclick="playSound(event, 12)" ></button>
@@ -295,7 +402,7 @@
           <div class="testo_su_launchpad">Pan</div>
       
           <button id="d1" class="grid-item" onclick="playSound(event, 16)" ></button>
-          <!-- ... e così via per tutte le righe fino a 'i' e 'm8' ... -->
+          <!-- ... and so on for all rows up to 'i' and 'm8' ... -->
           <button id="d2" class="grid-item" onclick="playSound(event, 17)" ></button>
           <button id="d3" class="grid-item" onclick="playSound(event, 18)" ></button>
           <button id="d4" class="grid-item" onclick="playSound(event, 19)" ></button>
