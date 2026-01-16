@@ -6,6 +6,8 @@
  * applies visual effects (overlay opacity, blur, brightness).
  */
 
+import { syncInputSlider } from './ui.js';
+
 let currentBackgroundEl = null;
 
 const VIDEO_EFFECT_DEFAULTS = {
@@ -121,27 +123,9 @@ export function initializeVideoControls() {
         brightnessSlider.value = VIDEO_EFFECT_DEFAULTS.brightness;
         brightnessInput.value = VIDEO_EFFECT_DEFAULTS.brightness;
 
-        function syncSliderInput(slider, input) {
-            slider.addEventListener('input', function() {
-                input.value = this.value;
-                applyVideoEffects();
-            });
-            
-            input.addEventListener('input', function() {
-                let value = parseFloat(this.value);
-                const min = parseFloat(slider.min);
-                const max = parseFloat(slider.max);
-                
-                value = Math.max(min, Math.min(max, value));
-                this.value = value;
-                slider.value = value;
-                applyVideoEffects();
-            });
-        }
-        
-        syncSliderInput(opacitySlider, opacityInput);
-        syncSliderInput(blurSlider, blurInput);
-        syncSliderInput(brightnessSlider, brightnessInput);
+        syncInputSlider('opacity-slider', 'opacity-input', applyVideoEffects, 0, 1, true);
+        syncInputSlider('blur-slider', 'blur-input', applyVideoEffects, 0, 20, false);
+        syncInputSlider('brightness-slider', 'brightness-input', applyVideoEffects, 0, 2, true);
     }
 
     const fileInput = document.getElementById('background-file-input');

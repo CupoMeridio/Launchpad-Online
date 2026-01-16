@@ -1,4 +1,5 @@
 import { audioEngine } from './audio.js';
+import { syncInputSlider } from './ui.js';
 
 /**
  * Initializes all controls for the visualizer.
@@ -11,9 +12,9 @@ export function initializeVisualizerControls() {
         const initialValue = audioEngine.getAnalyser().smoothingTimeConstant;
         smoothingSlider.value = initialValue;
         smoothingInput.value = initialValue;
-        syncSliderAndInput(smoothingSlider, smoothingInput, (value) => {
+        syncInputSlider('smoothing-slider', 'smoothing-input', (value) => {
             if (window.visualizer) window.visualizer.setSmoothing(value);
-        });
+        }, 0, 0.95, true);
     }
 
     // Color and gradient controls
@@ -62,9 +63,9 @@ export function initializeVisualizerControls() {
     const alphaSlider = document.getElementById('alpha-slider');
     const alphaInput = document.getElementById('alpha-input');
     if (alphaSlider && alphaInput) {
-        syncSliderAndInput(alphaSlider, alphaInput, (value) => {
+        syncInputSlider('alpha-slider', 'alpha-input', (value) => {
             if (window.visualizer) window.visualizer.setAlpha(value);
-        });
+        }, 0, 1, true);
         // Set initial transparency
         if (window.visualizer) {
             window.visualizer.setAlpha(alphaSlider.value);
@@ -127,28 +128,5 @@ export function initializeVisualizerControls() {
 }
 
 /**
- * Synchronizes a range slider with a numeric input.
- * @param {HTMLInputElement} slider - The slider element.
- * @param {HTMLInputElement} input - The numeric input element.
- * @param {Function} callback - Function called when the value changes.
+ * Update the visibility of the visualizer controls based on the mode.
  */
-function syncSliderAndInput(slider, input, callback) {
-    slider.addEventListener('input', function() {
-        const value = parseFloat(this.value);
-        input.value = value;
-        callback(value);
-    });
-
-    input.addEventListener('input', function() {
-        let value = parseFloat(this.value);
-        const min = parseFloat(slider.min);
-        const max = parseFloat(slider.max);
-        
-        if (isNaN(value)) return;
-
-        value = Math.max(min, Math.min(max, value));
-        this.value = value;
-        slider.value = value;
-        callback(value);
-    });
-}
