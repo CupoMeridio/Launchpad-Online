@@ -14,23 +14,26 @@ import { initializeVisualizerControls } from './visualizer-controls.js';
 import { initializeVideoControls } from './video.js';
 import { loadProject, initializeProjectMenu, initializeBackgroundMenu } from './project.js';
 import { initializePersonalizeLaunchpadMenu, initializeLanguageControls } from './ui.js';
+import { initInteraction } from './interaction.js';
 
 // ----------------------------------------------------------------------------
 // APPLICATION GLOBAL STATE
 // ----------------------------------------------------------------------------
-// Export state variables and functions to modify them.
-// This way, other modules can import and modify state
-// in a controlled manner, without using unsafe global variables.
+// Export of state variables and their respective modification functions.
+// This approach allows other modules to import and modify state
+// in a controlled manner, avoiding the use of unsafe global variables.
 
 export let currentProject = null;
 export let selectedProjectButton = null;
 export let projectSounds = [];
+export let projectLights = [];
 export let currentPage = 0;
 export let activePageButton = null;
 
 export function setCurrentProject(p) { currentProject = p; }
 export function setSelectedProjectButton(b) { selectedProjectButton = b; }
 export function setProjectSounds(s) { projectSounds = s; }
+export function setProjectLights(l) { projectLights = l; }
 export function setCurrentPage(p) { currentPage = p; }
 export function setActivePageButton(b) { activePageButton = b; }
 let midiInitialized = false;
@@ -42,6 +45,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     // --- 1. AudioContext Unlock ---
     const unlockOverlay = document.getElementById('audio-unlock-overlay');
     let audioUnlocked = false; // Flag to avoid double execution
+
+    // Initialize UI interactions
+    initInteraction();
     
     const unlockAudioAndHideOverlay = () => {
         if (audioUnlocked) return; // Exit if already unlocked

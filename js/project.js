@@ -15,6 +15,7 @@ import {
     selectedProjectButton, 
     setCurrentProject, 
     setProjectSounds, 
+    setProjectLights,
     setSelectedProjectButton 
 } from './app.js';
 
@@ -51,12 +52,20 @@ export async function loadProject(configPath, button) {
         setCurrentProject(project);
 
         const sounds = [];
+        const lights = [];
         if (project.pages) {
             project.pages.forEach(page => {
                 sounds.push(...page.sounds);
+                if (page.lights) {
+                    lights.push(...page.lights);
+                } else {
+                    // Fill with empty strings if lights array is missing for a page
+                    lights.push(...new Array(64).fill(""));
+                }
             });
         }
         setProjectSounds(sounds);
+        setProjectLights(lights);
         await audioEngine.loadSounds(sounds);
 
         setLaunchpadBackground(project.coverImage);
