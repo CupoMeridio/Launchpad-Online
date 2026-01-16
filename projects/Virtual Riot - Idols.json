@@ -14,6 +14,16 @@
         "assets/samples/Virtual Riot - Idols/pagina1/intro17.wav", "assets/samples/Virtual Riot - Idols/pagina1/intro18.wav", "assets/samples/Virtual Riot - Idols/pagina1/intro19.wav", "assets/samples/Virtual Riot - Idols/pagina1/intro20.wav", "assets/samples/Virtual Riot - Idols/pagina1/intro28.wav", "assets/samples/Virtual Riot - Idols/pagina1/intro27.wav", "assets/samples/Virtual Riot - Idols/pagina1/intro26.wav", "assets/samples/Virtual Riot - Idols/pagina1/intro25.wav",
         "assets/samples/Virtual Riot - Idols/pagina1/intro8.wav", "assets/samples/Virtual Riot - Idols/pagina1/intro9.wav", "", "assets/samples/Virtual Riot - Idols/pagina1/intro10.wav", "assets/samples/Virtual Riot - Idols/pagina1/intro13.wav", "", "assets/samples/Virtual Riot - Idols/pagina1/intro12.wav", "assets/samples/Virtual Riot - Idols/pagina1/intro11.wav",
         "assets/samples/Virtual Riot - Idols/pagina1/intro2.wav", "assets/samples/Virtual Riot - Idols/pagina1/intro3.wav", "", "assets/samples/Virtual Riot - Idols/pagina1/intro4.wav", "assets/samples/Virtual Riot - Idols/pagina1/intro7.wav", "", "assets/samples/Virtual Riot - Idols/pagina1/intro6.wav", "assets/samples/Virtual Riot - Idols/pagina1/intro5.wav"
+      ],
+      "lights": [
+        "tetris_falling", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", ""
       ]
     },
     {
