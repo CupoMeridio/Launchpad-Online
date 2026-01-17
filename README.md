@@ -27,7 +27,7 @@ The project is under active development, focusing on expanding the visual capabi
   - **Dynamic Transitions**: Implementation of multi-phase color fading (e.g., Red → Amber → Green).
   - **Directional Logic**: Support for directional variants (Top, Bottom, Left, Right) and Corner-based triggers.
   - **Reverse Propagation**: Converging animation variants for enhanced visual depth.
-- **MIDI Integration (`js/midi.js`)**: Robust communication layer using the `launchpad-webmidi` library.
+- **MIDI Integration (`js/midi.js`)**: Robust communication layer using the [`launchpad-webmidi`](https://github.com/LostInBrittany/launchpad-webmidi) library.
   - Automatic device handshake and synchronization.
   - Support for momentary and fixed animation types.
 - **Audio Architecture (`js/audio.js`)**: Modular engine for sound asset management and playback optimization.
