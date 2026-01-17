@@ -16,7 +16,7 @@
         "assets/samples/Virtual Riot - Idols/pagina1/intro2.wav", "assets/samples/Virtual Riot - Idols/pagina1/intro3.wav", "", "assets/samples/Virtual Riot - Idols/pagina1/intro4.wav", "assets/samples/Virtual Riot - Idols/pagina1/intro7.wav", "", "assets/samples/Virtual Riot - Idols/pagina1/intro6.wav", "assets/samples/Virtual Riot - Idols/pagina1/intro5.wav"
       ],
       "lights": [
-        "tetris_falling", "", "", "", "", "", "", "",
+        "tetris_falling", "firework", "", "", "", "", "", "",
         "", "", "", "", "", "", "", "",
         "", "", "", "", "", "", "", "",
         "", "", "", "", "", "", "", "",

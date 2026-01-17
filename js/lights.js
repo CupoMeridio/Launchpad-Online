@@ -1541,6 +1541,85 @@ const createAnimationLibrary = () => {
           },
           type: 'fixed'
       };
+
+      // 27. FIREWORK: Rocket climbs from bottom and explodes
+      animations['firework'] = {
+          on: () => {
+              const colors = ['red', 'green', 'amber'];
+              const mainColor = colors[Math.floor(Math.random() * colors.length)];
+              const baseColor = getLpColor(mainColor);
+              const lpOff = getLpColor('off');
+              
+              const startX = Math.floor(Math.random() * 8);
+              const explodeY = 1 + Math.floor(Math.random() * 3); // Explodes at row 1, 2, or 3
+              const climbSpeed = 80;
+
+              // Phase 1: Climb
+              for (let curY = 7; curY >= explodeY; curY--) {
+                  const delay = (7 - curY) * climbSpeed;
+                  setTimeout(() => {
+                      // Clear previous position
+                      if (curY < 7) {
+                          setWebColor('off', [startX, curY + 1]);
+                          setPhysicalColor(lpOff, [startX, curY + 1]);
+                      }
+                      
+                      // Draw current position
+                      setWebColor(webColorMap[mainColor].full, [startX, curY]);
+                      setPhysicalColor(baseColor?.full, [startX, curY]);
+
+                      // If reached explosion point, start Phase 2
+                      if (curY === explodeY) {
+                          setTimeout(() => {
+                              // Clear rocket head
+                              setWebColor('off', [startX, curY]);
+                              setPhysicalColor(lpOff, [startX, curY]);
+                              
+                              // Explode!
+                              const particles = [
+                                  [0, -1], [0, 1], [-1, 0], [1, 0], // Cross
+                                  [-1, -1], [1, -1], [-1, 1], [1, 1] // Diagonals
+                              ];
+
+                              particles.forEach(([dx, dy]) => {
+                                  const tx = startX + dx;
+                                  const ty = explodeY + dy;
+                                  if (tx >= 0 && tx < 8 && ty >= 0 && ty < 8) {
+                                      // Multi-color particles or single? Let's go with single for now but fast fade
+                                      setWebColor(webColorMap[mainColor].full, [tx, ty]);
+                                      setPhysicalColor(baseColor?.full, [tx, ty]);
+                                      
+                                      setTimeout(() => {
+                                          setWebColor('off', [tx, ty]);
+                                          setPhysicalColor(lpOff, [tx, ty]);
+                                      }, 300);
+                                  }
+                              });
+
+                              // Secondary explosion wave (optional, for "pop" effect)
+                              setTimeout(() => {
+                                  particles.forEach(([dx, dy]) => {
+                                      const tx2 = startX + dx * 2;
+                                      const ty2 = explodeY + dy * 2;
+                                      if (tx2 >= 0 && tx2 < 8 && ty2 >= 0 && ty2 < 8) {
+                                          setWebColor(webColorMap[mainColor].full, [tx2, ty2]);
+                                          setPhysicalColor(baseColor?.full, [tx2, ty2]);
+                                          
+                                          setTimeout(() => {
+                                              setWebColor('off', [tx2, ty2]);
+                                              setPhysicalColor(lpOff, [tx2, ty2]);
+                                          }, 200);
+                                      }
+                                  });
+                              }, 150);
+
+                          }, climbSpeed);
+                      }
+                  }, delay);
+              }
+          },
+          type: 'fixed'
+      };
   };
 
 // Initialize the library
