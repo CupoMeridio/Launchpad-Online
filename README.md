@@ -76,18 +76,32 @@ The application automatically initializes compatible MIDI controllers upon conne
 
 ```
 Launchpad-Online/
-├── js/
-│   ├── app.js              # Application entry point and initialization
-│   ├── audio.js            # Audio processing engine
-│   ├── midi.js             # MIDI protocol implementation
-│   ├── lights.js           # Lighting effects and animation logic
+├── assets/                 # Multimedia resources
+│   ├── icons/              # App icons and favicons
+│   ├── images/             # UI elements (covers, skins)
+│   └── samples/            # Audio project files (wav/mp3)
+├── css/                    # Stylesheets
+│   ├── launchpad.css       # Grid and hardware-specific styles
+│   └── style.css           # Global application styles
+├── js/                     # Application logic
+│   ├── vendor/             # External libraries (WebMIDI)
+│   ├── app.js              # Entry point and initialization
+│   ├── audio.js            # Web Audio API engine
 │   ├── interaction.js      # Input event orchestration
-│   └── vendor/             # Optimized third-party libraries
-├── assets/                 # High-quality audio assets and visual resources
-├── projects/               # Pre-configured project definitions (JSON)
-├── sw.js                   # Service Worker for PWA functionality
+│   ├── lights.js           # Animation registry and logic
+│   ├── midi.js             # MIDI protocol handler
+│   ├── physicalInterface.js# Hardware output management
+│   ├── project.js          # Project loading and state
+│   ├── ui.js               # Interface controls and sync
+│   ├── video.js            # Background video and effects
+│   ├── visualizer.js       # Canvas-based spectrum analysis
+│   ├── visualizer-controls.js# Visualizer settings management
+│   └── webInterface.js     # Digital grid feedback
+├── projects/               # Pre-defined project configurations (JSON)
 ├── index.html              # Main application entry
-└── manifest.json           # Web App Manifest
+├── manifest.json           # PWA configuration
+├── sw.js                   # Service Worker for offline support
+└── README.md               # Project documentation
 ```
 
 ## Contributing
