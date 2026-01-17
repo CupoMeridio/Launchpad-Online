@@ -1482,7 +1482,19 @@ const createAnimationLibrary = () => {
                   [[2,0], [0,1], [1,1], [2,1]]  // L
               ];
               
-              const shape = shapes[Math.floor(Math.random() * shapes.length)];
+              let shape = shapes[Math.floor(Math.random() * shapes.length)];
+              
+              // Randomize rotation (0, 90, 180, 270 degrees)
+              const rotations = Math.floor(Math.random() * 4);
+              for (let i = 0; i < rotations; i++) {
+                  shape = shape.map(([x, y]) => [-y, x]);
+              }
+
+              // Normalize shape coordinates (bring to 0,0)
+              const minX = Math.min(...shape.map(p => p[0]));
+              const minY = Math.min(...shape.map(p => p[1]));
+              shape = shape.map(([x, y]) => [x - minX, y - minY]);
+
               const shapeWidth = Math.max(...shape.map(p => p[0])) + 1;
               let curX = Math.floor(Math.random() * (8 - shapeWidth + 1));
               const speed = 150;
