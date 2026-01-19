@@ -2,6 +2,17 @@ import { audioEngine } from './audio.js';
 import { currentPage, currentProject, projectLights, activePageButton, setCurrentPage, setActivePageButton } from './app.js';
 import { triggerAnimation, releaseAnimation } from './lights.js';
 
+let cachedPads = null;
+
+/**
+ * Ensures the pad cache is populated.
+ */
+function ensurePadCache() {
+    if (!cachedPads || cachedPads.length === 0) {
+        cachedPads = document.querySelectorAll('.grid-item');
+    }
+}
+
 /**
  * Called when an 8x8 grid pad is pressed.
  * @param {Event} event - The interaction event object.
@@ -17,9 +28,9 @@ export function playSound(event, index) {
     
     // For click (legacy), we still keep a short timeout if no release event is used
     if (event.type === 'click') {
-        const pads = document.querySelectorAll('.grid-item');
+        ensurePadCache();
         setTimeout(() => {
-            if (pads[index]) pads[index].classList.remove('active');
+            if (cachedPads[index]) cachedPads[index].classList.remove('active');
         }, 100);
     }
 }
@@ -38,9 +49,9 @@ export function stopSound(event, index) {
  * @param {number} index - The index of the pad to activate (0-63).
  */
 export function triggerPad(index) {
-    const pads = document.querySelectorAll('.grid-item');
-    if (index >= 0 && index < pads.length) {
-        const pad = pads[index];
+    ensurePadCache();
+    if (index >= 0 && index < cachedPads.length) {
+        const pad = cachedPads[index];
         const soundIndex = currentPage * 64 + index;
 
         // Play audio
@@ -64,9 +75,9 @@ export function triggerPad(index) {
  * @param {number} index - The index of the pad to deactivate (0-63).
  */
 export function releasePad(index) {
-    const pads = document.querySelectorAll('.grid-item');
-    if (index >= 0 && index < pads.length) {
-        const pad = pads[index];
+    ensurePadCache();
+    if (index >= 0 && index < cachedPads.length) {
+        const pad = cachedPads[index];
         const soundIndex = currentPage * 64 + index;
 
         // Stop light animation if it exists

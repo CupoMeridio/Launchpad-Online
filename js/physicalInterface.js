@@ -7,6 +7,8 @@
  */
 
 let launchpad = null;
+const colorCache = new Map();
+const pendingUpdates = new Map(); // Key: key index, Value: {cmd, vel}
 
 /**
  * Sets the launchpad instance to be used.
@@ -15,6 +17,8 @@ let launchpad = null;
 export function setLaunchpadInstance(lp) {
     console.log("[PHYSICAL] Launchpad instance set:", lp);
     launchpad = lp;
+    colorCache.clear();
+    pendingUpdates.clear();
 }
 
 /**
@@ -26,13 +30,48 @@ export function getLaunchpad() {
 }
 
 /**
- * Sets color on the physical launchpad.
- * @param {object} colorObj - The color object from launchpad-webmidi.
+ * Sets color on the physical launchpad using a batching system.
+ * @param {object|number} colorObj - The color object or code.
  * @param {number[]} p - [x, y] coordinates.
+ * @param {boolean} immediate - If true, sends the message immediately instead of buffering.
  */
-export function setPhysicalColor(colorObj, p) {
-    if (launchpad) {
+export function setPhysicalColor(colorObj, p, immediate = false) {
+    if (!launchpad || colorObj === null || colorObj === undefined) return;
+
+    const x = p[0];
+    const y = p[1];
+    
+    // Calculate MIDI command and key (matches launchpad-webmidi logic)
+    const cmd = y >= 8 ? 0xb0 : 0x90;
+    const key = y >= 8 ? 0x68 + x : 0x10 * y + x;
+    const vel = typeof colorObj === 'number' ? colorObj : (colorObj.code !== undefined ? colorObj.code : 0);
+
+    if (immediate) {
         launchpad.col(colorObj, p);
+        pendingUpdates.delete(key);
+    } else {
+        pendingUpdates.set(key, { cmd, vel });
+    }
+}
+
+/**
+ * Sends all buffered MIDI updates to the device in a single batch.
+ * Should be called at the end of an animation frame or interaction cycle.
+ */
+export function flushPhysicalColors() {
+    if (launchpad && launchpad.midiOut && pendingUpdates.size > 0) {
+        const batch = [];
+        pendingUpdates.forEach((val, key) => {
+            batch.push(val.cmd, key, val.vel);
+        });
+        
+        try {
+            launchpad.midiOut.send(new Uint8Array(batch));
+        } catch (e) {
+            console.warn("[PHYSICAL] Failed to send MIDI batch:", e);
+        }
+        
+        pendingUpdates.clear();
     }
 }
 
@@ -44,13 +83,21 @@ export function setPhysicalColor(colorObj, p) {
  */
 export function getLpColor(colorName, level = null) {
     if (!launchpad) return null;
-    if (colorName === 'off') return launchpad.off;
     
-    const base = launchpad[colorName];
-    if (!base) return null;
-    
-    if (level && base[level]) {
-        return base[level];
+    const cacheKey = `${colorName}_${level || 'default'}`;
+    if (colorCache.has(cacheKey)) {
+        return colorCache.get(cacheKey);
     }
-    return base;
+
+    let color;
+    if (colorName === 'off') {
+        color = launchpad.off;
+    } else {
+        const base = launchpad[colorName];
+        if (!base) return null;
+        color = (level && base[level]) ? base[level] : base;
+    }
+
+    colorCache.set(cacheKey, color);
+    return color;
 }

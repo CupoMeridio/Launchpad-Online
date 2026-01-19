@@ -16,14 +16,14 @@
         "assets/samples/Virtual Riot - Idols/pagina1/intro2.wav", "assets/samples/Virtual Riot - Idols/pagina1/intro3.wav", "", "assets/samples/Virtual Riot - Idols/pagina1/intro4.wav", "assets/samples/Virtual Riot - Idols/pagina1/intro7.wav", "", "assets/samples/Virtual Riot - Idols/pagina1/intro6.wav", "assets/samples/Virtual Riot - Idols/pagina1/intro5.wav"
       ],
       "lights": [
-        "tetris_falling", "firework", "heart_fill", "heart_simple", "heart_wave", "", "", "",
-        "", "", "", "", "", "", "", "",
-        "", "", "", "", "", "", "", "",
-        "", "", "", "", "", "", "", "",
-        "", "", "", "", "", "", "", "",
-        "", "", "", "", "", "", "", "",
-        "", "", "", "", "", "", "", "",
-        "", "", "", "", "", "", "", ""
+        "pulse_red", "pulse_green", "pulse_amber", "cross_red", "expand_green", "expand_reverse_amber", "wave_red", "wave_reverse_green",
+        "wave_center_amber", "wave_center_reverse_red", "rotate_cw_top_green", "rotate_ccw_right_amber", "diagonal_top_left_red", "diagonal_bottom_right_green", "ring_amber", "ring_center_red",
+        "ring_reverse_green", "scan_h_amber", "scan_v_red", "rain_green", "matrix_rain_amber", "rain_up_red", "sparkle_green", "bounce_amber",
+        "snake_red", "warp_speed_green", "snake_collision_amber", "eq_spectrum_red", "strobe_burst_green", "eq_bounce_amber", "eq_peak_hold_red", "pulse_green",
+        "pulse_amber", "pulse_red", "cross_green", "cross_amber", "expand_red", "expand_reverse_green", "wave_amber", "wave_reverse_red",
+        "wave_center_green", "wave_center_reverse_amber", "rotate_cw_bottom_red", "rotate_ccw_left_green", "diagonal_top_right_amber", "diagonal_bottom_left_red", "ring_green", "ring_center_amber",
+        "ring_reverse_red", "scan_h_green", "scan_v_amber", "rain_red", "matrix_rain_green", "rain_up_amber", "sparkle_red", "bounce_green",
+        "snake_amber", "warp_speed_red", "snake_collision_green", "eq_spectrum_amber", "strobe_burst_red", "eq_bounce_green", "eq_peak_hold_amber", "pulse_red"
       ]
     },
     {

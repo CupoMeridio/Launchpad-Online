@@ -9,26 +9,132 @@
  */
 
 import { setWebColor, webColorMap } from './webInterface.js';
-import { getLaunchpad, setPhysicalColor, getLpColor } from './physicalInterface.js';
+import { getLaunchpad, setPhysicalColor, getLpColor, flushPhysicalColors } from './physicalInterface.js';
 
 /**
  * Registry of available animations.
- * Each animation is an object with:
- * - on: (x, y) => void (triggered on press)
- * - off: (x, y) => void (triggered on release, optional)
- * - type: 'momentary' | 'fixed' (defaults to 'fixed' if off is not provided)
  */
 export const animations = {};
 
+let animationFrameId = null;
+let lastTickTime = 0;
+const activeAnimations = new Set();
+
+/**
+ * Main animation loop using requestAnimationFrame.
+ */
+function animationLoop(timestamp) {
+    if (!lastTickTime) lastTickTime = timestamp;
+    const deltaTime = timestamp - lastTickTime;
+    lastTickTime = timestamp;
+
+    if (activeAnimations.size > 0) {
+        activeAnimations.forEach(anim => {
+            if (anim.update) {
+                const isFinished = anim.update(timestamp, deltaTime);
+                if (isFinished) {
+                    activeAnimations.delete(anim);
+                }
+            }
+        });
+    }
+
+    // After updating all animations for this frame, flush MIDI messages
+    flushPhysicalColors();
+
+    animationFrameId = requestAnimationFrame(animationLoop);
+}
+
+// Start the loop
+animationFrameId = requestAnimationFrame(animationLoop);
+
+/**
+ * Shared utility to run a callback after a certain delay using the animation loop.
+ */
+const setLoopTimeout = (callback, delay) => {
+    const startTime = performance.now();
+    const anim = {
+        update: (now) => {
+            if (now - startTime >= delay) {
+                callback();
+                return true;
+            }
+            return false;
+        }
+    };
+    activeAnimations.add(anim);
+};
+
+/**
+ * Shared utility to apply a fade effect (Full -> Medium -> Low -> Off) to a pad.
+ */
+const applyFade = (p, colorName) => {
+    const startTime = performance.now();
+    const baseColor = getLpColor(colorName);
+    const lpOff = getLpColor('off');
+
+    const anim = {
+        update: (now) => {
+            const elapsed = now - startTime;
+            if (elapsed < 100) {
+                setWebColor(webColorMap[colorName].full, p);
+                setPhysicalColor(baseColor?.full, p);
+                return false;
+            } else if (elapsed < 200) {
+                setWebColor(webColorMap[colorName].medium, p);
+                setPhysicalColor(baseColor?.medium, p);
+                return false;
+            } else if (elapsed < 300) {
+                setWebColor(webColorMap[colorName].low, p);
+                setPhysicalColor(baseColor?.low, p);
+                return false;
+            } else {
+                setWebColor('off', p);
+                setPhysicalColor(lpOff, p);
+                return true; // Finished
+            }
+        }
+    };
+    activeAnimations.add(anim);
+};
+
+/**
+ * Shared utility to apply a shorter fade effect (Full -> Low -> Off).
+ */
+const applyFadeShort = (p, colorName) => {
+    const startTime = performance.now();
+    const baseColor = getLpColor(colorName);
+    const lpOff = getLpColor('off');
+
+    const anim = {
+        update: (now) => {
+            const elapsed = now - startTime;
+            if (elapsed < 70) {
+                setWebColor(webColorMap[colorName].full, p);
+                setPhysicalColor(baseColor?.full, p);
+                return false;
+            } else if (elapsed < 140) {
+                setWebColor(webColorMap[colorName].low, p);
+                setPhysicalColor(baseColor?.low, p);
+                return false;
+            } else {
+                setWebColor('off', p);
+                setPhysicalColor(lpOff, p);
+                return true; // Finished
+            }
+        }
+    };
+    activeAnimations.add(anim);
+};
+
 /**
  * Animation Factory
- * Populates the animations registry with color variants for different patterns.
  */
 const createAnimationLibrary = () => {
     const colors = ['red', 'green', 'amber'];
     
     colors.forEach(colorName => {
-        // 1. PULSE: Single pad on/off
+        // 1. PULSE
         animations[`pulse_${colorName}`] = {
             on: (x, y) => {
                 setWebColor(webColorMap[colorName].full, [x, y]);
@@ -41,7 +147,7 @@ const createAnimationLibrary = () => {
             type: 'momentary'
         };
 
-        // 2. CROSS: Full row and column on/off
+        // 2. CROSS
         animations[`cross_${colorName}`] = {
             on: (x, y) => {
                 const color = webColorMap[colorName].full;
@@ -65,37 +171,15 @@ const createAnimationLibrary = () => {
             type: 'momentary'
          };
  
-         // 3. EXPAND: Propagating cross effect with fixed duration
+         // 3. EXPAND
          animations[`expand_${colorName}`] = {
              on: (x, y) => {
-                 const applyFade = (p) => {
-                     const baseColor = getLpColor(colorName);
-                     const lpOff = getLpColor('off');
-
-                     setWebColor(webColorMap[colorName].full, p);
-                     setPhysicalColor(baseColor?.full, p);
-
-                     setTimeout(() => {
-                        setWebColor(webColorMap[colorName].medium, p);
-                        setPhysicalColor(baseColor?.medium, p);
-                     }, 100);
-
-                     setTimeout(() => {
-                        setWebColor(webColorMap[colorName].low, p);
-                        setPhysicalColor(baseColor?.low, p);
-                     }, 200);
-
-                     setTimeout(() => {
-                        setWebColor('off', p);
-                        setPhysicalColor(lpOff, p);
-                     }, 300);
-                 };
-                 applyFade([x, y]);
+                 applyFade([x, y], colorName);
                  for (let dist = 1; dist < 8; dist++) {
-                     setTimeout(() => {
+                     setLoopTimeout(() => {
                          const directions = [[x + dist, y], [x - dist, y], [x, y + dist], [x, y - dist]];
                          directions.forEach(p => {
-                             if (p[0] >= 0 && p[0] < 8 && p[1] >= 0 && p[1] < 8) applyFade(p);
+                             if (p[0] >= 0 && p[0] < 8 && p[1] >= 0 && p[1] < 8) applyFade(p, colorName);
                          });
                      }, dist * 60);
                  }
@@ -103,42 +187,18 @@ const createAnimationLibrary = () => {
              type: 'fixed'
          };
 
-         // 3.1 EXPAND_REVERSE: Cross effect that converges to the center
+         // 3.1 EXPAND_REVERSE
          animations[`expand_reverse_${colorName}`] = {
              on: (x, y) => {
-                 const applyFade = (p) => {
-                     const baseColor = getLpColor(colorName);
-                     const lpOff = getLpColor('off');
-
-                     setWebColor(webColorMap[colorName].full, p);
-                     setPhysicalColor(baseColor?.full, p);
-
-                     setTimeout(() => {
-                        setWebColor(webColorMap[colorName].medium, p);
-                        setPhysicalColor(baseColor?.medium, p);
-                     }, 100);
-
-                     setTimeout(() => {
-                        setWebColor(webColorMap[colorName].low, p);
-                        setPhysicalColor(baseColor?.low, p);
-                     }, 200);
-
-                     setTimeout(() => {
-                        setWebColor('off', p);
-                        setPhysicalColor(lpOff, p);
-                     }, 300);
-                 };
-
                  const maxDist = Math.max(x, 7 - x, y, 7 - y);
-
                  for (let dist = maxDist; dist >= 0; dist--) {
-                     setTimeout(() => {
+                     setLoopTimeout(() => {
                          if (dist === 0) {
-                             applyFade([x, y]);
+                             applyFade([x, y], colorName);
                          } else {
                              const directions = [[x + dist, y], [x - dist, y], [x, y + dist], [x, y - dist]];
                              directions.forEach(p => {
-                                 if (p[0] >= 0 && p[0] < 8 && p[1] >= 0 && p[1] < 8) applyFade(p);
+                                 if (p[0] >= 0 && p[0] < 8 && p[1] >= 0 && p[1] < 8) applyFade(p, colorName);
                              });
                          }
                      }, (maxDist - dist) * 60);
@@ -147,114 +207,45 @@ const createAnimationLibrary = () => {
              type: 'fixed'
          };
  
-         // 4. WAVE: Circular expanding wave
+         // 4. WAVE
          animations[`wave_${colorName}`] = {
              on: (x, y) => {
-                 const applyFade = (p) => {
-                     const baseColor = getLpColor(colorName);
-                     const lpOff = getLpColor('off');
-
-                     setWebColor(webColorMap[colorName].full, p);
-                     setPhysicalColor(baseColor?.full, p);
-
-                     setTimeout(() => {
-                        setWebColor(webColorMap[colorName].medium, p);
-                        setPhysicalColor(baseColor?.medium, p);
-                     }, 100);
-
-                     setTimeout(() => {
-                        setWebColor(webColorMap[colorName].low, p);
-                        setPhysicalColor(baseColor?.low, p);
-                     }, 200);
-
-                     setTimeout(() => {
-                        setWebColor('off', p);
-                        setPhysicalColor(lpOff, p);
-                     }, 300);
-                 };
                  for (let targetY = 0; targetY < 8; targetY++) {
                      for (let targetX = 0; targetX < 8; targetX++) {
                          const dx = targetX - x;
                          const dy = targetY - y;
                          const distance = Math.sqrt(dx * dx + dy * dy);
-                         setTimeout(() => applyFade([targetX, targetY]), distance * 60);
+                         setLoopTimeout(() => applyFade([targetX, targetY], colorName), distance * 60);
                      }
                  }
              },
              type: 'fixed'
           };
 
-          // 4.1 WAVE_REVERSE: Circular wave converging to the pressed key
+          // 4.1 WAVE_REVERSE
           animations[`wave_reverse_${colorName}`] = {
               on: (x, y) => {
-                 const applyFade = (p) => {
-                     const baseColor = getLpColor(colorName);
-                     const lpOff = getLpColor('off');
-
-                     setWebColor(webColorMap[colorName].full, p);
-                     setPhysicalColor(baseColor?.full, p);
-
-                     setTimeout(() => {
-                        setWebColor(webColorMap[colorName].medium, p);
-                        setPhysicalColor(baseColor?.medium, p);
-                     }, 100);
-
-                     setTimeout(() => {
-                        setWebColor(webColorMap[colorName].low, p);
-                        setPhysicalColor(baseColor?.low, p);
-                     }, 200);
-
-                     setTimeout(() => {
-                        setWebColor('off', p);
-                        setPhysicalColor(lpOff, p);
-                     }, 300);
-                 };
-                  // Dynamic max distance to ensure the animation starts immediately from the furthest point
                  const maxDistance = Math.max(
                      Math.sqrt(x * x + y * y),
                      Math.sqrt(Math.pow(7 - x, 2) + y * y),
                      Math.sqrt(x * x + Math.pow(7 - y, 2)),
                      Math.sqrt(Math.pow(7 - x, 2) + Math.pow(7 - y, 2))
                  );
-
                  for (let targetY = 0; targetY < 8; targetY++) {
                      for (let targetX = 0; targetX < 8; targetX++) {
                          const dx = targetX - x;
                          const dy = targetY - y;
                          const distance = Math.sqrt(dx * dx + dy * dy);
-                         // Delay is inverted: max distance has 0 delay
-                         setTimeout(() => applyFade([targetX, targetY]), (maxDistance - distance) * 60);
+                         setLoopTimeout(() => applyFade([targetX, targetY], colorName), (maxDistance - distance) * 60);
                      }
                  }
               },
               type: 'fixed'
           };
   
-          // 5. WAVE_CENTER: Circular expanding wave from the center
+          // 5. WAVE_CENTER
           animations[`wave_center_${colorName}`] = {
               on: () => {
-                 const applyFade = (p) => {
-                     const baseColor = getLpColor(colorName);
-                     const lpOff = getLpColor('off');
-
-                     setWebColor(webColorMap[colorName].full, p);
-                     setPhysicalColor(baseColor?.full, p);
-
-                     setTimeout(() => {
-                        setWebColor(webColorMap[colorName].medium, p);
-                        setPhysicalColor(baseColor?.medium, p);
-                     }, 100);
-
-                     setTimeout(() => {
-                        setWebColor(webColorMap[colorName].low, p);
-                        setPhysicalColor(baseColor?.low, p);
-                     }, 200);
-
-                     setTimeout(() => {
-                        setWebColor('off', p);
-                        setPhysicalColor(lpOff, p);
-                     }, 300);
-                 };
                   const centerX = 3.5;
                   const centerY = 3.5;
                   for (let targetY = 0; targetY < 8; targetY++) {
@@ -262,38 +253,16 @@ const createAnimationLibrary = () => {
                           const dx = targetX - centerX;
                           const dy = targetY - centerY;
                           const distance = Math.sqrt(dx * dx + dy * dy);
-                          setTimeout(() => applyFade([targetX, targetY]), distance * 60);
+                          setLoopTimeout(() => applyFade([targetX, targetY], colorName), distance * 60);
                       }
                   }
               },
               type: 'fixed'
           };
 
-          // 5.1 WAVE_CENTER_REVERSE: Circular wave converging to the center
+          // 5.1 WAVE_CENTER_REVERSE
           animations[`wave_center_reverse_${colorName}`] = {
               on: () => {
-                 const applyFade = (p) => {
-                     const baseColor = getLpColor(colorName);
-                     const lpOff = getLpColor('off');
-
-                     setWebColor(webColorMap[colorName].full, p);
-                     setPhysicalColor(baseColor?.full, p);
-
-                     setTimeout(() => {
-                        setWebColor(webColorMap[colorName].medium, p);
-                        setPhysicalColor(baseColor?.medium, p);
-                     }, 100);
-
-                     setTimeout(() => {
-                        setWebColor(webColorMap[colorName].low, p);
-                        setPhysicalColor(baseColor?.low, p);
-                     }, 200);
-
-                     setTimeout(() => {
-                        setWebColor('off', p);
-                        setPhysicalColor(lpOff, p);
-                     }, 300);
-                 };
                   const centerX = 3.5;
                   const centerY = 3.5;
                   for (let targetY = 0; targetY < 8; targetY++) {
@@ -301,7 +270,7 @@ const createAnimationLibrary = () => {
                           const dx = targetX - centerX;
                           const dy = targetY - centerY;
                           const distance = Math.sqrt(dx * dx + dy * dy);
-                          setTimeout(() => applyFade([targetX, targetY]), (5 - distance) * 60);
+                          setLoopTimeout(() => applyFade([targetX, targetY], colorName), (5 - distance) * 60);
                       }
                   }
               },
@@ -338,25 +307,7 @@ const createAnimationLibrary = () => {
                               
                               const delay = normalizedAngle * 600;
                               const p = [targetX, targetY];
-                              setTimeout(() => {
-                                  setWebColor(webColorMap[colorName].full, p);
-                                  setPhysicalColor(baseColor?.full, p);
-
-                                  setTimeout(() => {
-                                      setWebColor(webColorMap[colorName].medium, p);
-                                      setPhysicalColor(baseColor?.medium, p);
-                                  }, 100);
-
-                                  setTimeout(() => {
-                                      setWebColor(webColorMap[colorName].low, p);
-                                      setPhysicalColor(baseColor?.low, p);
-                                  }, 200);
-
-                                  setTimeout(() => {
-                                      setWebColor('off', p);
-                                      setPhysicalColor(lpOff, p);
-                                  }, 300);
-                              }, delay);
+                              setLoopTimeout(() => applyFade(p, colorName), delay);
                           }
                       }
                   },
@@ -368,8 +319,6 @@ const createAnimationLibrary = () => {
                   on: () => {
                       const centerX = 3.5;
                       const centerY = 3.5;
-                      const baseColor = getLpColor(colorName);
-                      const lpOff = getLpColor('off');
                       
                       for (let targetY = 0; targetY < 8; targetY++) {
                           for (let targetX = 0; targetX < 8; targetX++) {
@@ -384,25 +333,7 @@ const createAnimationLibrary = () => {
                               
                               const delay = normalizedAngle * 600;
                               const p = [targetX, targetY];
-                              setTimeout(() => {
-                                  setWebColor(webColorMap[colorName].full, p);
-                                  setPhysicalColor(baseColor?.full, p);
-
-                                  setTimeout(() => {
-                                      setWebColor(webColorMap[colorName].medium, p);
-                                      setPhysicalColor(baseColor?.medium, p);
-                                  }, 100);
-
-                                  setTimeout(() => {
-                                      setWebColor(webColorMap[colorName].low, p);
-                                      setPhysicalColor(baseColor?.low, p);
-                                  }, 200);
-
-                                  setTimeout(() => {
-                                      setWebColor('off', p);
-                                      setPhysicalColor(lpOff, p);
-                                  }, 300);
-                              }, delay);
+                              setLoopTimeout(() => applyFade(p, colorName), delay);
                           }
                       }
                   },
@@ -422,32 +353,10 @@ const createAnimationLibrary = () => {
               // Normal
               animations[`diagonal_${cornerName}_${colorName}`] = {
                   on: () => {
-                      const applyFade = (p) => {
-                          const baseColor = getLpColor(colorName);
-                          const lpOff = getLpColor('off');
-
-                          setWebColor(webColorMap[colorName].full, p);
-                          setPhysicalColor(baseColor?.full, p);
-
-                          setTimeout(() => {
-                              setWebColor(webColorMap[cornerName]?.medium || webColorMap[colorName].medium, p);
-                              setPhysicalColor(baseColor?.medium, p);
-                          }, 100);
-
-                          setTimeout(() => {
-                              setWebColor(webColorMap[cornerName]?.low || webColorMap[colorName].low, p);
-                              setPhysicalColor(baseColor?.low, p);
-                          }, 200);
-
-                          setTimeout(() => {
-                              setWebColor('off', p);
-                              setPhysicalColor(lpOff, p);
-                          }, 300);
-                      };
                       for (let targetY = 0; targetY < 8; targetY++) {
                           for (let targetX = 0; targetX < 8; targetX++) {
                               const distance = distFn(targetX, targetY);
-                              setTimeout(() => applyFade([targetX, targetY]), distance * 60);
+                              setLoopTimeout(() => applyFade([targetX, targetY], colorName), distance * 60);
                           }
                       }
                   },
@@ -458,26 +367,12 @@ const createAnimationLibrary = () => {
           // 8. RING: Expanding shockwave (only the edge)
           animations[`ring_${colorName}`] = {
               on: (x, y) => {
-                  const applyFadeShort = (p) => {
-                      const baseColor = getLpColor(colorName);
-                      const lpOff = getLpColor('off');
-                      setWebColor(webColorMap[colorName].full, p);
-                      setPhysicalColor(baseColor?.full, p);
-                      setTimeout(() => {
-                          setWebColor(webColorMap[colorName].low, p);
-                          setPhysicalColor(baseColor?.low, p);
-                      }, 70);
-                      setTimeout(() => {
-                          setWebColor('off', p);
-                          setPhysicalColor(lpOff, p);
-                      }, 140);
-                  };
                   for (let targetY = 0; targetY < 8; targetY++) {
                       for (let targetX = 0; targetX < 8; targetX++) {
                           const dx = targetX - x;
                           const dy = targetY - y;
                           const distance = Math.sqrt(dx * dx + dy * dy);
-                          setTimeout(() => applyFadeShort([targetX, targetY]), distance * 60);
+                          setLoopTimeout(() => applyFadeShort([targetX, targetY], colorName), distance * 60);
                       }
                   }
               },
@@ -488,26 +383,12 @@ const createAnimationLibrary = () => {
           animations[`ring_center_${colorName}`] = {
               on: () => {
                   const cx = 3.5, cy = 3.5; // Center of the 8x8 grid
-                  const applyFadeShort = (p) => {
-                      const baseColor = getLpColor(colorName);
-                      const lpOff = getLpColor('off');
-                      setWebColor(webColorMap[colorName].full, p);
-                      setPhysicalColor(baseColor?.full, p);
-                      setTimeout(() => {
-                          setWebColor(webColorMap[colorName].low, p);
-                          setPhysicalColor(baseColor?.low, p);
-                      }, 70);
-                      setTimeout(() => {
-                          setWebColor('off', p);
-                          setPhysicalColor(lpOff, p);
-                      }, 140);
-                  };
                   for (let targetY = 0; targetY < 8; targetY++) {
                       for (let targetX = 0; targetX < 8; targetX++) {
                           const dx = targetX - cx;
                           const dy = targetY - cy;
                           const distance = Math.sqrt(dx * dx + dy * dy);
-                          setTimeout(() => applyFadeShort([targetX, targetY]), distance * 60);
+                          setLoopTimeout(() => applyFadeShort([targetX, targetY], colorName), distance * 60);
                       }
                   }
               },
@@ -516,20 +397,6 @@ const createAnimationLibrary = () => {
 
           animations[`ring_reverse_${colorName}`] = {
               on: (x, y) => {
-                  const applyFadeShort = (p) => {
-                      const baseColor = getLpColor(colorName);
-                      const lpOff = getLpColor('off');
-                      setWebColor(webColorMap[colorName].full, p);
-                      setPhysicalColor(baseColor?.full, p);
-                      setTimeout(() => {
-                          setWebColor(webColorMap[colorName].low, p);
-                          setPhysicalColor(baseColor?.low, p);
-                      }, 70);
-                      setTimeout(() => {
-                          setWebColor('off', p);
-                          setPhysicalColor(lpOff, p);
-                      }, 140);
-                  };
                   const maxDistance = Math.max(
                       Math.sqrt(x * x + y * y),
                       Math.sqrt(Math.pow(7 - x, 2) + y * y),
@@ -541,26 +408,21 @@ const createAnimationLibrary = () => {
                           const dx = targetX - x;
                           const dy = targetY - y;
                           const distance = Math.sqrt(dx * dx + dy * dy);
-                          setTimeout(() => applyFadeShort([targetX, targetY]), (maxDistance - distance) * 60);
+                          setLoopTimeout(() => applyFadeShort([targetX, targetY], colorName), (maxDistance - distance) * 60);
                       }
                   }
               },
               type: 'fixed'
           };
 
-          // 9. SCANLINE: Full grid sweeps
+          // 9. SCANLINE
           animations[`scan_h_${colorName}`] = {
               on: (x, y) => {
                   for (let ty = 0; ty < 8; ty++) {
                       const delay = Math.abs(ty - y) * 60;
-                      setTimeout(() => {
+                      setLoopTimeout(() => {
                           for (let tx = 0; tx < 8; tx++) {
-                              const baseColor = getLpColor(colorName);
-                              const lpOff = getLpColor('off');
-                              const p = [tx, ty];
-                              setWebColor(webColorMap[colorName].full, p);
-                              setPhysicalColor(baseColor?.full, p);
-                              setTimeout(() => { setWebColor('off', p); setPhysicalColor(lpOff, p); }, 150);
+                              applyFadeShort([tx, ty], colorName);
                           }
                       }, delay);
                   }
@@ -572,14 +434,9 @@ const createAnimationLibrary = () => {
               on: (x, y) => {
                   for (let tx = 0; tx < 8; tx++) {
                       const delay = Math.abs(tx - x) * 60;
-                      setTimeout(() => {
+                      setLoopTimeout(() => {
                           for (let ty = 0; ty < 8; ty++) {
-                              const baseColor = getLpColor(colorName);
-                              const lpOff = getLpColor('off');
-                              const p = [tx, ty];
-                              setWebColor(webColorMap[colorName].full, p);
-                              setPhysicalColor(baseColor?.full, p);
-                              setTimeout(() => { setWebColor('off', p); setPhysicalColor(lpOff, p); }, 150);
+                              applyFadeShort([tx, ty], colorName);
                           }
                       }, delay);
                   }
@@ -587,41 +444,27 @@ const createAnimationLibrary = () => {
               type: 'fixed'
           };
 
-          // 10. RAIN: Falling pixel sequence
+          // 10. RAIN
           animations[`rain_${colorName}`] = {
               on: (x, y) => {
-                  const applyFadeShort = (p) => {
-                      const baseColor = getLpColor(colorName);
-                      const lpOff = getLpColor('off');
-                      setWebColor(webColorMap[colorName].full, p);
-                      setPhysicalColor(baseColor?.full, p);
-                      setTimeout(() => { setWebColor('off', p); setPhysicalColor(lpOff, p); }, 150);
-                  };
                   for (let ty = y; ty < 8; ty++) {
                       const delay = (ty - y) * 100;
-                      setTimeout(() => applyFadeShort([x, ty]), delay);
+                      setLoopTimeout(() => applyFadeShort([x, ty], colorName), delay);
                   }
               },
               type: 'fixed'
           };
 
-          // 10b. MATRIX_RAIN: Global falling rain on all columns
+          // 10b. MATRIX_RAIN
           animations[`matrix_rain_${colorName}`] = {
               on: () => {
-                  const applyFadeShort = (p) => {
-                      const baseColor = getLpColor(colorName);
-                      const lpOff = getLpColor('off');
-                      setWebColor(webColorMap[colorName].full, p);
-                      setPhysicalColor(baseColor?.full, p);
-                      setTimeout(() => { setWebColor('off', p); setPhysicalColor(lpOff, p); }, 150);
-                  };
                   for (let tx = 0; tx < 8; tx++) {
                       const startDelay = Math.random() * 500;
                       const speed = 70 + Math.random() * 50;
-                      setTimeout(() => {
+                      setLoopTimeout(() => {
                           for (let ty = 0; ty < 8; ty++) {
                               const stepDelay = ty * speed;
-                              setTimeout(() => applyFadeShort([tx, ty]), stepDelay);
+                              setLoopTimeout(() => applyFadeShort([tx, ty], colorName), stepDelay);
                           }
                       }, startDelay);
                   }
@@ -631,67 +474,43 @@ const createAnimationLibrary = () => {
 
           animations[`rain_up_${colorName}`] = {
               on: (x, y) => {
-                  const applyFadeShort = (p) => {
-                      const baseColor = getLpColor(colorName);
-                      const lpOff = getLpColor('off');
-                      setWebColor(webColorMap[colorName].full, p);
-                      setPhysicalColor(baseColor?.full, p);
-                      setTimeout(() => { setWebColor('off', p); setPhysicalColor(lpOff, p); }, 200);
-                  };
                   for (let ty = y; ty >= 0; ty--) {
                       const delay = (y - ty) * 80;
-                      setTimeout(() => applyFadeShort([x, ty]), delay);
+                      setLoopTimeout(() => applyFadeShort([x, ty], colorName), delay);
                   }
               },
               type: 'fixed'
           };
 
-          // 11. VORTEX: Eliminato su richiesta utente
-
-          // 12. SPARKLE: Random pixels across the entire grid
+          // 12. SPARKLE
           animations[`sparkle_${colorName}`] = {
               on: () => {
-                  const applyFadeShort = (p) => {
-                      const baseColor = getLpColor(colorName);
-                      const lpOff = getLpColor('off');
-                      setWebColor(webColorMap[colorName].full, p);
-                      setPhysicalColor(baseColor?.full, p);
-                      setTimeout(() => { setWebColor('off', p); setPhysicalColor(lpOff, p); }, 150);
-                  };
                   for (let i = 0; i < 20; i++) {
                       const delay = Math.random() * 600;
                       const tx = Math.floor(Math.random() * 8);
                       const ty = Math.floor(Math.random() * 8);
-                      setTimeout(() => applyFadeShort([tx, ty]), delay);
+                      setLoopTimeout(() => applyFadeShort([tx, ty], colorName), delay);
                   }
               },
               type: 'fixed'
           };
 
-          // 13. BOUNCE: Four pulses moving to edges and back
+          // 13. BOUNCE
           animations[`bounce_${colorName}`] = {
               on: (x, y) => {
-                  const applyFadeShort = (p) => {
-                      const baseColor = getLpColor(colorName);
-                      const lpOff = getLpColor('off');
-                      setWebColor(webColorMap[colorName].full, p);
-                      setPhysicalColor(baseColor?.full, p);
-                      setTimeout(() => { setWebColor('off', p); setPhysicalColor(lpOff, p); }, 100);
-                  };
                   const directions = [[1, 0], [-1, 0], [0, 1], [0, -1]];
                   directions.forEach(([dx, dy]) => {
                       for (let step = 0; step < 8; step++) {
                           const tx = x + dx * step;
                           const ty = y + dy * step;
                           if (tx >= 0 && tx < 8 && ty >= 0 && ty < 8) {
-                              setTimeout(() => applyFadeShort([tx, ty]), step * 50);
+                              setLoopTimeout(() => applyFadeShort([tx, ty], colorName), step * 50);
                           } else {
-                              // Bounce back logic: simplified as a reverse sweep
                               const lastValidStep = step - 1;
                               for (let bStep = 1; bStep <= lastValidStep; bStep++) {
                                   const bx = x + dx * (lastValidStep - bStep);
                                   const by = y + dy * (lastValidStep - bStep);
-                                  setTimeout(() => applyFadeShort([bx, by]), (step + bStep) * 50);
+                                  setLoopTimeout(() => applyFadeShort([bx, by], colorName), (step + bStep) * 50);
                               }
                               break;
                           }
@@ -701,19 +520,12 @@ const createAnimationLibrary = () => {
               type: 'fixed'
           };
 
-          // 14. SNAKE: Square spiral expansion from center
+          // 14. SNAKE
           animations[`snake_${colorName}`] = {
               on: () => {
-                  const applyFadeShort = (p) => {
-                      const baseColor = getLpColor(colorName);
-                      const lpOff = getLpColor('off');
-                      setWebColor(webColorMap[colorName].full, p);
-                      setPhysicalColor(baseColor?.full, p);
-                      setTimeout(() => { setWebColor('off', p); setPhysicalColor(lpOff, p); }, 150);
-                  };
-                  let tx = 3, ty = 3; // Starting near center
+                  let tx = 3, ty = 3;
                   let delay = 0;
-                  applyFadeShort([tx, ty]);
+                  applyFadeShort([tx, ty], colorName);
                   
                   const move = (dx, dy, steps) => {
                       for (let i = 0; i < steps; i++) {
@@ -722,34 +534,25 @@ const createAnimationLibrary = () => {
                           if (tx >= 0 && tx < 8 && ty >= 0 && ty < 8) {
                               const p = [tx, ty];
                               delay += 30;
-                              setTimeout(() => applyFadeShort(p), delay);
+                              setLoopTimeout(() => applyFadeShort(p, colorName), delay);
                           }
                       }
                   };
 
                   for (let s = 1; s < 8; s++) {
-                      move(1, 0, s);  // Right
-                      move(0, 1, s);  // Down
+                      move(1, 0, s);
+                      move(0, 1, s);
                       s++;
-                      move(-1, 0, s); // Left
-                      move(0, -1, s); // Up
+                      move(-1, 0, s);
+                      move(0, -1, s);
                   }
               },
               type: 'fixed'
           };
 
-          // 15. DNA_HELIX: Eliminata su richiesta utente
-
-          // 16. WARP_SPEED: Explosion from center to corners
+          // 16. WARP_SPEED
           animations[`warp_speed_${colorName}`] = {
               on: () => {
-                  const applyFadeShort = (p) => {
-                      const baseColor = getLpColor(colorName);
-                      const lpOff = getLpColor('off');
-                      setWebColor(webColorMap[colorName].full, p);
-                      setPhysicalColor(baseColor?.full, p);
-                      setTimeout(() => { setWebColor('off', p); setPhysicalColor(lpOff, p); }, 150);
-                  };
                   const centers = [[3, 3], [3, 4], [4, 3], [4, 4]];
                   const directions = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
                   centers.forEach((c, i) => {
@@ -757,54 +560,39 @@ const createAnimationLibrary = () => {
                       for (let step = 0; step < 4; step++) {
                           const tx = c[0] + dx * step;
                           const ty = c[1] + dy * step;
-                          setTimeout(() => applyFadeShort([tx, ty]), step * 80);
+                          setLoopTimeout(() => applyFadeShort([tx, ty], colorName), step * 80);
                       }
                   });
               },
               type: 'fixed'
           };
 
-          // 17. SNAKE_COLLISION: Two snakes colliding at center
+          // 17. SNAKE_COLLISION
           animations[`snake_collision_${colorName}`] = {
               on: () => {
-                  const applyFadeShort = (p) => {
-                      const baseColor = getLpColor(colorName);
-                      const lpOff = getLpColor('off');
-                      setWebColor(webColorMap[colorName].full, p);
-                      setPhysicalColor(baseColor?.full, p);
-                      setTimeout(() => { setWebColor('off', p); setPhysicalColor(lpOff, p); }, 150);
-                  };
                   const path1 = [[0, 0], [1, 0], [2, 0], [3, 0], [3, 1], [3, 2], [3, 3]];
                   const path2 = [[7, 7], [6, 7], [5, 7], [4, 7], [4, 6], [4, 5], [4, 4]];
                   path1.forEach((p, i) => {
-                      setTimeout(() => applyFadeShort(p), i * 100);
+                      setLoopTimeout(() => applyFadeShort(p, colorName), i * 100);
                   });
                   path2.forEach((p, i) => {
-                      setTimeout(() => applyFadeShort(p), i * 100);
+                      setLoopTimeout(() => applyFadeShort(p, colorName), i * 100);
                   });
-                  // Collision flash
-                  setTimeout(() => {
+                  setLoopTimeout(() => {
                       const flash = [[3, 3], [3, 4], [4, 3], [4, 4]];
-                      flash.forEach(p => applyFadeShort(p));
+                      flash.forEach(p => applyFadeShort(p, colorName));
                   }, path1.length * 100);
               },
               type: 'fixed'
           };
 
-          // 18. EQ_SPECTRUM: Columns jump to random heights
+          // 18. EQ_SPECTRUM
           animations[`eq_spectrum_${colorName}`] = {
               on: () => {
-                  const applyFadeShort = (p) => {
-                      const baseColor = getLpColor(colorName);
-                      const lpOff = getLpColor('off');
-                      setWebColor(webColorMap[colorName].full, p);
-                      setPhysicalColor(baseColor?.full, p);
-                      setTimeout(() => { setWebColor('off', p); setPhysicalColor(lpOff, p); }, 150);
-                  };
                   for (let tx = 0; tx < 8; tx++) {
                       const height = Math.floor(Math.random() * 7) + 1;
                       for (let ty = 7; ty >= 8 - height; ty--) {
-                          setTimeout(() => applyFadeShort([tx, ty]), (7 - ty) * 40);
+                          setLoopTimeout(() => applyFadeShort([tx, ty], colorName), (7 - ty) * 40);
                       }
                   }
               },
@@ -817,7 +605,7 @@ const createAnimationLibrary = () => {
                   const baseColor = getLpColor(colorName);
                   const lpOff = getLpColor('off');
                   for (let flash = 0; flash < 4; flash++) {
-                      setTimeout(() => {
+                      setLoopTimeout(() => {
                           // Flash On
                           for (let ty = 0; ty < 8; ty++) {
                               for (let tx = 0; tx < 8; tx++) {
@@ -826,7 +614,7 @@ const createAnimationLibrary = () => {
                               }
                           }
                           // Flash Off
-                          setTimeout(() => {
+                          setLoopTimeout(() => {
                               for (let ty = 0; ty < 8; ty++) {
                                   for (let tx = 0; tx < 8; tx++) {
                                       setWebColor('off', [tx, ty]);
@@ -853,7 +641,7 @@ const createAnimationLibrary = () => {
 
                       // Rise: Turn pixels ON from bottom to top
                       for (let ty = 7; ty >= peakRow; ty--) {
-                          setTimeout(() => {
+                          setLoopTimeout(() => {
                               setWebColor(webColorMap[colorName].full, [tx, ty]);
                               setPhysicalColor(baseColor?.full, [tx, ty]);
                           }, (7 - ty) * speed);
@@ -862,7 +650,7 @@ const createAnimationLibrary = () => {
                       // Fall: Turn pixels OFF from top to bottom
                       for (let ty = peakRow; ty <= 7; ty++) {
                           const fallDelay = (7 - peakRow) * speed + hold + (ty - peakRow) * speed;
-                          setTimeout(() => {
+                          setLoopTimeout(() => {
                               setWebColor('off', [tx, ty]);
                               setPhysicalColor(lpOff, [tx, ty]);
                           }, fallDelay);
@@ -885,7 +673,7 @@ const createAnimationLibrary = () => {
 
                       // Rise
                       for (let ty = 7; ty >= peakRow; ty--) {
-                          setTimeout(() => {
+                          setLoopTimeout(() => {
                               setWebColor(webColorMap[colorName].full, [tx, ty]);
                               setPhysicalColor(baseColor?.full, [tx, ty]);
                           }, (7 - ty) * speed);
@@ -894,7 +682,7 @@ const createAnimationLibrary = () => {
                       // Fast Fall (all except peak)
                       for (let ty = peakRow + 1; ty <= 7; ty++) {
                           const fallDelay = (7 - peakRow) * speed + (ty - peakRow) * speed;
-                          setTimeout(() => {
+                          setLoopTimeout(() => {
                               setWebColor('off', [tx, ty]);
                               setPhysicalColor(lpOff, [tx, ty]);
                           }, fallDelay);
@@ -902,7 +690,7 @@ const createAnimationLibrary = () => {
 
                       // Peak Fall (stays longer)
                       const peakFallDelay = (7 - peakRow) * speed + peakHold;
-                      setTimeout(() => {
+                      setLoopTimeout(() => {
                           setWebColor('off', [tx, peakRow]);
                           setPhysicalColor(lpOff, [tx, peakRow]);
                       }, peakFallDelay);
@@ -939,32 +727,35 @@ const createAnimationLibrary = () => {
       multiColorConfigs.forEach(config => {
           // HELPER: applyMultiFade
           const applyMultiFade = (p) => {
+              const startTime = performance.now();
               const step1 = config.sequence[0];
               const step2 = config.sequence[1];
               const step3 = config.sequence[2];
               const lpOff = getLpColor('off');
 
-              // Step 1
-              setWebColor(webColorMap[step1.color][step1.level], p);
-              setPhysicalColor(getLpColor(step1.color, step1.level), p);
-
-              // Step 2
-              setTimeout(() => {
-                  setWebColor(webColorMap[step2.color][step2.level], p);
-                  setPhysicalColor(getLpColor(step2.color, step2.level), p);
-              }, 150);
-
-              // Step 3
-              setTimeout(() => {
-                  setWebColor(webColorMap[step3.color][step3.level], p);
-                  setPhysicalColor(getLpColor(step3.color, step3.level), p);
-              }, 300);
-
-              // Off
-              setTimeout(() => {
-                  setWebColor('off', p);
-                  setPhysicalColor(lpOff, p);
-              }, 450);
+              const anim = {
+                  update: (now) => {
+                      const elapsed = now - startTime;
+                      if (elapsed < 150) {
+                          setWebColor(webColorMap[step1.color][step1.level], p);
+                          setPhysicalColor(getLpColor(step1.color, step1.level), p);
+                          return false;
+                      } else if (elapsed < 300) {
+                          setWebColor(webColorMap[step2.color][step2.level], p);
+                          setPhysicalColor(getLpColor(step2.color, step2.level), p);
+                          return false;
+                      } else if (elapsed < 450) {
+                          setWebColor(webColorMap[step3.color][step3.level], p);
+                          setPhysicalColor(getLpColor(step3.color, step3.level), p);
+                          return false;
+                      } else {
+                          setWebColor('off', p);
+                          setPhysicalColor(lpOff, p);
+                          return true; // Finished
+                      }
+                  }
+              };
+              activeAnimations.add(anim);
           };
 
           // 8. CROSS_MULTI: Color transitioning cross
@@ -972,7 +763,7 @@ const createAnimationLibrary = () => {
               on: (x, y) => {
                   applyMultiFade([x, y]);
                   for (let dist = 1; dist < 8; dist++) {
-                      setTimeout(() => {
+                      setLoopTimeout(() => {
                           const directions = [[x + dist, y], [x - dist, y], [x, y + dist], [x, y - dist]];
                           directions.forEach(p => {
                               if (p[0] >= 0 && p[0] < 8 && p[1] >= 0 && p[1] < 8) applyMultiFade(p);
@@ -988,7 +779,7 @@ const createAnimationLibrary = () => {
               on: (x, y) => {
                   const maxDist = Math.max(x, 7 - x, y, 7 - y);
                   for (let dist = maxDist; dist >= 0; dist--) {
-                      setTimeout(() => {
+                      setLoopTimeout(() => {
                           if (dist === 0) {
                               applyMultiFade([x, y]);
                           } else {
@@ -1015,7 +806,7 @@ const createAnimationLibrary = () => {
                           const dx = targetX - x;
                           const dy = targetY - y;
                           const distance = Math.sqrt(dx * dx + dy * dy);
-                          setTimeout(() => applyMultiFade([targetX, targetY]), distance * 60);
+                          setLoopTimeout(() => applyMultiFade([targetX, targetY]), distance * 60);
                       }
                   }
               },
@@ -1037,7 +828,7 @@ const createAnimationLibrary = () => {
                           const dx = targetX - x;
                           const dy = targetY - y;
                           const distance = Math.sqrt(dx * dx + dy * dy);
-                          setTimeout(() => applyMultiFade([targetX, targetY]), (maxDistance - distance) * 60);
+                          setLoopTimeout(() => applyMultiFade([targetX, targetY]), (maxDistance - distance) * 60);
                       }
                   }
               },
@@ -1054,7 +845,7 @@ const createAnimationLibrary = () => {
                           const dx = targetX - centerX;
                           const dy = targetY - centerY;
                           const distance = Math.sqrt(dx * dx + dy * dy);
-                          setTimeout(() => applyMultiFade([targetX, targetY]), distance * 60);
+                          setLoopTimeout(() => applyMultiFade([targetX, targetY]), distance * 60);
                       }
                   }
               },
@@ -1071,7 +862,7 @@ const createAnimationLibrary = () => {
                           const dx = targetX - centerX;
                           const dy = targetY - centerY;
                           const distance = Math.sqrt(dx * dx + dy * dy);
-                          setTimeout(() => applyMultiFade([targetX, targetY]), (5 - distance) * 60);
+                          setLoopTimeout(() => applyMultiFade([targetX, targetY]), (5 - distance) * 60);
                       }
                   }
               },
@@ -1093,7 +884,7 @@ const createAnimationLibrary = () => {
                       for (let targetY = 0; targetY < 8; targetY++) {
                           for (let targetX = 0; targetX < 8; targetX++) {
                               const distance = distFn(targetX, targetY);
-                              setTimeout(() => applyMultiFade([targetX, targetY]), distance * 60);
+                              setLoopTimeout(() => applyMultiFade([targetX, targetY]), distance * 60);
                           }
                       }
                   },
@@ -1115,7 +906,7 @@ const createAnimationLibrary = () => {
                               let shiftedAngle = angle - startAngle;
                               while (shiftedAngle < 0) shiftedAngle += 2 * Math.PI;
                               const normalizedAngle = shiftedAngle / (2 * Math.PI);
-                              setTimeout(() => applyMultiFade([targetX, targetY]), normalizedAngle * 600);
+                              setLoopTimeout(() => applyMultiFade([targetX, targetY]), normalizedAngle * 600);
                           }
                       }
                   },
@@ -1132,7 +923,7 @@ const createAnimationLibrary = () => {
                               let shiftedAngle = startAngle - angle;
                               while (shiftedAngle < 0) shiftedAngle += 2 * Math.PI;
                               const normalizedAngle = shiftedAngle / (2 * Math.PI);
-                              setTimeout(() => applyMultiFade([targetX, targetY]), normalizedAngle * 600);
+                              setLoopTimeout(() => applyMultiFade([targetX, targetY]), normalizedAngle * 600);
                           }
                       }
                   },
@@ -1148,7 +939,7 @@ const createAnimationLibrary = () => {
                       for (let tx = 0; tx < 8; tx++) {
                           const dist = Math.sqrt(Math.pow(tx - cx, 2) + Math.pow(ty - cy, 2));
                           const delay = dist * 70;
-                          setTimeout(() => applyMultiFade([tx, ty]), delay);
+                          setLoopTimeout(() => applyMultiFade([tx, ty]), delay);
                       }
                   }
               },
@@ -1160,7 +951,7 @@ const createAnimationLibrary = () => {
               on: (x, y) => {
                   for (let ty = 0; ty < 8; ty++) {
                       const delay = Math.abs(ty - y) * 70;
-                      setTimeout(() => {
+                      setLoopTimeout(() => {
                           for (let tx = 0; tx < 8; tx++) {
                               applyMultiFade([tx, ty]);
                           }
@@ -1174,7 +965,7 @@ const createAnimationLibrary = () => {
               on: (x, y) => {
                   for (let tx = 0; tx < 8; tx++) {
                       const delay = Math.abs(tx - x) * 70;
-                      setTimeout(() => {
+                      setLoopTimeout(() => {
                           for (let ty = 0; ty < 8; ty++) {
                               applyMultiFade([tx, ty]);
                           }
@@ -1189,7 +980,7 @@ const createAnimationLibrary = () => {
               on: (x, y) => {
                   for (let ty = y; ty < 8; ty++) {
                       const delay = (ty - y) * 100;
-                      setTimeout(() => applyMultiFade([x, ty]), delay);
+                      setLoopTimeout(() => applyMultiFade([x, ty]), delay);
                   }
               },
               type: 'fixed'
@@ -1199,7 +990,7 @@ const createAnimationLibrary = () => {
               on: (x, y) => {
                   for (let ty = y; ty >= 0; ty--) {
                       const delay = (y - ty) * 100;
-                      setTimeout(() => applyMultiFade([x, ty]), delay);
+                      setLoopTimeout(() => applyMultiFade([x, ty]), delay);
                   }
               },
               type: 'fixed'
@@ -1211,10 +1002,10 @@ const createAnimationLibrary = () => {
                   for (let tx = 0; tx < 8; tx++) {
                       const startDelay = Math.random() * 400;
                       const speed = 80 + Math.random() * 60;
-                      setTimeout(() => {
+                      setLoopTimeout(() => {
                           for (let ty = 0; ty < 8; ty++) {
                               const stepDelay = ty * speed;
-                              setTimeout(() => applyMultiFade([tx, ty]), stepDelay);
+                              setLoopTimeout(() => applyMultiFade([tx, ty]), stepDelay);
                           }
                       }, startDelay);
                   }
@@ -1229,7 +1020,7 @@ const createAnimationLibrary = () => {
                       const delay = Math.random() * 800;
                       const tx = Math.floor(Math.random() * 8);
                       const ty = Math.floor(Math.random() * 8);
-                      setTimeout(() => applyMultiFade([tx, ty]), delay);
+                      setLoopTimeout(() => applyMultiFade([tx, ty]), delay);
                   }
               },
               type: 'fixed'
@@ -1244,13 +1035,13 @@ const createAnimationLibrary = () => {
                           const tx = x + dx * step;
                           const ty = y + dy * step;
                           if (tx >= 0 && tx < 8 && ty >= 0 && ty < 8) {
-                              setTimeout(() => applyMultiFade([tx, ty]), step * 60);
+                              setLoopTimeout(() => applyMultiFade([tx, ty]), step * 60);
                           } else {
                               const lastValidStep = step - 1;
                               for (let bStep = 1; bStep <= lastValidStep; bStep++) {
                                   const bx = x + dx * (lastValidStep - bStep);
                                   const by = y + dy * (lastValidStep - bStep);
-                                  setTimeout(() => applyMultiFade([bx, by]), (step + bStep) * 60);
+                                  setLoopTimeout(() => applyMultiFade([bx, by]), (step + bStep) * 60);
                               }
                               break;
                           }
@@ -1274,7 +1065,7 @@ const createAnimationLibrary = () => {
                           if (tx >= 0 && tx < 8 && ty >= 0 && ty < 8) {
                               const p = [tx, ty];
                               delay += 40;
-                              setTimeout(() => applyMultiFade(p), delay);
+                              setLoopTimeout(() => applyMultiFade(p), delay);
                           }
                       }
                   };
@@ -1302,7 +1093,7 @@ const createAnimationLibrary = () => {
                       for (let step = 0; step < 4; step++) {
                           const tx = c[0] + dx * step;
                           const ty = c[1] + dy * step;
-                          setTimeout(() => applyMultiFade([tx, ty]), step * 80);
+                          setLoopTimeout(() => applyMultiFade([tx, ty]), step * 80);
                       }
                   });
               },
@@ -1315,13 +1106,13 @@ const createAnimationLibrary = () => {
                   const path1 = [[0, 0], [1, 0], [2, 0], [3, 0], [3, 1], [3, 2], [3, 3]];
                   const path2 = [[7, 7], [6, 7], [5, 7], [4, 7], [4, 6], [4, 5], [4, 4]];
                   path1.forEach((p, i) => {
-                      setTimeout(() => applyMultiFade(p), i * 100);
+                      setLoopTimeout(() => applyMultiFade(p), i * 100);
                   });
                   path2.forEach((p, i) => {
-                      setTimeout(() => applyMultiFade(p), i * 100);
+                      setLoopTimeout(() => applyMultiFade(p), i * 100);
                   });
                   // Collision flash
-                  setTimeout(() => {
+                  setLoopTimeout(() => {
                       const flash = [[3, 3], [3, 4], [4, 3], [4, 4]];
                       flash.forEach(p => applyMultiFade(p));
                   }, path1.length * 100);
@@ -1335,7 +1126,7 @@ const createAnimationLibrary = () => {
                   for (let tx = 0; tx < 8; tx++) {
                       const height = Math.floor(Math.random() * 7) + 1;
                       for (let ty = 7; ty >= 8 - height; ty--) {
-                          setTimeout(() => applyMultiFade([tx, ty]), (7 - ty) * 40);
+                          setLoopTimeout(() => applyMultiFade([tx, ty]), (7 - ty) * 40);
                       }
                   }
               },
@@ -1348,7 +1139,7 @@ const createAnimationLibrary = () => {
                   const lpOff = getLpColor('off');
                   for (let flashIdx = 0; flashIdx < 4; flashIdx++) {
                       const delay = flashIdx * 120;
-                      setTimeout(() => {
+                      setLoopTimeout(() => {
                           const colorConfig = config.sequence[Math.min(flashIdx, config.sequence.length - 1)];
                           const webColor = webColorMap[colorConfig.color][colorConfig.level];
                           const physColor = getLpColor(colorConfig.color, colorConfig.level);
@@ -1358,7 +1149,7 @@ const createAnimationLibrary = () => {
                                   setPhysicalColor(physColor, [tx, ty]);
                               }
                           }
-                          setTimeout(() => {
+                          setLoopTimeout(() => {
                               for (let ty = 0; ty < 8; ty++) {
                                   for (let tx = 0; tx < 8; tx++) {
                                       setWebColor('off', [tx, ty]);
@@ -1392,7 +1183,7 @@ const createAnimationLibrary = () => {
 
                       // Rise: Accende i pixel con il gradiente
                       for (let ty = 7; ty >= peakRow; ty--) {
-                          setTimeout(() => {
+                          setLoopTimeout(() => {
                               const color = getGradientColor(ty);
                               setWebColor(color.web, [tx, ty]);
                               setPhysicalColor(color.lp?.full, [tx, ty]);
@@ -1402,7 +1193,7 @@ const createAnimationLibrary = () => {
                       // Fall: Spegne i pixel
                       for (let ty = peakRow; ty <= 7; ty++) {
                           const fallDelay = (7 - peakRow) * speed + hold + (ty - peakRow) * speed;
-                          setTimeout(() => {
+                          setLoopTimeout(() => {
                               setWebColor('off', [tx, ty]);
                               setPhysicalColor(lpOff, [tx, ty]);
                           }, fallDelay);
@@ -1416,9 +1207,6 @@ const createAnimationLibrary = () => {
           animations[`eq_peak_hold_multi_${config.name}`] = {
               on: () => {
                   const lpOff = getLpColor('off');
-                  for (let tx = 0; tx < 8; tx++) {
-                      const height = Math.floor(Math.random() * 7) + 1;
-                      const peakRow = 8 - height;
                       const speed = 30;
                       const peakHold = 400;
                       
@@ -1428,31 +1216,35 @@ const createAnimationLibrary = () => {
                           return { lp: getLpColor('red'), web: webColorMap['red'].full };
                       };
 
-                      // Rise
-                      for (let ty = 7; ty >= peakRow; ty--) {
-                          setTimeout(() => {
-                              const color = getGradientColor(ty);
-                              setWebColor(color.web, [tx, ty]);
-                              setPhysicalColor(color.lp?.full, [tx, ty]);
-                          }, (7 - ty) * speed);
-                      }
+                      for (let tx = 0; tx < 8; tx++) {
+                          const height = Math.floor(Math.random() * 7) + 1;
+                          const peakRow = 8 - height;
+                          
+                          // Rise
+                          for (let ty = 7; ty >= peakRow; ty--) {
+                              setLoopTimeout(() => {
+                                  const color = getGradientColor(ty);
+                                  setWebColor(color.web, [tx, ty]);
+                                  setPhysicalColor(color.lp?.full, [tx, ty]);
+                              }, (7 - ty) * speed);
+                          }
 
-                      // Fast Fall (all except peak)
-                      for (let ty = peakRow + 1; ty <= 7; ty++) {
-                          const fallDelay = (7 - peakRow) * speed + (ty - peakRow) * speed;
-                          setTimeout(() => {
-                              setWebColor('off', [tx, ty]);
-                              setPhysicalColor(lpOff, [tx, ty]);
-                          }, fallDelay);
-                      }
+                          // Fast Fall (all except peak)
+                          for (let ty = peakRow + 1; ty <= 7; ty++) {
+                              const fallDelay = (7 - peakRow) * speed + (ty - peakRow) * speed;
+                              setLoopTimeout(() => {
+                                  setWebColor('off', [tx, ty]);
+                                  setPhysicalColor(lpOff, [tx, ty]);
+                              }, fallDelay);
+                          }
 
-                      // Peak Fall (stays longer)
-                      const peakFallDelay = (7 - peakRow) * speed + peakHold;
-                      setTimeout(() => {
-                          setWebColor('off', [tx, peakRow]);
-                          setPhysicalColor(lpOff, [tx, peakRow]);
-                      }, peakFallDelay);
-                  }
+                          // Peak Fall (stays longer)
+                          const peakFallDelay = (7 - peakRow) * speed + peakHold;
+                          setLoopTimeout(() => {
+                              setWebColor('off', [tx, peakRow]);
+                              setPhysicalColor(lpOff, [tx, peakRow]);
+                          }, peakFallDelay);
+                      }
               },
               type: 'fixed'
           };
@@ -1514,8 +1306,9 @@ const createAnimationLibrary = () => {
                   }
                   curX = nextX;
                   const stepX = curX;
+                  const stepY = curY;
 
-                  setTimeout(() => {
+                  setLoopTimeout(() => {
                       // 1. Clear last positions
                       lastPositions.forEach(([tx, ty]) => {
                           if (tx >= 0 && tx < 8 && ty >= 0 && ty < 8) {
@@ -1529,7 +1322,7 @@ const createAnimationLibrary = () => {
                       // 2. Draw new positions
                       shape.forEach(([dx, dy]) => {
                           const tx = stepX + dx;
-                          const ty = curY + dy;
+                          const ty = stepY + dy;
                           if (tx >= 0 && tx < 8 && ty >= 0 && ty < 8) {
                               setWebColor(webColorMap[colorName].full, [tx, ty]);
                               setPhysicalColor(baseColor?.full, [tx, ty]);
@@ -1557,23 +1350,24 @@ const createAnimationLibrary = () => {
               // Phase 1: Climb
               for (let curY = 7; curY >= explodeY; curY--) {
                   const delay = (7 - curY) * climbSpeed;
-                  setTimeout(() => {
+                  const stepY = curY;
+                  setLoopTimeout(() => {
                       // Clear previous position
-                      if (curY < 7) {
-                          setWebColor('off', [startX, curY + 1]);
-                          setPhysicalColor(lpOff, [startX, curY + 1]);
+                      if (stepY < 7) {
+                          setWebColor('off', [startX, stepY + 1]);
+                          setPhysicalColor(lpOff, [startX, stepY + 1]);
                       }
                       
                       // Draw current position
-                      setWebColor(webColorMap[mainColor].full, [startX, curY]);
-                      setPhysicalColor(baseColor?.full, [startX, curY]);
+                      setWebColor(webColorMap[mainColor].full, [startX, stepY]);
+                      setPhysicalColor(baseColor?.full, [startX, stepY]);
 
                       // If reached explosion point, start Phase 2
-                      if (curY === explodeY) {
-                          setTimeout(() => {
+                      if (stepY === explodeY) {
+                          setLoopTimeout(() => {
                               // Clear rocket head
-                              setWebColor('off', [startX, curY]);
-                              setPhysicalColor(lpOff, [startX, curY]);
+                              setWebColor('off', [startX, stepY]);
+                              setPhysicalColor(lpOff, [startX, stepY]);
                               
                               // Explode!
                               const particles = [
@@ -1589,7 +1383,7 @@ const createAnimationLibrary = () => {
                                       setWebColor(webColorMap[mainColor].full, [tx, ty]);
                                       setPhysicalColor(baseColor?.full, [tx, ty]);
                                       
-                                      setTimeout(() => {
+                                      setLoopTimeout(() => {
                                           setWebColor('off', [tx, ty]);
                                           setPhysicalColor(lpOff, [tx, ty]);
                                       }, 300);
@@ -1597,7 +1391,7 @@ const createAnimationLibrary = () => {
                               });
 
                               // Secondary explosion wave (optional, for "pop" effect)
-                              setTimeout(() => {
+                              setLoopTimeout(() => {
                                   particles.forEach(([dx, dy]) => {
                                       const tx2 = startX + dx * 2;
                                       const ty2 = explodeY + dy * 2;
@@ -1605,7 +1399,7 @@ const createAnimationLibrary = () => {
                                           setWebColor(webColorMap[mainColor].full, [tx2, ty2]);
                                           setPhysicalColor(baseColor?.full, [tx2, ty2]);
                                           
-                                          setTimeout(() => {
+                                          setLoopTimeout(() => {
                                               setWebColor('off', [tx2, ty2]);
                                               setPhysicalColor(lpOff, [tx2, ty2]);
                                           }, 200);
@@ -1641,10 +1435,10 @@ const createAnimationLibrary = () => {
 
               heartPoints.forEach(([tx, ty]) => {
                   const delay = ty * 40 + (tx * 10);
-                  setTimeout(() => {
+                  setLoopTimeout(() => {
                       setWebColor(webColorMap[colorName].full, [tx, ty]);
                       setPhysicalColor(baseColor?.full, [tx, ty]);
-                      setTimeout(() => {
+                      setLoopTimeout(() => {
                           setWebColor('off', [tx, ty]);
                           setPhysicalColor(lpOff, [tx, ty]);
                       }, 1000);
@@ -1675,7 +1469,7 @@ const createAnimationLibrary = () => {
               heartPoints.forEach(([tx, ty]) => {
                   setWebColor(webColorMap[colorName].full, [tx, ty]);
                   setPhysicalColor(baseColor?.full, [tx, ty]);
-                  setTimeout(() => {
+                  setLoopTimeout(() => {
                       setWebColor('off', [tx, ty]);
                       setPhysicalColor(lpOff, [tx, ty]);
                   }, 1000);
@@ -1712,11 +1506,11 @@ const createAnimationLibrary = () => {
                   const appearDelay = dist * 80;
                   const disappearDelay = 1000 + ( (5 - dist) * 80 ); // Retracts to center
 
-                  setTimeout(() => {
+                  setLoopTimeout(() => {
                       setWebColor(webColorMap[colorName].full, [tx, ty]);
                       setPhysicalColor(baseColor?.full, [tx, ty]);
                       
-                      setTimeout(() => {
+                      setLoopTimeout(() => {
                           setWebColor('off', [tx, ty]);
                           setPhysicalColor(lpOff, [tx, ty]);
                       }, disappearDelay - appearDelay);
@@ -1740,6 +1534,8 @@ export function triggerAnimation(name, x, y) {
     const anim = animations[name];
     if (anim && anim.on) {
         anim.on(x, y);
+        // Ensure changes are sent immediately for non-loop animations
+        flushPhysicalColors();
     } else if (!anim) {
         console.warn(`Animation "${name}" not found.`);
     }
@@ -1755,5 +1551,7 @@ export function releaseAnimation(name, x, y) {
     const anim = animations[name];
     if (anim && anim.type === 'momentary' && anim.off) {
         anim.off(x, y);
+        // Ensure changes are sent immediately for non-loop animations
+        flushPhysicalColors();
     }
 }

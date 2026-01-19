@@ -28,25 +28,37 @@ export const webColorMap = {
     }
 };
 
+let cachedPads = null;
+
+/**
+ * Initializes the pad cache for the web UI.
+ */
+function ensurePadCache() {
+    if (!cachedPads || cachedPads.length === 0) {
+        cachedPads = document.querySelectorAll('.grid-item');
+    }
+}
+
 /**
  * Sets color on the digital (web) launchpad.
  * @param {string} color - CSS color or 'off'.
  * @param {number[]} p - [x, y] coordinates.
  */
 export function setWebColor(color, p) {
-    const pads = document.querySelectorAll('.grid-item');
+    ensurePadCache();
     // The grid is 8x8, indexed from 0 to 63.
     // Assuming x is column and y is row.
     const index = p[1] * 8 + p[0];
-    if (pads[index]) {
+    const pad = cachedPads[index];
+    if (pad) {
         if (color === 'off') {
-            pads[index].style.backgroundColor = '';
-            pads[index].style.boxShadow = '';
-            pads[index].classList.remove('active');
+            pad.style.backgroundColor = '';
+            pad.style.boxShadow = '';
+            pad.classList.remove('active');
         } else {
-            pads[index].style.backgroundColor = color;
-            pads[index].style.boxShadow = `0 0 10px ${color}`;
-            pads[index].classList.add('active');
+            pad.style.backgroundColor = color;
+            pad.style.boxShadow = `0 0 10px ${color}`;
+            pad.classList.add('active');
         }
     }
 }
