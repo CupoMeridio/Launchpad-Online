@@ -1,11 +1,9 @@
 /**
- * =============================================================================
  * VISUALIZER MODULE (visualizer.js)
- * =============================================================================
- * 
- * This module defines the `Visualizer` class, responsible for creating
+ *
+ * Defines the `Visualizer` class, responsible for creating
  * and animating the audio visualizer.
- * It uses data from an `AnalyserNode` (from `audio.js`) to draw
+ * Uses data from an `AnalyserNode` (from `audio.js`) to draw
  * frequency bars on two HTML5 `<canvas>` elements in real time.
  */
 
@@ -32,6 +30,12 @@ export class Visualizer {
         // `frequencyBinCount` is half of the analyser's `fftSize`.
         // It represents the number of frequency data "bins" available.
         this.bufferLength = this.analyser.frequencyBinCount;
+        
+        // Display a portion of the bins (the "musical range")
+        // to avoid the silent high-frequency area at the end.
+        this.displayPercentage = 0.70; 
+        this.displayLength = Math.floor(this.bufferLength * this.displayPercentage);
+
         // Create an 8-bit integer array (values 0–255) to hold frequency data.
         this.dataArray = new Uint8Array(this.bufferLength);
 
@@ -64,11 +68,14 @@ export class Visualizer {
      * Resizes canvases to match window width and a fixed height.
      */
     resize() {
-        this.canvasTop.width = window.innerWidth;
-        this.canvasTop.height = window.innerHeight * 0.25;
+        const rectTop = this.canvasTop.getBoundingClientRect();
+        const rectBottom = this.canvasBottom.getBoundingClientRect();
+
+        this.canvasTop.width = rectTop.width;
+        this.canvasTop.height = rectTop.height;
         
-        this.canvasBottom.width = window.innerWidth;
-        this.canvasBottom.height = window.innerHeight * 0.25;
+        this.canvasBottom.width = rectBottom.width;
+        this.canvasBottom.height = rectBottom.height;
     }
 
     /**
@@ -141,18 +148,19 @@ export class Visualizer {
         this.ctxTop.clearRect(0, 0, this.canvasTop.width, this.canvasTop.height);
         this.ctxBottom.clearRect(0, 0, this.canvasBottom.width, this.canvasBottom.height);
 
-        const barWidth = (this.canvasBottom.width / this.bufferLength) * 1.5;
+        const spacing = 2;
+        const totalSpacing = spacing * (this.displayLength - 1);
+        const barWidth = Math.max(1, (this.canvasBottom.width - totalSpacing) / this.displayLength);
         let barHeight;
         let x = 0;
 
         if (this.isSymmetric) {
-            const spacing = 2;
-            const halfLength = Math.floor(this.bufferLength / 2);
+            const halfLength = Math.floor(this.displayLength / 2);
 
             if (this.mode === 'bottom' || this.mode === 'both') {
                 const width = this.canvasBottom.width;
                 const center = width / 2;
-                const barW = Math.max(1, (width / this.bufferLength) - spacing);
+                const barW = Math.max(1, (width / this.displayLength) - spacing);
 
                 const createGradientBottom = (y1, y2) => {
                     let grad;
@@ -190,7 +198,7 @@ export class Visualizer {
             if (this.mode === 'top' || this.mode === 'both') {
                 const width = this.canvasTop.width;
                 const center = width / 2;
-                const barW = Math.max(1, (width / this.bufferLength) - spacing);
+                const barW = Math.max(1, (width / this.displayLength) - spacing);
 
                 const createGradientTop = (y1, y2) => {
                     let grad;
@@ -227,7 +235,7 @@ export class Visualizer {
             return;
         }
 
-        for (let i = 0; i < this.bufferLength; i++) {
+        for (let i = 0; i < this.displayLength; i++) {
             barHeight = this.dataArray[i] * 0.7;
 
         // Create fill style (gradient or single color)
@@ -266,7 +274,7 @@ export class Visualizer {
                 this.ctxTop.fillRect(x, 0, barWidth, barHeight);
             }
 
-            x += barWidth + 2;
+            x += barWidth + spacing;
         }
     }
 }
