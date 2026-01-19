@@ -1620,6 +1620,111 @@ const createAnimationLibrary = () => {
           },
           type: 'fixed'
       };
+
+      // 28. HEART_FILL: Draws a heart shape with a top-to-bottom fill effect
+      animations['heart_fill'] = {
+          on: () => {
+              const colorName = 'red';
+              const baseColor = getLpColor(colorName);
+              const lpOff = getLpColor('off');
+
+              const heartPoints = [
+                  [1, 0], [2, 0], [5, 0], [6, 0],
+                  [0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1], [7, 1],
+                  [0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [7, 2],
+                  [0, 3], [1, 3], [2, 3], [3, 3], [4, 3], [5, 3], [6, 3], [7, 3],
+                  [0, 4], [1, 4], [2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [7, 4],
+                  [1, 5], [2, 5], [3, 5], [4, 5], [5, 5], [6, 5],
+                  [2, 6], [3, 6], [4, 6], [5, 6],
+                  [3, 7], [4, 7]
+              ];
+
+              heartPoints.forEach(([tx, ty]) => {
+                  const delay = ty * 40 + (tx * 10);
+                  setTimeout(() => {
+                      setWebColor(webColorMap[colorName].full, [tx, ty]);
+                      setPhysicalColor(baseColor?.full, [tx, ty]);
+                      setTimeout(() => {
+                          setWebColor('off', [tx, ty]);
+                          setPhysicalColor(lpOff, [tx, ty]);
+                      }, 1000);
+                  }, delay);
+              });
+          },
+          type: 'fixed'
+      };
+
+      // 29. HEART_SIMPLE: Instant appear and disappear
+      animations['heart_simple'] = {
+          on: () => {
+              const colorName = 'red';
+              const baseColor = getLpColor(colorName);
+              const lpOff = getLpColor('off');
+
+              const heartPoints = [
+                  [1, 0], [2, 0], [5, 0], [6, 0],
+                  [0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1], [7, 1],
+                  [0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [7, 2],
+                  [0, 3], [1, 3], [2, 3], [3, 3], [4, 3], [5, 3], [6, 3], [7, 3],
+                  [0, 4], [1, 4], [2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [7, 4],
+                  [1, 5], [2, 5], [3, 5], [4, 5], [5, 5], [6, 5],
+                  [2, 6], [3, 6], [4, 6], [5, 6],
+                  [3, 7], [4, 7]
+              ];
+
+              heartPoints.forEach(([tx, ty]) => {
+                  setWebColor(webColorMap[colorName].full, [tx, ty]);
+                  setPhysicalColor(baseColor?.full, [tx, ty]);
+                  setTimeout(() => {
+                      setWebColor('off', [tx, ty]);
+                      setPhysicalColor(lpOff, [tx, ty]);
+                  }, 1000);
+              });
+          },
+          type: 'fixed'
+      };
+
+      // 30. HEART_WAVE: Expands from center and retracts to center
+      animations['heart_wave'] = {
+          on: () => {
+              const colorName = 'red';
+              const baseColor = getLpColor(colorName);
+              const lpOff = getLpColor('off');
+
+              const heartPoints = [
+                  [1, 0], [2, 0], [5, 0], [6, 0],
+                  [0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1], [7, 1],
+                  [0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [7, 2],
+                  [0, 3], [1, 3], [2, 3], [3, 3], [4, 3], [5, 3], [6, 3], [7, 3],
+                  [0, 4], [1, 4], [2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [7, 4],
+                  [1, 5], [2, 5], [3, 5], [4, 5], [5, 5], [6, 5],
+                  [2, 6], [3, 6], [4, 6], [5, 6],
+                  [3, 7], [4, 7]
+              ];
+
+              // Center of the 8x8 grid is roughly (3.5, 3.5)
+              const centerX = 3.5;
+              const centerY = 3.5;
+
+              heartPoints.forEach(([tx, ty]) => {
+                  // Distance from center determines the delay
+                  const dist = Math.sqrt(Math.pow(tx - centerX, 2) + Math.pow(ty - centerY, 2));
+                  const appearDelay = dist * 80;
+                  const disappearDelay = 1000 + ( (5 - dist) * 80 ); // Retracts to center
+
+                  setTimeout(() => {
+                      setWebColor(webColorMap[colorName].full, [tx, ty]);
+                      setPhysicalColor(baseColor?.full, [tx, ty]);
+                      
+                      setTimeout(() => {
+                          setWebColor('off', [tx, ty]);
+                          setPhysicalColor(lpOff, [tx, ty]);
+                      }, disappearDelay - appearDelay);
+                  }, appearDelay);
+              });
+          },
+          type: 'fixed'
+      };
   };
 
 // Initialize the library
