@@ -241,18 +241,23 @@ export class Visualizer {
             return;
         }
 
+        if (this.mode === 'bottom' || this.mode === 'both') {
+            this.ctxBottom.fillStyle = this.gradientBottom;
+        }
+        if (this.mode === 'top' || this.mode === 'both') {
+            this.ctxTop.fillStyle = this.gradientTop;
+        }
+
         for (let i = 0; i < this.displayLength; i++) {
             barHeight = this.dataArray[i] * 0.7;
 
             // Draw on bottom canvas
             if (this.mode === 'bottom' || this.mode === 'both') {
-                this.ctxBottom.fillStyle = this.gradientBottom;
                 this.ctxBottom.fillRect(x, this.canvasBottom.height - barHeight, barWidth, barHeight);
             }
 
             // Draw on top canvas
             if (this.mode === 'top' || this.mode === 'both') {
-                this.ctxTop.fillStyle = this.gradientTop;
                 this.ctxTop.fillRect(x, 0, barWidth, barHeight);
             }
 
