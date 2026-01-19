@@ -1,16 +1,13 @@
 /**
- * =============================================================================
  * AUDIO ENGINE (audio.js)
- * =============================================================================
- * 
- * This module encapsulates all audio-related logic using the Web Audio API.
- * It is structured as an `AudioEngine` class to maintain clean and organized state.
- * Its main responsibilities are:
+ *
+ * Encapsulates all audio-related logic using the Web Audio API.
+ * Structured as an `AudioEngine` class to maintain clean and organized state.
+ * Responsibilities:
  * 1. Create and manage the audio context (`AudioContext`).
  * 2. Load audio files asynchronously and decode them into `AudioBuffer`.
  * 3. Play sounds when requested.
- * 4. Provide an `AnalyserNode` to allow other modules (like the visualizer)
- *    to analyze audio data in real-time.
+ * 4. Provide an `AnalyserNode` for real-time audio analysis.
  */
 
 class AudioEngine {
@@ -39,7 +36,7 @@ class AudioEngine {
          *   more "fluid" and smoothed effect over time, while lower values (e.g., 0.1) make the
          *   visualizer extremely reactive and "jerky".
          */
-        this.analyser.fftSize = 256;
+        this.analyser.fftSize = 512;
         this.analyser.smoothingTimeConstant = 0.8; // Default value for smooth animation, synchronized with UI.
 
         // 3. AUDIO GRAPH CONNECTION
@@ -50,7 +47,7 @@ class AudioEngine {
         this.analyser.connect(this.audioContext.destination);
 
         // 4. SOUND BUFFERS
-        // This array will contain decoded audio data (`AudioBuffer`) ready to be played.
+        // Decoded audio data (`AudioBuffer`) ready for playback.
         this.soundBuffers = [];
 
         // 5. RESUME CONTEXT ON VISIBILITY CHANGE
@@ -143,7 +140,7 @@ class AudioEngine {
 }
 
 // SINGLETON EXPORT
-// A single instance of the `AudioEngine` class is created and exported.
-// This singleton pattern ensures the existence of only one audio engine throughout
+// Singleton instance of the `AudioEngine` class.
+// Pattern ensures a single audio engine instance throughout
 // the application, preventing conflicts and optimizing resource usage.
 export const audioEngine = new AudioEngine();
