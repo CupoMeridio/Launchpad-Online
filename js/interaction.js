@@ -152,7 +152,7 @@ export function changeSoundSet(index) {
         setCurrentPage(index);
         console.log(`Page changed: ${index}`);
 
-        const pageButtons = document.querySelectorAll('.grid-item-menu[onclick^="changeSoundSet"]');
+        const pageButtons = document.querySelectorAll('.grid-item-menu[data-page]');
         if (activePageButton) {
             activePageButton.classList.remove('selected');
         }

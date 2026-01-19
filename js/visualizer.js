@@ -49,6 +49,11 @@ export class Visualizer {
         this.color2 = '#00aaff';
         this.gradientDirection = 'vertical';
         this.alpha = 0.6;
+        
+        // Pre-calculated gradients
+        this.gradientTop = null;
+        this.gradientBottom = null;
+        this.needsGradientUpdate = true;
     }
 
     /**
@@ -76,6 +81,8 @@ export class Visualizer {
         
         this.canvasBottom.width = rectBottom.width;
         this.canvasBottom.height = rectBottom.height;
+
+        this.needsGradientUpdate = true;
     }
 
     /**
@@ -117,22 +124,61 @@ export class Visualizer {
     setColors(color1, color2) {
         this.color1 = color1;
         this.color2 = color2 || color1;
+        this.needsGradientUpdate = true;
     }
 
-    /**
-     * Sets gradient direction.
-     * @param {string} direction - 'vertical', 'horizontal', etc.
-     */
     setGradientDirection(direction) {
         this.gradientDirection = direction;
+        this.needsGradientUpdate = true;
     }
 
-    /**
-     * Sets visualizer transparency.
-     * @param {number} alpha - Transparency value from 0 to 1.
-     */
     setAlpha(alpha) {
         this.alpha = alpha;
+        this.needsGradientUpdate = true;
+    }
+
+    updateGradients() {
+        if (!this.needsGradientUpdate) return;
+
+        const createGrad = (ctx, canvas, isTop) => {
+            let grad;
+            const w = canvas.width;
+            const h = canvas.height;
+
+            switch (this.gradientDirection) {
+                case 'horizontal':
+                    grad = ctx.createLinearGradient(0, 0, w, 0);
+                    break;
+                case 'horizontal-reverse':
+                    grad = ctx.createLinearGradient(w, 0, 0, 0);
+                    break;
+                case 'vertical-reverse':
+                    if (isTop) {
+                        // Top visualizer grows from 0 to h. Reverse: color1 at tip (h), color2 at base (0)
+                        grad = ctx.createLinearGradient(0, h, 0, 0);
+                    } else {
+                        // Bottom visualizer grows from h to 0. Reverse: color1 at tip (0), color2 at base (h)
+                        grad = ctx.createLinearGradient(0, 0, 0, h);
+                    }
+                    break;
+                default: // vertical
+                    if (isTop) {
+                        // Top visualizer grows from 0 to h. Vertical: color1 at base (0), color2 at tip (h)
+                        grad = ctx.createLinearGradient(0, 0, 0, h);
+                    } else {
+                        // Bottom visualizer grows from h to 0. Vertical: color1 at base (h), color2 at tip (0)
+                        grad = ctx.createLinearGradient(0, h, 0, 0);
+                    }
+                    break;
+            }
+            grad.addColorStop(0, this.hexToRgba(this.color1, this.alpha));
+            grad.addColorStop(1, this.hexToRgba(this.color2, this.alpha));
+            return grad;
+        };
+
+        this.gradientTop = createGrad(this.ctxTop, this.canvasTop, true);
+        this.gradientBottom = createGrad(this.ctxBottom, this.canvasBottom, false);
+        this.needsGradientUpdate = false;
     }
 
     /**
@@ -142,6 +188,8 @@ export class Visualizer {
         requestAnimationFrame(() => this.draw());
 
         if (this.mode === 'off') return;
+
+        this.updateGradients();
 
         this.analyser.getByteFrequencyData(this.dataArray);
 
@@ -162,34 +210,13 @@ export class Visualizer {
                 const center = width / 2;
                 const barW = Math.max(1, (width / this.displayLength) - spacing);
 
-                const createGradientBottom = (y1, y2) => {
-                    let grad;
-                    switch (this.gradientDirection) {
-                        case 'horizontal':
-                            grad = this.ctxBottom.createLinearGradient(0, 0, width, 0);
-                            break;
-                        case 'horizontal-reverse':
-                            grad = this.ctxBottom.createLinearGradient(width, 0, 0, 0);
-                            break;
-                        case 'vertical-reverse':
-                            grad = this.ctxBottom.createLinearGradient(0, y2, 0, y1);
-                            break;
-                        default:
-                            grad = this.ctxBottom.createLinearGradient(0, y1, 0, y2);
-                            break;
-                    }
-                    grad.addColorStop(0, this.hexToRgba(this.color1, this.alpha));
-                    grad.addColorStop(1, this.hexToRgba(this.color2, this.alpha));
-                    return grad;
-                };
+                this.ctxBottom.fillStyle = this.gradientBottom;
 
                 for (let i = 0; i < halfLength; i++) {
                     const sourceIndex = this.symmetryReverse ? (halfLength - 1 - i) : i;
                     barHeight = this.dataArray[sourceIndex] * 0.7;
                     const xLeft = center - (i + 1) * (barW + spacing);
                     const xRight = center + i * (barW + spacing);
-                    const grad = createGradientBottom(this.canvasBottom.height, this.canvasBottom.height - barHeight);
-                    this.ctxBottom.fillStyle = grad;
                     this.ctxBottom.fillRect(xLeft, this.canvasBottom.height - barHeight, barW, barHeight);
                     this.ctxBottom.fillRect(xRight, this.canvasBottom.height - barHeight, barW, barHeight);
                 }
@@ -200,34 +227,13 @@ export class Visualizer {
                 const center = width / 2;
                 const barW = Math.max(1, (width / this.displayLength) - spacing);
 
-                const createGradientTop = (y1, y2) => {
-                    let grad;
-                    switch (this.gradientDirection) {
-                        case 'horizontal':
-                            grad = this.ctxTop.createLinearGradient(0, 0, width, 0);
-                            break;
-                        case 'horizontal-reverse':
-                            grad = this.ctxTop.createLinearGradient(width, 0, 0, 0);
-                            break;
-                        case 'vertical-reverse':
-                            grad = this.ctxTop.createLinearGradient(0, y2, 0, y1);
-                            break;
-                        default:
-                            grad = this.ctxTop.createLinearGradient(0, y1, 0, y2);
-                            break;
-                    }
-                    grad.addColorStop(0, this.hexToRgba(this.color1, this.alpha));
-                    grad.addColorStop(1, this.hexToRgba(this.color2, this.alpha));
-                    return grad;
-                };
+                this.ctxTop.fillStyle = this.gradientTop;
 
                 for (let i = 0; i < halfLength; i++) {
                     const sourceIndex = this.symmetryReverse ? (halfLength - 1 - i) : i;
                     barHeight = this.dataArray[sourceIndex] * 0.7;
                     const xLeft = center - (i + 1) * (barW + spacing);
                     const xRight = center + i * (barW + spacing);
-                    const grad = createGradientTop(0, barHeight);
-                    this.ctxTop.fillStyle = grad;
                     this.ctxTop.fillRect(xLeft, 0, barW, barHeight);
                     this.ctxTop.fillRect(xRight, 0, barW, barHeight);
                 }
@@ -238,39 +244,15 @@ export class Visualizer {
         for (let i = 0; i < this.displayLength; i++) {
             barHeight = this.dataArray[i] * 0.7;
 
-        // Create fill style (gradient or single color)
-            const createGradient = (ctx, y1, y2) => {
-                let grad;
-                switch (this.gradientDirection) {
-                    case 'horizontal':
-                        grad = ctx.createLinearGradient(0, 0, this.canvasBottom.width, 0);
-                        break;
-                    case 'horizontal-reverse':
-                        grad = ctx.createLinearGradient(this.canvasBottom.width, 0, 0, 0);
-                        break;
-                    case 'vertical-reverse':
-                        grad = ctx.createLinearGradient(0, y2, 0, y1);
-                        break;
-                    default: // vertical
-                        grad = ctx.createLinearGradient(0, y1, 0, y2);
-                        break;
-                }
-                grad.addColorStop(0, this.hexToRgba(this.color1, this.alpha));
-                grad.addColorStop(1, this.hexToRgba(this.color2, this.alpha));
-                return grad;
-            };
-
             // Draw on bottom canvas
             if (this.mode === 'bottom' || this.mode === 'both') {
-                const grad = createGradient(this.ctxBottom, this.canvasBottom.height, this.canvasBottom.height - barHeight);
-                this.ctxBottom.fillStyle = grad;
+                this.ctxBottom.fillStyle = this.gradientBottom;
                 this.ctxBottom.fillRect(x, this.canvasBottom.height - barHeight, barWidth, barHeight);
             }
 
             // Draw on top canvas
             if (this.mode === 'top' || this.mode === 'both') {
-                const grad = createGradient(this.ctxTop, 0, barHeight);
-                this.ctxTop.fillStyle = grad;
+                this.ctxTop.fillStyle = this.gradientTop;
                 this.ctxTop.fillRect(x, 0, barWidth, barHeight);
             }
 
