@@ -13,7 +13,7 @@ let currentBackgroundEl = null;
 const VIDEO_EFFECT_DEFAULTS = {
     opacity: 0,
     blur: 0,
-    brightness: 1
+    brightness: 100
 };
 
 export function updateVideoControlsVisibility() {
@@ -96,17 +96,21 @@ function applyVideoEffects() {
     const brightnessInput = document.getElementById('brightness-input');
     
     if (overlay && opacityInput && blurInput && brightnessInput) {
-        const opacity = opacityInput.value;
+        const opacity = opacityInput.value / 100;
         overlay.style.backgroundColor = `rgba(18, 18, 18, ${opacity})`;
         
-        const blur = blurInput.value;
-        const brightness = brightnessInput.value;
         if (currentBackgroundEl) {
-            currentBackgroundEl.style.filter = `blur(${blur}px) brightness(${brightness})`;
+            // Convert percentage (0-100) to pixels (0-20px) for blur
+            const blurPx = (blurInput.value / 100) * 20;
+            const brightness = brightnessInput.value / 100;
+            currentBackgroundEl.style.filter = `blur(${blurPx}px) brightness(${brightness})`;
         }
     }
 }
 
+/**
+ * Initializes video effect controls.
+ */
 export function initializeVideoControls() {
     const opacitySlider = document.getElementById('opacity-slider');
     const blurSlider = document.getElementById('blur-slider');
@@ -123,9 +127,9 @@ export function initializeVideoControls() {
         brightnessSlider.value = VIDEO_EFFECT_DEFAULTS.brightness;
         brightnessInput.value = VIDEO_EFFECT_DEFAULTS.brightness;
 
-        syncInputSlider('opacity-slider', 'opacity-input', applyVideoEffects, 0, 1, true);
-        syncInputSlider('blur-slider', 'blur-input', applyVideoEffects, 0, 20, false);
-        syncInputSlider('brightness-slider', 'brightness-input', applyVideoEffects, 0, 2, true);
+        syncInputSlider('opacity-slider', 'opacity-input', applyVideoEffects, 0, 100, false);
+        syncInputSlider('blur-slider', 'blur-input', applyVideoEffects, 0, 100, false);
+        syncInputSlider('brightness-slider', 'brightness-input', applyVideoEffects, 0, 200, false);
     }
 
     const fileInput = document.getElementById('background-file-input');
