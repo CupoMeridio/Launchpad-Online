@@ -202,10 +202,16 @@ export class Visualizer {
         let barHeight;
         let x = 0;
 
+        // Flags for mirrored modes
+        const mirrorTop = this.mode === 'top-mirror' || this.mode === 'both-mirror';
+        const mirrorBottom = this.mode === 'bottom-mirror' || this.mode === 'both-mirror';
+        const showTop = this.mode === 'top' || this.mode === 'top-mirror' || this.mode === 'both' || this.mode === 'both-mirror';
+        const showBottom = this.mode === 'bottom' || this.mode === 'bottom-mirror' || this.mode === 'both' || this.mode === 'both-mirror';
+
         if (this.isSymmetric) {
             const halfLength = Math.floor(this.displayLength / 2);
 
-            if (this.mode === 'bottom' || this.mode === 'both') {
+            if (showBottom) {
                 const width = this.canvasBottom.width;
                 const center = width / 2;
                 const barW = Math.max(1, (width / this.displayLength) - spacing);
@@ -213,16 +219,19 @@ export class Visualizer {
                 this.ctxBottom.fillStyle = this.gradientBottom;
 
                 for (let i = 0; i < halfLength; i++) {
-                    const sourceIndex = this.symmetryReverse ? (halfLength - 1 - i) : i;
+                    // In symmetric mode, mirroring means swapping whether low frequencies are at the center or edges
+                    const sourceIndex = (this.symmetryReverse !== mirrorBottom) ? (halfLength - 1 - i) : i;
                     barHeight = this.dataArray[sourceIndex] * 0.7;
                     const xLeft = center - (i + 1) * (barW + spacing);
                     const xRight = center + i * (barW + spacing);
+                    
+                    // Standard vertical growth: bottom canvas grows from bottom up
                     this.ctxBottom.fillRect(xLeft, this.canvasBottom.height - barHeight, barW, barHeight);
                     this.ctxBottom.fillRect(xRight, this.canvasBottom.height - barHeight, barW, barHeight);
                 }
             }
 
-            if (this.mode === 'top' || this.mode === 'both') {
+            if (showTop) {
                 const width = this.canvasTop.width;
                 const center = width / 2;
                 const barW = Math.max(1, (width / this.displayLength) - spacing);
@@ -230,10 +239,12 @@ export class Visualizer {
                 this.ctxTop.fillStyle = this.gradientTop;
 
                 for (let i = 0; i < halfLength; i++) {
-                    const sourceIndex = this.symmetryReverse ? (halfLength - 1 - i) : i;
+                    const sourceIndex = (this.symmetryReverse !== mirrorTop) ? (halfLength - 1 - i) : i;
                     barHeight = this.dataArray[sourceIndex] * 0.7;
                     const xLeft = center - (i + 1) * (barW + spacing);
                     const xRight = center + i * (barW + spacing);
+                    
+                    // Standard vertical growth: top canvas grows from top down
                     this.ctxTop.fillRect(xLeft, 0, barW, barHeight);
                     this.ctxTop.fillRect(xRight, 0, barW, barHeight);
                 }
@@ -241,10 +252,10 @@ export class Visualizer {
             return;
         }
 
-        if (this.mode === 'bottom' || this.mode === 'both') {
+        if (showBottom) {
             this.ctxBottom.fillStyle = this.gradientBottom;
         }
-        if (this.mode === 'top' || this.mode === 'both') {
+        if (showTop) {
             this.ctxTop.fillStyle = this.gradientTop;
         }
 
@@ -252,13 +263,15 @@ export class Visualizer {
             barHeight = this.dataArray[i] * 0.7;
 
             // Draw on bottom canvas
-            if (this.mode === 'bottom' || this.mode === 'both') {
-                this.ctxBottom.fillRect(x, this.canvasBottom.height - barHeight, barWidth, barHeight);
+            if (showBottom) {
+                const finalX = mirrorBottom ? (this.canvasBottom.width - x - barWidth) : x;
+                this.ctxBottom.fillRect(finalX, this.canvasBottom.height - barHeight, barWidth, barHeight);
             }
 
             // Draw on top canvas
-            if (this.mode === 'top' || this.mode === 'both') {
-                this.ctxTop.fillRect(x, 0, barWidth, barHeight);
+            if (showTop) {
+                const finalX = mirrorTop ? (this.canvasTop.width - x - barWidth) : x;
+                this.ctxTop.fillRect(finalX, 0, barWidth, barHeight);
             }
 
             x += barWidth + spacing;
