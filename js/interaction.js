@@ -1,6 +1,7 @@
 import { audioEngine } from './audio.js';
 import { currentPage, currentProject, projectLights, activePageButton, setCurrentPage, setActivePageButton } from './app.js';
 import { triggerAnimation, releaseAnimation } from './lights.js';
+import { setPhysicalColor, getLpColor, flushPhysicalColors } from './physicalInterface.js';
 
 let cachedPads = null;
 
@@ -155,21 +156,45 @@ export function initInteraction() {
 }
 
 /**
+ * Updates the lights for the page buttons on the physical Launchpad.
+ * @param {number} activeIndex - The index of the currently active page.
+ */
+function updatePhysicalPageLights(activeIndex) {
+    const orange = getLpColor('orange');
+    const off = getLpColor('off');
+
+    if (!orange) return; // Physical launchpad not connected or colors not ready
+
+    for (let i = 0; i < 8; i++) {
+        // Page buttons are at x=8 (Scene buttons)
+        const color = (i === activeIndex) ? orange : off;
+        setPhysicalColor(color, [8, i], false);
+    }
+    flushPhysicalColors();
+}
+
+/**
  * Changes the current sound page.
  * @param {number} index - The index of the page to load (0-7).
+ * @param {boolean} updateVisuals - Whether to update the visual state (default: true).
  */
-export function changeSoundSet(index) {
+export function changeSoundSet(index, updateVisuals = true) {
     if (currentProject && index < currentProject.pages.length) {
         setCurrentPage(index);
         console.log(`Page changed: ${index}`);
 
-        const pageButtons = document.querySelectorAll('.grid-item-menu[data-page]');
-        if (activePageButton) {
-            activePageButton.classList.remove('selected');
-        }
-        setActivePageButton(pageButtons[index]);
-        if (activePageButton) {
-            activePageButton.classList.add('selected');
+        if (updateVisuals) {
+            const pageButtons = document.querySelectorAll('.grid-item-menu[data-page]');
+            if (activePageButton) {
+                activePageButton.classList.remove('selected');
+            }
+            setActivePageButton(pageButtons[index]);
+            if (activePageButton) {
+                activePageButton.classList.add('selected');
+            }
+
+            // Update physical Launchpad lights
+            updatePhysicalPageLights(index);
         }
     } else {
         console.warn(`Attempt to access non-existent page: ${index}`);

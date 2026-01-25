@@ -14,7 +14,7 @@ import { initializeVisualizerControls } from './visualizer-controls.js';
 import { initializeVideoControls } from './video.js';
 import { loadProject, initializeProjectMenu, initializeBackgroundMenu } from './project.js';
 import { initializePersonalizeLaunchpadMenu, initializeLanguageControls } from './ui.js';
-import { initInteraction } from './interaction.js';
+import { initInteraction, changeSoundSet } from './interaction.js';
 
 // ----------------------------------------------------------------------------
 // APPLICATION GLOBAL STATE
@@ -59,7 +59,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (audioEngine.audioContext.state === 'suspended') {
             audioEngine.audioContext.resume().then(() => {
                 console.log('AudioContext resumed successfully.');
+                // Trigger visual update for the current page once audio is unlocked
+                changeSoundSet(currentPage);
             });
+        } else {
+            // If already running, just update visuals
+            changeSoundSet(currentPage);
         }
         if (!midiInitialized) {
             initMidi().catch(error => console.error("Error during MIDI initialization:", error));

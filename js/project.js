@@ -78,7 +78,8 @@ export async function loadProject(configPath, button) {
             setSelectedProjectButton(button);
         }
 
-        changeSoundSet(0);
+        // Load page 0 but don't update visuals yet (wait for audio unlock)
+        changeSoundSet(0, false);
 
         console.log(`Project "${project.name}" loaded.`);
     } catch (error) {

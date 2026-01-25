@@ -19,7 +19,8 @@
 import Launchpad from './vendor/launchpad-webmidi.js';
 import { getTranslation, showNotification } from './ui.js';
 import { setLaunchpadInstance } from './physicalInterface.js';
-import { triggerPad, releasePad } from './interaction.js';
+import { triggerPad, releasePad, changeSoundSet } from './interaction.js';
+import { currentPage } from './app.js';
 
 // Launchpad instance
 let launchpad = null;
@@ -122,6 +123,9 @@ async function connectToLaunchpad() {
 
         // Set up pad event handlers
         setupLaunchpadEvents();
+
+        // Refresh physical lights for the current page
+        changeSoundSet(currentPage);
 
     } catch (error) {
         console.log("[MIDI] No Launchpad found during scan.");

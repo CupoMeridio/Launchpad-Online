@@ -92,6 +92,10 @@ export function getLpColor(colorName, level = null) {
     let color;
     if (colorName === 'off') {
         color = launchpad.off;
+    } else if (colorName === 'orange') {
+        // Custom orange for Launchpad S/Mini/Classic (r=3, g=1 or 2)
+        // Code 35 is a good orange (r=3, g=2)
+        color = { code: 35, full: { code: 35 }, medium: { code: 19 }, low: { code: 18 } };
     } else {
         const base = launchpad[colorName];
         if (!base) return null;
