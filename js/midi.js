@@ -19,8 +19,8 @@
 import Launchpad from './vendor/launchpad-webmidi.js';
 import { getTranslation, showNotification } from './ui.js';
 import { setLaunchpadInstance } from './physicalInterface.js';
-import { triggerPad, releasePad, changeSoundSet } from './interaction.js';
-import { currentPage } from './app.js';
+import { triggerPad, releasePad, changeSoundSet, changeMode } from './interaction.js';
+import { currentPage, currentMode } from './app.js';
 
 // Launchpad instance
 let launchpad = null;
@@ -85,7 +85,11 @@ function setupLaunchpadEvents() {
         }
         // Handler for top automap buttons (y=8)
         else if (y === 8 && x < 8) {
-            // Automap buttons - future functionality
+            // Mode change - only on press
+            if (pressed) {
+                const modeIndex = x;
+                window.changeMode(modeIndex);
+            }
         }
     });
 }
@@ -124,8 +128,9 @@ async function connectToLaunchpad() {
         // Set up pad event handlers
         setupLaunchpadEvents();
 
-        // Refresh physical lights for the current page
+        // Refresh physical lights for the current page and mode
         changeSoundSet(currentPage);
+        changeMode(currentMode);
 
     } catch (error) {
         console.log("[MIDI] No Launchpad found during scan.");

@@ -1,5 +1,5 @@
 import { audioEngine } from './audio.js';
-import { currentPage, currentProject, projectLights, activePageButton, setCurrentPage, setActivePageButton } from './app.js';
+import { currentPage, currentProject, projectLights, activePageButton, setCurrentPage, setActivePageButton, currentMode, activeModeButton, setCurrentMode, setActiveModeButton } from './app.js';
 import { triggerAnimation, releaseAnimation } from './lights.js';
 import { setPhysicalColor, getLpColor, flushPhysicalColors } from './physicalInterface.js';
 
@@ -113,6 +113,8 @@ export function initInteraction() {
         btn.removeAttribute('onclick');
         if (btn.id.startsWith('m')) {
             btn.dataset.page = parseInt(btn.id.substring(1), 10) - 1;
+        } else if (btn.id.startsWith('a')) {
+            btn.dataset.mode = parseInt(btn.id.substring(1), 10) - 1;
         }
     });
 
@@ -125,6 +127,8 @@ export function initInteraction() {
             playSound(e, parseInt(target.dataset.index, 10));
         } else if (target.dataset.page !== undefined) {
             changeSoundSet(parseInt(target.dataset.page, 10));
+        } else if (target.dataset.mode !== undefined) {
+            changeMode(parseInt(target.dataset.mode, 10));
         }
     };
 
@@ -208,8 +212,51 @@ export function changeSoundSet(index, updateVisuals = true) {
     }
 }
 
+/**
+ * Updates the lights for the mode buttons on the physical Launchpad.
+ * @param {number} activeIndex - The index of the currently active mode.
+ */
+export function updatePhysicalModeLights(activeIndex) {
+    const orange = getLpColor('orange');
+    const off = getLpColor('off');
+
+    if (!orange) return; // Physical launchpad not connected or colors not ready
+
+    for (let i = 0; i < 8; i++) {
+        // Mode buttons are at y=8 (Top row buttons)
+        const color = (i === activeIndex) ? orange : off;
+        setPhysicalColor(color, [i, 8], false);
+    }
+    flushPhysicalColors();
+}
+
+/**
+ * Changes the current Launchpad mode.
+ * @param {number} index - The index of the mode to set (0-7).
+ * @param {boolean} updateVisuals - Whether to update the visual state (default: true).
+ */
+export function changeMode(index, updateVisuals = true) {
+    setCurrentMode(index);
+    console.log(`Mode changed: ${index}`);
+
+    if (updateVisuals) {
+        const modeButtons = document.querySelectorAll('.grid-item-menu[data-mode]');
+        if (activeModeButton) {
+            activeModeButton.classList.remove('selected');
+        }
+        setActiveModeButton(modeButtons[index]);
+        if (activeModeButton) {
+            activeModeButton.classList.add('selected');
+        }
+
+        // Update physical Launchpad lights
+        updatePhysicalModeLights(index);
+    }
+}
+
 // Functions are exposed globally to be used in HTML
 window.playSound = playSound;
 window.triggerPad = triggerPad;
 window.releasePad = releasePad;
 window.changeSoundSet = changeSoundSet;
+window.changeMode = changeMode;

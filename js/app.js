@@ -14,7 +14,7 @@ import { initializeVisualizerControls } from './visualizer-controls.js';
 import { initializeVideoControls } from './video.js';
 import { loadProject, initializeProjectMenu, initializeBackgroundMenu } from './project.js';
 import { initializePersonalizeLaunchpadMenu, initializeLanguageControls } from './ui.js';
-import { initInteraction, changeSoundSet } from './interaction.js';
+import { initInteraction, changeSoundSet, changeMode } from './interaction.js';
 
 // ----------------------------------------------------------------------------
 // APPLICATION GLOBAL STATE
@@ -29,6 +29,8 @@ export let projectSounds = [];
 export let projectLights = [];
 export let currentPage = 0;
 export let activePageButton = null;
+export let currentMode = 5; // Default to User 1 (index 5)
+export let activeModeButton = null;
 
 export function setCurrentProject(p) { currentProject = p; }
 export function setSelectedProjectButton(b) { selectedProjectButton = b; }
@@ -36,6 +38,8 @@ export function setProjectSounds(s) { projectSounds = s; }
 export function setProjectLights(l) { projectLights = l; }
 export function setCurrentPage(p) { currentPage = p; }
 export function setActivePageButton(b) { activePageButton = b; }
+export function setCurrentMode(m) { currentMode = m; }
+export function setActiveModeButton(b) { activeModeButton = b; }
 let midiInitialized = false;
 
 // ----------------------------------------------------------------------------
@@ -59,12 +63,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (audioEngine.audioContext.state === 'suspended') {
             audioEngine.audioContext.resume().then(() => {
                 console.log('AudioContext resumed successfully.');
-                // Trigger visual update for the current page once audio is unlocked
+                // Trigger visual update for the current page and mode once audio is unlocked
                 changeSoundSet(currentPage);
+                changeMode(currentMode);
             });
         } else {
             // If already running, just update visuals
             changeSoundSet(currentPage);
+            changeMode(currentMode);
         }
         if (!midiInitialized) {
             initMidi().catch(error => console.error("Error during MIDI initialization:", error));
