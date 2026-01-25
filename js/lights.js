@@ -9,7 +9,7 @@
  */
 
 import { setWebColor, webColorMap } from './webInterface.js';
-import { getLaunchpad, setPhysicalColor, getLpColor, flushPhysicalColors } from './physicalInterface.js';
+import { setPhysicalColor, getLpColor, flushPhysicalColors } from './physicalInterface.js';
 
 /**
  * Registry of available animations.

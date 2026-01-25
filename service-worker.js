@@ -1,7 +1,5 @@
 /**
- * =============================================================================
  * SERVICE WORKER (service-worker.js)
- * =============================================================================
  *
  * The Service Worker is a key component of a Progressive Web App (PWA).
  * It acts as a proxy between the web application, the browser, and the network.

@@ -64,6 +64,33 @@
         "assets/samples/Virtual Riot - Idols/pagina4/extensive3.wav", "assets/samples/Virtual Riot - Idols/pagina4/extensive11.wav", "", "", "", "", "assets/samples/Virtual Riot - Idols/pagina4/extensive27.wav", "assets/samples/Virtual Riot - Idols/pagina4/extensive19.wav",
         "assets/samples/Virtual Riot - Idols/pagina4/extensive1.wav", "assets/samples/Virtual Riot - Idols/pagina4/extensive9.wav","", "", "", "", "assets/samples/Virtual Riot - Idols/pagina4/extensive25.wav", "assets/samples/Virtual Riot - Idols/pagina4/extensive17.wav"
       ]
+    },
+    {
+      "name": "Page 5",
+      "sounds": [
+        "assets/samples/Virtual Riot - Idols/pagina5/vocals15.wav", "", "", "", "", "", "", "",
+        "assets/samples/Virtual Riot - Idols/pagina5/vocals16.wav", "assets/samples/Virtual Riot - Idols/pagina5/vocals14.wav", "", "", "", "", "", "",
+        "assets/samples/Virtual Riot - Idols/pagina5/vocals17.wav", "", "assets/samples/Virtual Riot - Idols/pagina5/vocals8.wav", "", "", "assets/samples/Virtual Riot - Idols/pagina5/vocals5.wav", "", "",
+        "assets/samples/Virtual Riot - Idols/pagina5/vocals18.wav", "", "", "assets/samples/Virtual Riot - Idols/pagina5/vocals7.wav", "assets/samples/Virtual Riot - Idols/pagina5/vocals4.wav", "", "", "",
+        "assets/samples/Virtual Riot - Idols/pagina5/vocals19.wav", "", "", "assets/samples/Virtual Riot - Idols/pagina5/vocals2.wav", "assets/samples/Virtual Riot - Idols/pagina5/vocals6.wav", "", "", "",
+        "", "", "assets/samples/Virtual Riot - Idols/pagina5/vocals3.wav", "assets/samples/Virtual Riot - Idols/pagina5/vocals2.wav", "", "assets/samples/Virtual Riot - Idols/pagina5/vocals9.wav", "", "",
+        "", "assets/samples/Virtual Riot - Idols/pagina5/vocals20.wav", "", "", "", "", "assets/samples/Virtual Riot - Idols/pagina5/vocals10.wav", "",
+        "assets/samples/Virtual Riot - Idols/pagina5/vocals21.wav", "", "", "", "", "assets/samples/Virtual Riot - Idols/pagina5/vocals13.wav", "assets/samples/Virtual Riot - Idols/pagina5/vocals12.wav", "assets/samples/Virtual Riot - Idols/pagina5/vocals11.wav" 
+      ]
+    },
+    {
+      "name": "Page 6",
+      "sounds": [
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "assets/samples/Virtual Riot - Idols/pagina6/youanmahfriends3.wav", "", "", "assets/samples/Virtual Riot - Idols/pagina6/youanmahfriends5.wav", "assets/samples/Virtual Riot - Idols/pagina6/youanmahfriends6.wav", "", "", "assets/samples/Virtual Riot - Idols/pagina6/youanmahfriends4.wav",
+        "assets/samples/Virtual Riot - Idols/pagina6/youanmahfriends1.wav", "", "", "", "", "", "", "assets/samples/Virtual Riot - Idols/pagina6/youanmahfriends2.wav",
+        "assets/samples/Virtual Riot - Idols/pagina6/build2-18.wav", "assets/samples/Virtual Riot - Idols/pagina6/build2-19.wav", "", "assets/samples/Virtual Riot - Idols/pagina6/build2-20.wav", "assets/samples/Virtual Riot - Idols/pagina6/LETSGO.wav", "", "", "",
+        "assets/samples/Virtual Riot - Idols/pagina6/build2-12.wav", "assets/samples/Virtual Riot - Idols/pagina6/build2-13.wav", "", "assets/samples/Virtual Riot - Idols/pagina6/build2-14.wav", "assets/samples/Virtual Riot - Idols/pagina6/build2-17.wav", "assets/samples/Virtual Riot - Idols/pagina6/BWOW3.wav", "assets/samples/Virtual Riot - Idols/pagina6/build2-16.wav", "assets/samples/Virtual Riot - Idols/pagina6/build2-15.wav",
+        "assets/samples/Virtual Riot - Idols/pagina6/build2-6.wav", "assets/samples/Virtual Riot - Idols/pagina6/build2-7.wav", "", "assets/samples/Virtual Riot - Idols/pagina6/build2-8.wav", "assets/samples/Virtual Riot - Idols/pagina6/build2-11.wav", "assets/samples/Virtual Riot - Idols/pagina6/BWOW2.wav", "assets/samples/Virtual Riot - Idols/pagina6/build2-10.wav", "assets/samples/Virtual Riot - Idols/pagina6/build2-9.wav",
+        "assets/samples/Virtual Riot - Idols/pagina6/build2-1.wav", "assets/samples/Virtual Riot - Idols/pagina6/build2-2.wav", "", "assets/samples/Virtual Riot - Idols/pagina6/build2-3.wav", "assets/samples/Virtual Riot - Idols/pagina6/build2-awkward2.wav", "assets/samples/Virtual Riot - Idols/pagina6/BWOW1.wav", "assets/samples/Virtual Riot - Idols/pagina6/build2-awkward1.wav", "assets/samples/Virtual Riot - Idols/pagina6/build2-4.wav" 
+      ]
     }
+
   ]
 }
