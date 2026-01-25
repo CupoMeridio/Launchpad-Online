@@ -264,6 +264,23 @@
                 </div>
               </div>
             </div>
+
+            <!-- Bass Pulse control group -->
+            <div class="control-group" id="bass-pulse-group">
+              <label for="bass-pulse-toggle">
+                <input type="checkbox" id="bass-pulse-toggle">
+                <span data-i18n="visualizer.bassPulse.enable">Effetto Pulsante Bassi</span>
+              </label>
+              <div id="bass-threshold-controls" style="display: none; margin-top: 8px;">
+                <label for="bass-threshold-slider" data-i18n="visualizer.bassPulse.threshold">Soglia Bassi</label>
+                <div class="input-group">
+                  <input type="range" id="bass-threshold-slider" min="0" max="255" step="1" value="150">
+                  <div class="input-with-unit">
+                    <input type="number" id="bass-threshold-input" min="0" max="255" step="1" value="150" class="manual-input">
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

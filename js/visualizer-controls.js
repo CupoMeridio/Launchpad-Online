@@ -89,6 +89,34 @@ export function initializeVisualizerControls() {
         applySymmetry();
     }
 
+    // Bass Pulse controls
+    const bassPulseToggle = document.getElementById('bass-pulse-toggle');
+    const bassThresholdControls = document.getElementById('bass-threshold-controls');
+    const bassThresholdSlider = document.getElementById('bass-threshold-slider');
+    const bassThresholdInput = document.getElementById('bass-threshold-input');
+
+    if (bassPulseToggle && bassThresholdControls && bassThresholdSlider && bassThresholdInput) {
+        const applyBassPulse = () => {
+            const enabled = !!bassPulseToggle.checked;
+            if (window.visualizer) {
+                window.visualizer.setBassPulse(enabled);
+            }
+            bassThresholdControls.style.display = enabled ? 'block' : 'none';
+        };
+
+        bassPulseToggle.addEventListener('change', applyBassPulse);
+        
+        syncInputSlider('bass-threshold-slider', 'bass-threshold-input', (value) => {
+            if (window.visualizer) window.visualizer.setBassThreshold(value);
+        }, 0, 255, false);
+
+        // Set initial state
+        applyBassPulse();
+        if (window.visualizer) {
+            window.visualizer.setBassThreshold(parseInt(bassThresholdSlider.value, 10));
+        }
+    }
+
     const updateControlsVisibility = (mode) => {
         const groups = [
             document.getElementById('smoothing-group'),
@@ -97,6 +125,7 @@ export function initializeVisualizerControls() {
             document.getElementById('gradient-controls'),
             document.getElementById('alpha-group'),
             document.getElementById('symmetric-group'),
+            document.getElementById('bass-pulse-group'),
         ];
         const show = mode !== 'off';
         groups.forEach(el => {

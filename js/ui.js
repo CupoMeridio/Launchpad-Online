@@ -51,7 +51,9 @@ const translations = {
         'visualizer.symmetric.normal': 'Normale',
         'visualizer.symmetric.reverse': 'Inversa',
         'launchpad.skins.title': 'Sfondi Launchpad',
-        'launchpad.size': 'Dimensione Launchpad'
+        'launchpad.size': 'Dimensione Launchpad',
+        'visualizer.bassPulse.enable': 'Effetto Pulsante Bassi',
+        'visualizer.bassPulse.threshold': 'Soglia Bassi'
     },
     en: {
         'sidebar.title': 'Menu',
@@ -104,7 +106,9 @@ const translations = {
         'visualizer.symmetric.normal': 'Normal',
         'visualizer.symmetric.reverse': 'Reverse',
         'launchpad.skins.title': 'Launchpad Backgrounds',
-        'launchpad.size': 'Launchpad size'
+        'launchpad.size': 'Launchpad size',
+        'visualizer.bassPulse.enable': 'Bass Pulse Effect',
+        'visualizer.bassPulse.threshold': 'Bass Threshold'
     },
     es: {
         'sidebar.title': 'Menú',
@@ -154,7 +158,9 @@ const translations = {
         'visualizer.symmetric.normal': 'Normal',
         'visualizer.symmetric.reverse': 'Inversa',
         'launchpad.skins.title': 'Fondos de Launchpad',
-        'launchpad.size': 'Tamaño del Launchpad'
+        'launchpad.size': 'Tamaño del Launchpad',
+        'visualizer.bassPulse.enable': 'Efecto de Pulso de Bajos',
+        'visualizer.bassPulse.threshold': 'Umbral de Bajos'
     },
     de: {
         'sidebar.title': 'Menü',
@@ -204,7 +210,9 @@ const translations = {
         'visualizer.symmetric.normal': 'Normal',
         'visualizer.symmetric.reverse': 'Invertiert',
         'launchpad.skins.title': 'Launchpad-Hintergründe',
-        'launchpad.size': 'Launchpad-Größe'
+        'launchpad.size': 'Launchpad-Größe',
+        'visualizer.bassPulse.enable': 'Bass-Puls-Effekt',
+        'visualizer.bassPulse.threshold': 'Bass-Schwellenwert'
     },
     fr: {
         'sidebar.title': 'Menu',
@@ -254,7 +262,9 @@ const translations = {
         'visualizer.symmetric.normal': 'Normal',
         'visualizer.symmetric.reverse': 'Inversée',
         'launchpad.skins.title': 'Arrière-plans Launchpad',
-        'launchpad.size': 'Taille du Launchpad'
+        'launchpad.size': 'Taille du Launchpad',
+        'visualizer.bassPulse.enable': 'Effet Pulsation Basses',
+        'visualizer.bassPulse.threshold': 'Seuil des Basses'
     }
 };
 let currentLanguage = 'it';

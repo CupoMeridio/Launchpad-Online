@@ -54,6 +54,10 @@ export class Visualizer {
         this.gradientTop = null;
         this.gradientBottom = null;
         this.needsGradientUpdate = true;
+
+        // Bass pulse settings
+        this.bassPulseEnabled = false;
+        this.bassThreshold = 150;
     }
 
     /**
@@ -137,6 +141,18 @@ export class Visualizer {
         this.needsGradientUpdate = true;
     }
 
+    setBassPulse(enabled) {
+        this.bassPulseEnabled = !!enabled;
+        if (!this.bassPulseEnabled) {
+            const bg = document.querySelector('.background-media');
+            if (bg) bg.style.transform = 'scale(1)';
+        }
+    }
+
+    setBassThreshold(value) {
+        this.bassThreshold = value;
+    }
+
     updateGradients() {
         if (!this.needsGradientUpdate) return;
 
@@ -195,6 +211,27 @@ export class Visualizer {
 
         this.ctxTop.clearRect(0, 0, this.canvasTop.width, this.canvasTop.height);
         this.ctxBottom.clearRect(0, 0, this.canvasBottom.width, this.canvasBottom.height);
+
+        // Bass pulse detection
+        if (this.bassPulseEnabled) {
+            let bassSum = 0;
+            const bassBins = Math.max(1, Math.floor(this.displayLength * 0.05)); // 5% of displayed bins
+            for (let i = 0; i < bassBins; i++) {
+                bassSum += this.dataArray[i];
+            }
+            const avgBass = bassSum / bassBins;
+            
+            const bg = document.querySelector('.background-media');
+            if (bg) {
+                if (avgBass > this.bassThreshold) {
+                    const intensity = (avgBass - this.bassThreshold) / (255 - this.bassThreshold);
+                    const scale = 1 + (intensity * 0.05); // Max 5% scale
+                    bg.style.transform = `scale(${scale})`;
+                } else {
+                    bg.style.transform = 'scale(1)';
+                }
+            }
+        }
 
         const spacing = 2;
         const totalSpacing = spacing * (this.displayLength - 1);
