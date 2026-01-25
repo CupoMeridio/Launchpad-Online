@@ -1,11 +1,9 @@
 /**
- * =============================================================================
  * VISUALIZER MODULE (visualizer.js)
- * =============================================================================
- * 
- * This module defines the `Visualizer` class, responsible for creating
+ *
+ * Defines the `Visualizer` class, responsible for creating
  * and animating the audio visualizer.
- * It uses data from an `AnalyserNode` (from `audio.js`) to draw
+ * Uses data from an `AnalyserNode` (from `audio.js`) to draw
  * frequency bars on two HTML5 `<canvas>` elements in real time.
  */
 
@@ -32,6 +30,12 @@ export class Visualizer {
         // `frequencyBinCount` is half of the analyser's `fftSize`.
         // It represents the number of frequency data "bins" available.
         this.bufferLength = this.analyser.frequencyBinCount;
+        
+        // Display a portion of the bins (the "musical range")
+        // to avoid the silent high-frequency area at the end.
+        this.displayPercentage = 0.70; 
+        this.displayLength = Math.floor(this.bufferLength * this.displayPercentage);
+
         // Create an 8-bit integer array (values 0–255) to hold frequency data.
         this.dataArray = new Uint8Array(this.bufferLength);
 
@@ -45,6 +49,15 @@ export class Visualizer {
         this.color2 = '#00aaff';
         this.gradientDirection = 'vertical';
         this.alpha = 0.6;
+        
+        // Pre-calculated gradients
+        this.gradientTop = null;
+        this.gradientBottom = null;
+        this.needsGradientUpdate = true;
+
+        // Bass pulse settings
+        this.bassPulseEnabled = false;
+        this.bassThreshold = 150;
     }
 
     /**
@@ -64,11 +77,16 @@ export class Visualizer {
      * Resizes canvases to match window width and a fixed height.
      */
     resize() {
-        this.canvasTop.width = window.innerWidth;
-        this.canvasTop.height = window.innerHeight * 0.25;
+        const rectTop = this.canvasTop.getBoundingClientRect();
+        const rectBottom = this.canvasBottom.getBoundingClientRect();
+
+        this.canvasTop.width = rectTop.width;
+        this.canvasTop.height = rectTop.height;
         
-        this.canvasBottom.width = window.innerWidth;
-        this.canvasBottom.height = window.innerHeight * 0.25;
+        this.canvasBottom.width = rectBottom.width;
+        this.canvasBottom.height = rectBottom.height;
+
+        this.needsGradientUpdate = true;
     }
 
     /**
@@ -110,22 +128,73 @@ export class Visualizer {
     setColors(color1, color2) {
         this.color1 = color1;
         this.color2 = color2 || color1;
+        this.needsGradientUpdate = true;
     }
 
-    /**
-     * Sets gradient direction.
-     * @param {string} direction - 'vertical', 'horizontal', etc.
-     */
     setGradientDirection(direction) {
         this.gradientDirection = direction;
+        this.needsGradientUpdate = true;
     }
 
-    /**
-     * Sets visualizer transparency.
-     * @param {number} alpha - Transparency value from 0 to 1.
-     */
     setAlpha(alpha) {
         this.alpha = alpha;
+        this.needsGradientUpdate = true;
+    }
+
+    setBassPulse(enabled) {
+        this.bassPulseEnabled = !!enabled;
+        if (!this.bassPulseEnabled) {
+            const bg = document.querySelector('.background-media');
+            if (bg) bg.style.transform = 'scale(1)';
+        }
+    }
+
+    setBassThreshold(value) {
+        this.bassThreshold = value;
+    }
+
+    updateGradients() {
+        if (!this.needsGradientUpdate) return;
+
+        const createGrad = (ctx, canvas, isTop) => {
+            let grad;
+            const w = canvas.width;
+            const h = canvas.height;
+
+            switch (this.gradientDirection) {
+                case 'horizontal':
+                    grad = ctx.createLinearGradient(0, 0, w, 0);
+                    break;
+                case 'horizontal-reverse':
+                    grad = ctx.createLinearGradient(w, 0, 0, 0);
+                    break;
+                case 'vertical-reverse':
+                    if (isTop) {
+                        // Top visualizer grows from 0 to h. Reverse: color1 at tip (h), color2 at base (0)
+                        grad = ctx.createLinearGradient(0, h, 0, 0);
+                    } else {
+                        // Bottom visualizer grows from h to 0. Reverse: color1 at tip (0), color2 at base (h)
+                        grad = ctx.createLinearGradient(0, 0, 0, h);
+                    }
+                    break;
+                default: // vertical
+                    if (isTop) {
+                        // Top visualizer grows from 0 to h. Vertical: color1 at base (0), color2 at tip (h)
+                        grad = ctx.createLinearGradient(0, 0, 0, h);
+                    } else {
+                        // Bottom visualizer grows from h to 0. Vertical: color1 at base (h), color2 at tip (0)
+                        grad = ctx.createLinearGradient(0, h, 0, 0);
+                    }
+                    break;
+            }
+            grad.addColorStop(0, this.hexToRgba(this.color1, this.alpha));
+            grad.addColorStop(1, this.hexToRgba(this.color2, this.alpha));
+            return grad;
+        };
+
+        this.gradientTop = createGrad(this.ctxTop, this.canvasTop, true);
+        this.gradientBottom = createGrad(this.ctxBottom, this.canvasBottom, false);
+        this.needsGradientUpdate = false;
     }
 
     /**
@@ -136,90 +205,83 @@ export class Visualizer {
 
         if (this.mode === 'off') return;
 
+        this.updateGradients();
+
         this.analyser.getByteFrequencyData(this.dataArray);
 
         this.ctxTop.clearRect(0, 0, this.canvasTop.width, this.canvasTop.height);
         this.ctxBottom.clearRect(0, 0, this.canvasBottom.width, this.canvasBottom.height);
 
-        const barWidth = (this.canvasBottom.width / this.bufferLength) * 1.5;
+        // Bass pulse detection
+        if (this.bassPulseEnabled) {
+            let bassSum = 0;
+            const bassBins = Math.max(1, Math.floor(this.displayLength * 0.05)); // 5% of displayed bins
+            for (let i = 0; i < bassBins; i++) {
+                bassSum += this.dataArray[i];
+            }
+            const avgBass = bassSum / bassBins;
+            
+            const bg = document.querySelector('.background-media');
+            if (bg) {
+                if (avgBass > this.bassThreshold) {
+                    const intensity = (avgBass - this.bassThreshold) / (255 - this.bassThreshold);
+                    const scale = 1 + (intensity * 0.05); // Max 5% scale
+                    bg.style.transform = `scale(${scale})`;
+                } else {
+                    bg.style.transform = 'scale(1)';
+                }
+            }
+        }
+
+        const spacing = 2;
+        const totalSpacing = spacing * (this.displayLength - 1);
+        const barWidth = Math.max(1, (this.canvasBottom.width - totalSpacing) / this.displayLength);
         let barHeight;
         let x = 0;
 
-        if (this.isSymmetric) {
-            const spacing = 2;
-            const halfLength = Math.floor(this.bufferLength / 2);
+        // Flags for mirrored modes
+        const mirrorTop = this.mode === 'top-mirror' || this.mode === 'both-mirror';
+        const mirrorBottom = this.mode === 'bottom-mirror' || this.mode === 'both-mirror';
+        const showTop = this.mode === 'top' || this.mode === 'top-mirror' || this.mode === 'both' || this.mode === 'both-mirror';
+        const showBottom = this.mode === 'bottom' || this.mode === 'bottom-mirror' || this.mode === 'both' || this.mode === 'both-mirror';
 
-            if (this.mode === 'bottom' || this.mode === 'both') {
+        if (this.isSymmetric) {
+            const halfLength = Math.floor(this.displayLength / 2);
+
+            if (showBottom) {
                 const width = this.canvasBottom.width;
                 const center = width / 2;
-                const barW = Math.max(1, (width / this.bufferLength) - spacing);
+                const barW = Math.max(1, (width / this.displayLength) - spacing);
 
-                const createGradientBottom = (y1, y2) => {
-                    let grad;
-                    switch (this.gradientDirection) {
-                        case 'horizontal':
-                            grad = this.ctxBottom.createLinearGradient(0, 0, width, 0);
-                            break;
-                        case 'horizontal-reverse':
-                            grad = this.ctxBottom.createLinearGradient(width, 0, 0, 0);
-                            break;
-                        case 'vertical-reverse':
-                            grad = this.ctxBottom.createLinearGradient(0, y2, 0, y1);
-                            break;
-                        default:
-                            grad = this.ctxBottom.createLinearGradient(0, y1, 0, y2);
-                            break;
-                    }
-                    grad.addColorStop(0, this.hexToRgba(this.color1, this.alpha));
-                    grad.addColorStop(1, this.hexToRgba(this.color2, this.alpha));
-                    return grad;
-                };
+                this.ctxBottom.fillStyle = this.gradientBottom;
 
                 for (let i = 0; i < halfLength; i++) {
-                    const sourceIndex = this.symmetryReverse ? (halfLength - 1 - i) : i;
+                    // In symmetric mode, mirroring means swapping whether low frequencies are at the center or edges
+                    const sourceIndex = (this.symmetryReverse !== mirrorBottom) ? (halfLength - 1 - i) : i;
                     barHeight = this.dataArray[sourceIndex] * 0.7;
                     const xLeft = center - (i + 1) * (barW + spacing);
                     const xRight = center + i * (barW + spacing);
-                    const grad = createGradientBottom(this.canvasBottom.height, this.canvasBottom.height - barHeight);
-                    this.ctxBottom.fillStyle = grad;
+                    
+                    // Standard vertical growth: bottom canvas grows from bottom up
                     this.ctxBottom.fillRect(xLeft, this.canvasBottom.height - barHeight, barW, barHeight);
                     this.ctxBottom.fillRect(xRight, this.canvasBottom.height - barHeight, barW, barHeight);
                 }
             }
 
-            if (this.mode === 'top' || this.mode === 'both') {
+            if (showTop) {
                 const width = this.canvasTop.width;
                 const center = width / 2;
-                const barW = Math.max(1, (width / this.bufferLength) - spacing);
+                const barW = Math.max(1, (width / this.displayLength) - spacing);
 
-                const createGradientTop = (y1, y2) => {
-                    let grad;
-                    switch (this.gradientDirection) {
-                        case 'horizontal':
-                            grad = this.ctxTop.createLinearGradient(0, 0, width, 0);
-                            break;
-                        case 'horizontal-reverse':
-                            grad = this.ctxTop.createLinearGradient(width, 0, 0, 0);
-                            break;
-                        case 'vertical-reverse':
-                            grad = this.ctxTop.createLinearGradient(0, y2, 0, y1);
-                            break;
-                        default:
-                            grad = this.ctxTop.createLinearGradient(0, y1, 0, y2);
-                            break;
-                    }
-                    grad.addColorStop(0, this.hexToRgba(this.color1, this.alpha));
-                    grad.addColorStop(1, this.hexToRgba(this.color2, this.alpha));
-                    return grad;
-                };
+                this.ctxTop.fillStyle = this.gradientTop;
 
                 for (let i = 0; i < halfLength; i++) {
-                    const sourceIndex = this.symmetryReverse ? (halfLength - 1 - i) : i;
+                    const sourceIndex = (this.symmetryReverse !== mirrorTop) ? (halfLength - 1 - i) : i;
                     barHeight = this.dataArray[sourceIndex] * 0.7;
                     const xLeft = center - (i + 1) * (barW + spacing);
                     const xRight = center + i * (barW + spacing);
-                    const grad = createGradientTop(0, barHeight);
-                    this.ctxTop.fillStyle = grad;
+                    
+                    // Standard vertical growth: top canvas grows from top down
                     this.ctxTop.fillRect(xLeft, 0, barW, barHeight);
                     this.ctxTop.fillRect(xRight, 0, barW, barHeight);
                 }
@@ -227,46 +289,29 @@ export class Visualizer {
             return;
         }
 
-        for (let i = 0; i < this.bufferLength; i++) {
+        if (showBottom) {
+            this.ctxBottom.fillStyle = this.gradientBottom;
+        }
+        if (showTop) {
+            this.ctxTop.fillStyle = this.gradientTop;
+        }
+
+        for (let i = 0; i < this.displayLength; i++) {
             barHeight = this.dataArray[i] * 0.7;
 
-        // Create fill style (gradient or single color)
-            const createGradient = (ctx, y1, y2) => {
-                let grad;
-                switch (this.gradientDirection) {
-                    case 'horizontal':
-                        grad = ctx.createLinearGradient(0, 0, this.canvasBottom.width, 0);
-                        break;
-                    case 'horizontal-reverse':
-                        grad = ctx.createLinearGradient(this.canvasBottom.width, 0, 0, 0);
-                        break;
-                    case 'vertical-reverse':
-                        grad = ctx.createLinearGradient(0, y2, 0, y1);
-                        break;
-                    default: // vertical
-                        grad = ctx.createLinearGradient(0, y1, 0, y2);
-                        break;
-                }
-                grad.addColorStop(0, this.hexToRgba(this.color1, this.alpha));
-                grad.addColorStop(1, this.hexToRgba(this.color2, this.alpha));
-                return grad;
-            };
-
             // Draw on bottom canvas
-            if (this.mode === 'bottom' || this.mode === 'both') {
-                const grad = createGradient(this.ctxBottom, this.canvasBottom.height, this.canvasBottom.height - barHeight);
-                this.ctxBottom.fillStyle = grad;
-                this.ctxBottom.fillRect(x, this.canvasBottom.height - barHeight, barWidth, barHeight);
+            if (showBottom) {
+                const finalX = mirrorBottom ? (this.canvasBottom.width - x - barWidth) : x;
+                this.ctxBottom.fillRect(finalX, this.canvasBottom.height - barHeight, barWidth, barHeight);
             }
 
             // Draw on top canvas
-            if (this.mode === 'top' || this.mode === 'both') {
-                const grad = createGradient(this.ctxTop, 0, barHeight);
-                this.ctxTop.fillStyle = grad;
-                this.ctxTop.fillRect(x, 0, barWidth, barHeight);
+            if (showTop) {
+                const finalX = mirrorTop ? (this.canvasTop.width - x - barWidth) : x;
+                this.ctxTop.fillRect(finalX, 0, barWidth, barHeight);
             }
 
-            x += barWidth + 2;
+            x += barWidth + spacing;
         }
     }
 }

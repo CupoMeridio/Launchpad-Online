@@ -123,6 +123,7 @@ main {
     object-fit: cover;
     z-index: -2;
     display: block;
+    transition: transform 0.1s ease-out, filter 0.1s ease-out;
 }
 
 /* Hide native file input to use a translated custom button */
@@ -186,6 +187,10 @@ main {
     position: relative;
 }
 
+.menu-dropdown .control-group {
+    padding: 12px 15px 4px 15px;
+}
+
 .control-group:last-child {
     margin-bottom: 0;
 }
@@ -207,10 +212,27 @@ main {
 .input-group {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 8px; /* Increased gap for better spacing */
     margin-bottom: 4px;
     flex-wrap: nowrap;
     justify-content: space-between;
+}
+
+/* Numeric input container with unit suffix */
+.input-with-unit {
+    display: flex;
+    align-items: center;
+    background: #333;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 0 6px;
+    height: 24px;
+    transition: border-color 0.2s ease;
+    flex-shrink: 0;
+}
+
+.input-with-unit:focus-within {
+    border-color: #00aaff;
 }
 
 /*
@@ -234,26 +256,35 @@ main {
 
 /* Numeric input next to the slider. */
 .manual-input {
-    width: 40px;
-    height: 16px;
-    background: #333;
-    border: 1px solid #555;
-    border-radius: 2px;
+    width: 30px;
+    height: 100%;
+    background: transparent;
+    border: none;
     color: #ccc;
-    font-size: 10px;
-    text-align: center;
+    font-size: 11px;
+    text-align: right;
     padding: 0;
-    flex-shrink: 0;
+    margin: 0;
+    outline: none;
+    -moz-appearance: textfield; /* Removes arrows in Firefox */
+    appearance: textfield;      /* Standard property for compatibility */
+}
+
+/* Removes arrows in Chrome, Safari, Edge, Opera */
+.manual-input::-webkit-outer-spin-button,
+.manual-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 /* Text showing the unit of measurement (e.g., 'px', '%'). */
 .value-display {
-    font-size: 10px;
+    font-size: 11px;
     color: #888;
-    margin-left: 1px;
+    margin-left: 2px;
     white-space: nowrap;
     flex-shrink: 0;
-    display: inline;
+    pointer-events: none;
 }
 
 /* Slider thumb for Webkit browsers (Chrome, Safari). */
@@ -565,6 +596,45 @@ main {
 
 .error-shake {
   animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+/*
+  NOTIFICATIONS
+*/
+#notification-container {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.notification {
+    padding: 10px 15px;
+    border-radius: 5px;
+    color: white;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+    pointer-events: auto;
+}
+
+.notification.show {
+    opacity: 1;
+}
+
+.notification.success {
+    background-color: #4CAF50;
+}
+
+.notification.error {
+    background-color: #f44336;
+}
+
+.notification.info {
+    background-color: #2196F3;
 }
 
 .midi-status-fixed {

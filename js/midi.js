@@ -17,45 +17,16 @@
 
 // Import launchpad-webmidi library
 import Launchpad from './vendor/launchpad-webmidi.js';
-import { getTranslation } from './ui.js';
+import { getTranslation, showNotification } from './ui.js';
+import { setLaunchpadInstance } from './physicalInterface.js';
+import { triggerPad, releasePad, changeSoundSet, changeMode } from './interaction.js';
+import { currentPage, currentMode } from './app.js';
 
 // Launchpad instance
 let launchpad = null;
 let midiAccessRef = null;
 let midiDisposed = false;
-
-function showTemporaryNotification(message, type) {
-    const notification = document.createElement('div');
-    notification.textContent = message;
-    notification.style.position = 'fixed';
-    notification.style.top = '10px';
-    notification.style.right = '10px';
-    notification.style.padding = '10px 15px';
-    notification.style.borderRadius = '5px';
-    notification.style.color = 'white';
-    notification.style.zIndex = '1000';
-    notification.style.opacity = '0';
-    notification.style.transition = 'opacity 0.5s ease-in-out';
-
-    if (type === 'success') {
-        notification.style.backgroundColor = '#4CAF50'; // Green
-    } else if (type === 'error') {
-        notification.style.backgroundColor = '#f44336'; // Red
-    } else {
-        notification.style.backgroundColor = '#2196F3'; // Blue (default)
-    }
-
-    document.body.appendChild(notification);
-
-    setTimeout(() => {
-        notification.style.opacity = '1';
-    }, 10);
-
-    setTimeout(() => {
-        notification.style.opacity = '0';
-        notification.addEventListener('transitionend', () => notification.remove());
-    }, 3000);
-}
+let isConnecting = false;
 
 /**
  * Updates the MIDI connection status indicator.
@@ -93,22 +64,32 @@ function setupLaunchpadEvents() {
     launchpad.on('key', (event) => {
         const { x, y, pressed } = event;
 
-        // Only when key is pressed (not when released)
-        if (!pressed) return;
-
         // Side buttons (Scene) have x=8
         if (x === 8 && y < 8) {
-            // Page change
-            const pageIndex = y;
-            window.changeSoundSet(pageIndex);
+            // Page change - only on press
+            if (pressed) {
+                const pageIndex = y;
+                window.changeSoundSet(pageIndex);
+            }
         } else if (x < 8 && y < 8) {
             // 8x8 grid pads (excluding Automap buttons which have y=8)
             const padIndex = y * 8 + x;
-            window.triggerPad(padIndex);
+            
+            if (pressed) {
+                // Trigger sound and light on press
+                triggerPad(padIndex);
+            } else {
+                // Stop sound and light on release
+                releasePad(padIndex);
+            }
         }
         // Handler for top automap buttons (y=8)
         else if (y === 8 && x < 8) {
-            // Automap buttons - future functionality
+            // Mode change - only on press
+            if (pressed) {
+                const modeIndex = x;
+                window.changeMode(modeIndex);
+            }
         }
     });
 }
@@ -117,11 +98,12 @@ function setupLaunchpadEvents() {
  * Attempts to find and connect to a Launchpad device.
  */
 async function connectToLaunchpad() {
-    // If a launchpad is already connected, do nothing.
-    if (launchpad && launchpad.connected) {
+    // If a connection is already in progress, or already connected, do nothing.
+    if (isConnecting || (launchpad && launchpad.connected)) {
         return;
     }
 
+    isConnecting = true;
     try {
         // Check if library is available
         if (!Launchpad) {
@@ -136,14 +118,19 @@ async function connectToLaunchpad() {
 
         // If connection is successful, assign it to the main variable
         launchpad = tempLaunchpad;
+        setLaunchpadInstance(launchpad);
         console.log(`[MIDI] Launchpad ${launchpad.name || ''} connected`);
 
         // Add visual connection indicator
         updateMidiStatus(true);
-        showTemporaryNotification(getTranslation('midi.status.connected'), 'success');
+        showNotification(getTranslation('midi.status.connected'), 'success');
 
         // Set up pad event handlers
         setupLaunchpadEvents();
+
+        // Refresh physical lights for the current page and mode
+        changeSoundSet(currentPage);
+        changeMode(currentMode);
 
     } catch (error) {
         console.log("[MIDI] No Launchpad found during scan.");
@@ -151,6 +138,8 @@ async function connectToLaunchpad() {
         if (!launchpad || !launchpad.connected) {
             updateMidiStatus(false);
         }
+    } finally {
+        isConnecting = false;
     }
 }
 
@@ -168,14 +157,20 @@ export async function initMidi() {
 
         // Set up the handler for device state changes (hot-plugging)
         midiAccessRef.onstatechange = (event) => {
+            // A port change can trigger multiple times (once for input, once for output)
+            // We only process one of them to avoid duplicate notifications
+            if (event.port.type !== 'input') return;
+
             console.log(`[MIDI] MIDI device state change: ${event.port.name}, ${event.port.state}`);
             
             const isLaunchpad = event.port.name.includes('Launchpad');
 
             if (event.port.state === 'disconnected' && isLaunchpad) {
                 console.log("[MIDI] Launchpad disconnected via onstatechange.");
+                // Update status and notify even if launchpad variable is null, 
+                // as long as we know a Launchpad device was disconnected.
                 updateMidiStatus(false);
-                showTemporaryNotification(getTranslation('midi.status.disconnected'), 'error');
+                showNotification(getTranslation('midi.status.disconnected'), 'error');
                 launchpad = null;
             } else if (event.port.state === 'connected') {
                 // A new device is connected, try to find a launchpad
@@ -186,11 +181,26 @@ export async function initMidi() {
         // Perform an initial scan for the Launchpad
         await connectToLaunchpad();
 
+        // Handle visibility change (e.g., browser minimized/restored)
+        // Some browsers suspend MIDI access or drop connections in the background
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                console.log("[MIDI] Tab became visible, checking connection...");
+                // Small delay to ensure hardware is ready
+                setTimeout(() => {
+                    if (!launchpad || !launchpad.connected) {
+                        console.log("[MIDI] Reconnecting Launchpad...");
+                        connectToLaunchpad();
+                    }
+                }, 500);
+            }
+        });
+
     } catch (error) {
         console.error("[MIDI] Web MIDI API not supported or access denied.", error);
         updateMidiStatus(false);
-        showTemporaryNotification(getTranslation('midi.notSupported'), 'error');
-}
+        showNotification(getTranslation('midi.notSupported'), 'error');
+    }
 }
 
 export async function disposeMidi() {

@@ -100,10 +100,13 @@
     position: relative; /* Necessary to position the 'sticker' pseudo-element. */
 }
 
-.grid-item-menu:hover,
-.grid-item-menu.selected {
+.grid-item-menu:hover {
     background-color: #bfbfbf;
-    box-shadow: 0 0 10px #00aaff; /* Blue glow to indicate selection. */
+}
+
+.grid-item-menu.selected {
+    background-color: #ff9900; /* Arancione per la pagina selezionata */
+    box-shadow: 0 0 10px #ff9900; /* Bagliore arancione */
 }
 
 /*

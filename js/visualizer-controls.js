@@ -1,4 +1,5 @@
 import { audioEngine } from './audio.js';
+import { syncInputSlider } from './ui.js';
 
 /**
  * Initializes all controls for the visualizer.
@@ -11,9 +12,9 @@ export function initializeVisualizerControls() {
         const initialValue = audioEngine.getAnalyser().smoothingTimeConstant;
         smoothingSlider.value = initialValue;
         smoothingInput.value = initialValue;
-        syncSliderAndInput(smoothingSlider, smoothingInput, (value) => {
+        syncInputSlider('smoothing-slider', 'smoothing-input', (value) => {
             if (window.visualizer) window.visualizer.setSmoothing(value);
-        });
+        }, 0, 0.95, true);
     }
 
     // Color and gradient controls
@@ -62,9 +63,9 @@ export function initializeVisualizerControls() {
     const alphaSlider = document.getElementById('alpha-slider');
     const alphaInput = document.getElementById('alpha-input');
     if (alphaSlider && alphaInput) {
-        syncSliderAndInput(alphaSlider, alphaInput, (value) => {
+        syncInputSlider('alpha-slider', 'alpha-input', (value) => {
             if (window.visualizer) window.visualizer.setAlpha(value);
-        });
+        }, 0, 1, true);
         // Set initial transparency
         if (window.visualizer) {
             window.visualizer.setAlpha(alphaSlider.value);
@@ -88,6 +89,34 @@ export function initializeVisualizerControls() {
         applySymmetry();
     }
 
+    // Bass Pulse controls
+    const bassPulseToggle = document.getElementById('bass-pulse-toggle');
+    const bassThresholdControls = document.getElementById('bass-threshold-controls');
+    const bassThresholdSlider = document.getElementById('bass-threshold-slider');
+    const bassThresholdInput = document.getElementById('bass-threshold-input');
+
+    if (bassPulseToggle && bassThresholdControls && bassThresholdSlider && bassThresholdInput) {
+        const applyBassPulse = () => {
+            const enabled = !!bassPulseToggle.checked;
+            if (window.visualizer) {
+                window.visualizer.setBassPulse(enabled);
+            }
+            bassThresholdControls.style.display = enabled ? 'block' : 'none';
+        };
+
+        bassPulseToggle.addEventListener('change', applyBassPulse);
+        
+        syncInputSlider('bass-threshold-slider', 'bass-threshold-input', (value) => {
+            if (window.visualizer) window.visualizer.setBassThreshold(value);
+        }, 0, 255, false);
+
+        // Set initial state
+        applyBassPulse();
+        if (window.visualizer) {
+            window.visualizer.setBassThreshold(parseInt(bassThresholdSlider.value, 10));
+        }
+    }
+
     const updateControlsVisibility = (mode) => {
         const groups = [
             document.getElementById('smoothing-group'),
@@ -96,6 +125,7 @@ export function initializeVisualizerControls() {
             document.getElementById('gradient-controls'),
             document.getElementById('alpha-group'),
             document.getElementById('symmetric-group'),
+            document.getElementById('bass-pulse-group'),
         ];
         const show = mode !== 'off';
         groups.forEach(el => {
@@ -127,28 +157,5 @@ export function initializeVisualizerControls() {
 }
 
 /**
- * Synchronizes a range slider with a numeric input.
- * @param {HTMLInputElement} slider - The slider element.
- * @param {HTMLInputElement} input - The numeric input element.
- * @param {Function} callback - Function called when the value changes.
+ * Update the visibility of the visualizer controls based on the mode.
  */
-function syncSliderAndInput(slider, input, callback) {
-    slider.addEventListener('input', function() {
-        const value = parseFloat(this.value);
-        input.value = value;
-        callback(value);
-    });
-
-    input.addEventListener('input', function() {
-        let value = parseFloat(this.value);
-        const min = parseFloat(slider.min);
-        const max = parseFloat(slider.max);
-        
-        if (isNaN(value)) return;
-
-        value = Math.max(min, Math.min(max, value));
-        this.value = value;
-        slider.value = value;
-        callback(value);
-    });
-}

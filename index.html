@@ -138,33 +138,39 @@
             <!--
               VIDEO CONTROLS
               These sliders allow real-time adjustments:
-              - Overlay opacity: Controls transparency of the overlay above the video.
+              - Opacity: Controls transparency of the overlay above the video.
               - Blur: Applies a blur filter to the video.
               - Brightness: Adjusts the video brightness.
             -->
             <div class="video-controls">
               <div class="control-group">
-                <label for="opacity-slider" data-i18n="background.opacity">Opacità overlay</label>
+                <label for="opacity-slider" data-i18n="background.opacity">Opacità</label>
                 <div class="input-group">
-                  <input type="range" id="opacity-slider" min="0" max="1" step="0.1" value="0">
-                  <input type="number" id="opacity-input" min="0" max="1" step="0.1" value="0" class="manual-input">
-                  <span class="value-display">%</span>
+                  <input type="range" id="opacity-slider" min="0" max="100" step="1" value="0">
+                  <div class="input-with-unit">
+                    <input type="number" id="opacity-input" min="0" max="100" step="1" value="0" class="manual-input">
+                    <span class="value-display">%</span>
+                  </div>
                 </div>
               </div>
               <div class="control-group">
                 <label for="blur-slider" data-i18n="background.blur">Sfocatura</label>
                 <div class="input-group">
-                  <input type="range" id="blur-slider" min="0" max="10" step="0.1" value="0">
-                  <input type="number" id="blur-input" min="0" max="10" step="0.1" value="0" class="manual-input">
-                  <span class="value-display">px</span>
+                  <input type="range" id="blur-slider" min="0" max="100" step="1" value="0">
+                  <div class="input-with-unit">
+                    <input type="number" id="blur-input" min="0" max="100" step="1" value="0" class="manual-input">
+                    <span class="value-display">%</span>
+                  </div>
                 </div>
               </div>
               <div class="control-group">
                 <label for="brightness-slider" data-i18n="background.brightness">Luminosità</label>
                 <div class="input-group">
-                  <input type="range" id="brightness-slider" min="0.5" max="1.5" step="0.1" value="1">
-                  <input type="number" id="brightness-input" min="0.5" max="1.5" step="0.1" value="1" class="manual-input">
-                  <span class="value-display">%</span>
+                  <input type="range" id="brightness-slider" min="0" max="200" step="1" value="100">
+                  <div class="input-with-unit">
+                    <input type="number" id="brightness-input" min="0" max="200" step="1" value="100" class="manual-input">
+                    <span class="value-display">%</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -187,11 +193,14 @@
           <button class="menu-toggle" onclick="toggleMenu('visualizer-menu')" data-i18n="menu.visualizer.toggle">Visualizzatore</button>
           <div class="menu-dropdown" id="visualizer-menu">
             <button class="menu-option selected" data-mode="both" onclick="visualizer.setMode('both')" data-i18n="visualizer.mode.both">Entrambi</button>
+            <button class="menu-option" data-mode="both-mirror" onclick="visualizer.setMode('both-mirror')" data-i18n="visualizer.mode.both-mirror">Entrambi (specchiato)</button>
             <button class="menu-option" data-mode="top" onclick="visualizer.setMode('top')" data-i18n="visualizer.mode.top">Superiore</button>
+            <button class="menu-option" data-mode="top-mirror" onclick="visualizer.setMode('top-mirror')" data-i18n="visualizer.mode.top-mirror">Superiore (specchiato)</button>
             <button class="menu-option" data-mode="bottom" onclick="visualizer.setMode('bottom')" data-i18n="visualizer.mode.bottom">Inferiore</button>
+            <button class="menu-option" data-mode="bottom-mirror" onclick="visualizer.setMode('bottom-mirror')" data-i18n="visualizer.mode.bottom-mirror">Inferiore (specchiato)</button>
             <button class="menu-option" data-mode="off" onclick="visualizer.setMode('off')" data-i18n="visualizer.mode.off">Spento</button>
 
-            <div class="control-group" id="symmetric-group" style="padding: 15px 15px 5px 15px;">
+            <div class="control-group" id="symmetric-group">
               <label for="symmetric-checkbox">
                 <input type="checkbox" id="symmetric-checkbox">
                 <span data-i18n="visualizer.symmetric">Simmetrico</span>
@@ -206,35 +215,37 @@
             </div>
             
             <!-- Visualizer smoothness control -->
-            <div class="control-group" id="smoothing-group" style="padding: 15px 15px 5px 15px;">
+            <div class="control-group" id="smoothing-group">
               <label for="smoothing-slider" data-i18n="visualizer.smoothing">Fluidità</label>
               <div class="input-group">
                 <input type="range" id="smoothing-slider" min="0" max="0.95" step="0.05" value="0.8">
-                <input type="number" id="smoothing-input" min="0" max="0.95" step="0.05" value="0.8" class="manual-input">
+                <div class="input-with-unit">
+                  <input type="number" id="smoothing-input" min="0" max="0.95" step="0.05" value="0.8" class="manual-input">
+                </div>
               </div>
             </div>
 
             <!-- Color and transparency controls -->
-            <div class="control-group" id="color1-group" style="padding: 15px 15px 5px 15px;">
+            <div class="control-group" id="color1-group">
               <label for="color1-picker" data-i18n="visualizer.color1">Colore 1</label>
               <div class="input-group">
                 <input type="color" id="color1-picker" value="#00aaff">
               </div>
             </div>
-            <div class="control-group" id="enable-gradient-group" style="padding: 15px 15px 5px 15px;">
+            <div class="control-group" id="enable-gradient-group">
               <label for="enable-color2-checkbox">
                 <input type="checkbox" id="enable-color2-checkbox">
                 <span data-i18n="visualizer.gradient.enable">Abilita Gradiente</span>
               </label>
             </div>
             <div id="gradient-controls" style="display: none;">
-              <div class="control-group" style="padding: 15px 15px 5px 15px;">
+              <div class="control-group">
                 <label for="color2-picker" data-i18n="visualizer.color2">Colore 2</label>
                 <div class="input-group">
                   <input type="color" id="color2-picker" value="#00aaff">
                 </div>
               </div>
-              <div class="control-group" style="padding: 15px 15px 5px 15px;">
+              <div class="control-group">
                 <label for="gradient-direction" data-i18n="visualizer.gradient.direction">Direzione Gradiente</label>
                 <select id="gradient-direction">
                   <option value="vertical" data-i18n="visualizer.gradient.vertical">Verticale</option>
@@ -244,11 +255,30 @@
                 </select>
               </div>
             </div>
-            <div class="control-group" id="alpha-group" style="padding: 15px 15px 5px 15px;">
+            <div class="control-group" id="alpha-group">
               <label for="alpha-slider" data-i18n="visualizer.alpha">Trasparenza</label>
               <div class="input-group">
                 <input type="range" id="alpha-slider" min="0" max="1" step="0.05" value="0.6">
-                <input type="number" id="alpha-input" min="0" max="1" step="0.05" value="0.6" class="manual-input">
+                <div class="input-with-unit">
+                  <input type="number" id="alpha-input" min="0" max="1" step="0.05" value="0.6" class="manual-input">
+                </div>
+              </div>
+            </div>
+
+            <!-- Bass Pulse control group -->
+            <div class="control-group" id="bass-pulse-group">
+              <label for="bass-pulse-toggle">
+                <input type="checkbox" id="bass-pulse-toggle">
+                <span data-i18n="visualizer.bassPulse.enable">Effetto Pulsante Bassi</span>
+              </label>
+              <div id="bass-threshold-controls" style="display: none; margin-top: 8px;">
+                <label for="bass-threshold-slider" data-i18n="visualizer.bassPulse.threshold">Soglia Bassi</label>
+                <div class="input-group">
+                  <input type="range" id="bass-threshold-slider" min="0" max="255" step="1" value="150">
+                  <div class="input-with-unit">
+                    <input type="number" id="bass-threshold-input" min="0" max="255" step="1" value="150" class="manual-input">
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -264,35 +294,39 @@
         <div class="menu-item">
           <button class="menu-toggle" onclick="toggleMenu('personalize-launchpad-menu')" data-i18n="menu.launchpad.toggle">Personalize Launchpad</button>
           <div class="menu-dropdown" id="personalize-launchpad-menu">
-            <div class="control-group" style="padding: 15px 15px 5px 15px;">
+            <div class="control-group">
               <label for="toggle-stickers">
                 <input type="checkbox" id="toggle-stickers" onchange="toggleLaunchpadStickers(this.checked)">
                 <span data-i18n="launchpad.stickers.show">Mostra Adesivi</span>
               </label>
             </div>
-            <div class="control-group" style="padding: 15px 15px 5px 15px;">
+            <div class="control-group">
               <label for="rotation-slider" data-i18n="launchpad.rotation">Rotazione Launchpad</label>
               <div class="input-group">
                 <input type="range" id="rotation-slider" min="0" max="360" step="1" value="0">
-                <input type="number" id="rotation-input" min="0" max="360" step="1" value="0" class="manual-input">
-                <span class="value-display">°</span>
+                <div class="input-with-unit">
+                  <input type="number" id="rotation-input" min="0" max="360" step="1" value="0" class="manual-input">
+                  <span class="value-display">°</span>
+                </div>
               </div>
             </div>
-            <div class="control-group" style="padding: 15px 15px 5px 15px;">
+            <div class="control-group">
               <label for="size-slider" data-i18n="launchpad.size">Dimensione Launchpad</label>
               <div class="input-group">
                 <input type="range" id="size-slider" min="50" max="140" step="1" value="100">
-                <input type="number" id="size-input" min="50" max="140" step="1" value="100" class="manual-input">
-                <span class="value-display">%</span>
+                <div class="input-with-unit">
+                  <input type="number" id="size-input" min="50" max="140" step="1" value="100" class="manual-input">
+                  <span class="value-display">%</span>
+                </div>
               </div>
             </div>
-            <div class="control-group" style="padding: 15px 15px 5px 15px;">
+            <div class="control-group">
               <label for="logo-file-input" data-i18n="launchpad.icon.label">Icona in alto a destra</label>
               <input type="file" id="logo-file-input" class="file-input-hidden" accept="video/*,image/*">
               <button type="button" class="menu-option" id="logo-file-trigger" data-i18n="launchpad.icon.upload">Carica icona/video</button>
               <button type="button" class="menu-option" onclick="resetTopRightIcon()" data-i18n="launchpad.icon.reset">Ripristina icona</button>
             </div>
-            <div class="control-group" style="padding: 15px 15px 5px 15px;">
+            <div class="control-group">
               <span class="section-title" data-i18n="launchpad.skins.title">Sfondi Launchpad</span>
             </div>
             <button class="menu-option selected" data-skin="none" onclick="setLaunchpadBackground(null)" data-i18n="launchpad.default">Default</button>
@@ -468,6 +502,7 @@
           <button id="m8" class="grid-item-menu" onclick="changeSoundSet(7)" ></button>
           <div class="testo_su_launchpad">Record</div>
         </div>
+        <div id="notification-container"></div>
       </main>
     </div>
 </body>

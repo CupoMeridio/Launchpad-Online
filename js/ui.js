@@ -14,13 +14,16 @@ const translations = {
         'menu.visualizer.toggle': 'Visualizzatore',
         'menu.launchpad.toggle': 'Personalizza Launchpad',
         'background.none': 'Nessuno sfondo',
-        'background.opacity': 'Opacità del livello',
+        'background.opacity': 'Opacità',
         'background.blur': 'Sfocatura',
         'background.brightness': 'Luminosità',
         'background.upload': 'Carica file',
         'visualizer.mode.both': 'Entrambi i pannelli',
+        'visualizer.mode.both-mirror': 'Entrambi (specchiato)',
         'visualizer.mode.top': 'Solo superiore',
+        'visualizer.mode.top-mirror': 'Superiore (specchiato)',
         'visualizer.mode.bottom': 'Solo inferiore',
+        'visualizer.mode.bottom-mirror': 'Inferiore (specchiato)',
         'visualizer.mode.off': 'Disattivato',
         'visualizer.symmetric': 'Simmetrico',
         'visualizer.smoothing': 'Fluidità animazione',
@@ -48,7 +51,9 @@ const translations = {
         'visualizer.symmetric.normal': 'Normale',
         'visualizer.symmetric.reverse': 'Inversa',
         'launchpad.skins.title': 'Sfondi Launchpad',
-        'launchpad.size': 'Dimensione Launchpad'
+        'launchpad.size': 'Dimensione Launchpad',
+        'visualizer.bassPulse.enable': 'Effetto Pulsante Bassi',
+        'visualizer.bassPulse.threshold': 'Soglia Bassi'
     },
     en: {
         'sidebar.title': 'Menu',
@@ -64,13 +69,16 @@ const translations = {
         'menu.visualizer.toggle': 'Visualizer',
         'menu.launchpad.toggle': 'Personalize Launchpad',
         'background.none': 'No Background',
-        'background.opacity': 'Overlay opacity',
+        'background.opacity': 'Opacity',
         'background.blur': 'Blur',
         'background.brightness': 'Brightness',
         'background.upload': 'Upload file',
         'visualizer.mode.both': 'Both Panels',
+        'visualizer.mode.both-mirror': 'Both (mirrored)',
         'visualizer.mode.top': 'Top Only',
+        'visualizer.mode.top-mirror': 'Top (mirrored)',
         'visualizer.mode.bottom': 'Bottom Only',
+        'visualizer.mode.bottom-mirror': 'Bottom (mirrored)',
         'visualizer.mode.off': 'Off',
         'visualizer.symmetric': 'Symmetric',
         'visualizer.smoothing': 'Animation smoothness',
@@ -98,7 +106,9 @@ const translations = {
         'visualizer.symmetric.normal': 'Normal',
         'visualizer.symmetric.reverse': 'Reverse',
         'launchpad.skins.title': 'Launchpad Backgrounds',
-        'launchpad.size': 'Launchpad size'
+        'launchpad.size': 'Launchpad size',
+        'visualizer.bassPulse.enable': 'Bass Pulse Effect',
+        'visualizer.bassPulse.threshold': 'Bass Threshold'
     },
     es: {
         'sidebar.title': 'Menú',
@@ -114,7 +124,7 @@ const translations = {
         'menu.visualizer.toggle': 'Visualizador',
         'menu.launchpad.toggle': 'Personalizar Launchpad',
         'background.none': 'Sin fondo',
-        'background.opacity': 'Opacidad de la superposición',
+        'background.opacity': 'Opacidad',
         'background.blur': 'Desenfoque',
         'background.brightness': 'Brillo',
         'background.upload': 'Subir archivo',
@@ -148,7 +158,9 @@ const translations = {
         'visualizer.symmetric.normal': 'Normal',
         'visualizer.symmetric.reverse': 'Inversa',
         'launchpad.skins.title': 'Fondos de Launchpad',
-        'launchpad.size': 'Tamaño del Launchpad'
+        'launchpad.size': 'Tamaño del Launchpad',
+        'visualizer.bassPulse.enable': 'Efecto de Pulso de Bajos',
+        'visualizer.bassPulse.threshold': 'Umbral de Bajos'
     },
     de: {
         'sidebar.title': 'Menü',
@@ -164,7 +176,7 @@ const translations = {
         'menu.visualizer.toggle': 'Visualizer',
         'menu.launchpad.toggle': 'Launchpad anpassen',
         'background.none': 'Kein Hintergrund',
-        'background.opacity': 'Deckkraft der Überlagerung',
+        'background.opacity': 'Deckkraft',
         'background.blur': 'Unschärfe',
         'background.brightness': 'Helligkeit',
         'background.upload': 'Datei hochladen',
@@ -198,7 +210,9 @@ const translations = {
         'visualizer.symmetric.normal': 'Normal',
         'visualizer.symmetric.reverse': 'Invertiert',
         'launchpad.skins.title': 'Launchpad-Hintergründe',
-        'launchpad.size': 'Launchpad-Größe'
+        'launchpad.size': 'Launchpad-Größe',
+        'visualizer.bassPulse.enable': 'Bass-Puls-Effekt',
+        'visualizer.bassPulse.threshold': 'Bass-Schwellenwert'
     },
     fr: {
         'sidebar.title': 'Menu',
@@ -214,7 +228,7 @@ const translations = {
         'menu.visualizer.toggle': 'Visualiseur',
         'menu.launchpad.toggle': 'Personnaliser le Launchpad',
         'background.none': 'Aucun fond',
-        'background.opacity': 'Opacité de la superposition',
+        'background.opacity': 'Opacité',
         'background.blur': 'Flou',
         'background.brightness': 'Luminosité',
         'background.upload': 'Téléverser un fichier',
@@ -248,7 +262,9 @@ const translations = {
         'visualizer.symmetric.normal': 'Normal',
         'visualizer.symmetric.reverse': 'Inversée',
         'launchpad.skins.title': 'Arrière-plans Launchpad',
-        'launchpad.size': 'Taille du Launchpad'
+        'launchpad.size': 'Taille du Launchpad',
+        'visualizer.bassPulse.enable': 'Effet Pulsation Basses',
+        'visualizer.bassPulse.threshold': 'Seuil des Basses'
     }
 };
 let currentLanguage = 'it';
@@ -361,6 +377,61 @@ export function toggleLaunchpadStickers(isActive) {
 }
 
 /**
+ * Helper to synchronize a slider (range input) with a number input.
+ * @param {string} sliderId - The ID of the slider element.
+ * @param {string} inputId - The ID of the number input element.
+ * @param {Function} callback - Function to call when the value changes.
+ * @param {number} min - Minimum allowed value.
+ * @param {number} max - Maximum allowed value.
+ * @param {boolean} isFloat - Whether the value is a float.
+ */
+export function syncInputSlider(sliderId, inputId, callback, min, max, isFloat = false) {
+    const slider = document.getElementById(sliderId);
+    const input = document.getElementById(inputId);
+    
+    if (!slider || !input) return;
+
+    const updateValue = (val, source) => {
+        let value = isFloat ? parseFloat(val) : parseInt(val, 10);
+        
+        if (isNaN(value)) return;
+
+        // Only clamp if it's not a partial manual input
+        const clampedValue = Math.max(min, Math.min(max, value));
+        
+        if (source === 'slider') {
+            input.value = String(clampedValue);
+            callback(clampedValue);
+        } else if (source === 'input') {
+            // For manual input, we only update the slider and callback if the value is within range
+            // This allows the user to type "1" then "10" then "100" without jumping to "50"
+            if (value >= min && value <= max) {
+                slider.value = String(value);
+                callback(value);
+            }
+        }
+    };
+
+    slider.addEventListener('input', function() {
+        updateValue(this.value, 'slider');
+    });
+
+    input.addEventListener('input', function() {
+        updateValue(this.value, 'input');
+    });
+
+    // Final clamp and sync on blur (when user finishes typing)
+    input.addEventListener('blur', function() {
+        let value = isFloat ? parseFloat(this.value) : parseInt(this.value, 10);
+        if (isNaN(value)) value = min;
+        const clampedValue = Math.max(min, Math.min(max, value));
+        this.value = String(clampedValue);
+        slider.value = String(clampedValue);
+        callback(clampedValue);
+    });
+}
+
+/**
  * Dynamically populates the menu for customizing the Launchpad background.
  * @param {string[]} imageFiles - An array of image file names (skins).
  */
@@ -376,43 +447,35 @@ export function initializePersonalizeLaunchpadMenu(imageFiles) {
         menu.appendChild(button);
     });
 
+    // Rotation synchronization
     const rotationSlider = document.getElementById('rotation-slider');
     const rotationInput = document.getElementById('rotation-input');
-    if (rotationSlider && rotationInput) {
-        rotationSlider.value = '0';
-        rotationInput.value = '0';
-        rotationSlider.addEventListener('input', function() {
-            rotationInput.value = this.value;
-            setLaunchpadRotation(parseInt(this.value, 10));
-        });
-        rotationInput.addEventListener('input', function() {
-            let value = parseInt(this.value, 10);
-            if (isNaN(value)) return;
-            value = Math.max(0, Math.min(360, value));
-            this.value = String(value);
-            rotationSlider.value = String(value);
-            setLaunchpadRotation(value);
-        });
+    const savedRotation = localStorage.getItem('launchpad.rotation');
+    
+    if (savedRotation !== null) {
+        currentRotation = parseInt(savedRotation, 10);
+        if (rotationSlider) rotationSlider.value = savedRotation;
+        if (rotationInput) rotationInput.value = savedRotation;
+    } else if (rotationSlider) {
+        currentRotation = parseInt(rotationSlider.value, 10);
     }
+    applyLaunchpadTransform();
+    syncInputSlider('rotation-slider', 'rotation-input', setLaunchpadRotation, 0, 360);
 
+    // Size synchronization
     const sizeSlider = document.getElementById('size-slider');
     const sizeInput = document.getElementById('size-input');
-    if (sizeSlider && sizeInput) {
-        sizeSlider.value = '100';
-        sizeInput.value = '100';
-        sizeSlider.addEventListener('input', function() {
-            sizeInput.value = this.value;
-            setLaunchpadSize(parseInt(this.value, 10));
-        });
-        sizeInput.addEventListener('input', function() {
-            let value = parseInt(this.value, 10);
-            if (isNaN(value)) return;
-            value = Math.max(50, Math.min(140, value));
-            this.value = String(value);
-            sizeSlider.value = String(value);
-            setLaunchpadSize(value);
-        });
+    const savedSize = localStorage.getItem('launchpad.size');
+
+    if (savedSize !== null) {
+        currentScale = parseInt(savedSize, 10) / 100;
+        if (sizeSlider) sizeSlider.value = savedSize;
+        if (sizeInput) sizeInput.value = savedSize;
+    } else if (sizeSlider) {
+        currentScale = parseInt(sizeSlider.value, 10) / 100;
     }
+    applyLaunchpadTransform();
+    syncInputSlider('size-slider', 'size-input', setLaunchpadSize, 50, 140);
 
     const logoInput = document.getElementById('logo-file-input');
     const logoTrigger = document.getElementById('logo-file-trigger');
@@ -429,37 +492,63 @@ export function initializePersonalizeLaunchpadMenu(imageFiles) {
     }
 }
 
+/**
+ * Shows a temporary notification on the screen.
+ * @param {string} message - The message to display.
+ * @param {string} type - The type of notification ('success', 'error', 'info').
+ * @param {number} duration - Duration in milliseconds before it disappears.
+ */
+export function showNotification(message, type = 'info', duration = 3000) {
+    const container = document.getElementById('notification-container');
+    if (!container) return;
+
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+
+    container.appendChild(notification);
+
+    // Trigger animation
+    setTimeout(() => notification.classList.add('show'), 10);
+
+    // Remove notification after duration
+    setTimeout(() => {
+        notification.classList.remove('show');
+        notification.addEventListener('transitionend', () => notification.remove());
+    }, duration);
+}
+
 // Global exposure for usage in HTML
+window.showNotification = showNotification;
 window.toggleSidebar = toggleSidebar;
 window.toggleMenu = toggleMenu;
 window.setLaunchpadBackground = setLaunchpadBackground;
 window.toggleLaunchpadStickers = toggleLaunchpadStickers;
 window.initializeLanguageControls = initializeLanguageControls;
-export function setLaunchpadRotation(angle) {
+let currentRotation = 0;
+let currentScale = 1;
+
+/**
+ * Applies both rotation and scale to the Launchpad element.
+ */
+function applyLaunchpadTransform() {
     const launchpad = document.getElementById('Launchpad');
     if (launchpad) {
-        launchpad.style.transform = `rotate(${angle}deg)`;
-        const rotationSlider = document.getElementById('rotation-slider');
-        const rotationInput = document.getElementById('rotation-input');
-        if (rotationSlider && rotationInput) {
-            rotationSlider.value = String(angle);
-            rotationInput.value = String(angle);
-        }
+        launchpad.style.transform = `rotate(${currentRotation}deg) scale(${currentScale})`;
     }
+}
+
+export function setLaunchpadRotation(angle) {
+    currentRotation = angle;
+    localStorage.setItem('launchpad.rotation', angle);
+    applyLaunchpadTransform();
 }
 window.setLaunchpadRotation = setLaunchpadRotation;
 
 export function setLaunchpadSize(size) {
-    const launchpad = document.getElementById('Launchpad');
-    if (launchpad) {
-        launchpad.style.transform = `scale(${size / 100})`;
-        const sizeSlider = document.getElementById('size-slider');
-        const sizeInput = document.getElementById('size-input');
-        if (sizeSlider && sizeInput) {
-            sizeSlider.value = String(size);
-            sizeInput.value = String(size);
-        }
-    }
+    currentScale = size / 100;
+    localStorage.setItem('launchpad.size', size);
+    applyLaunchpadTransform();
 }
 window.setLaunchpadSize = setLaunchpadSize;
 

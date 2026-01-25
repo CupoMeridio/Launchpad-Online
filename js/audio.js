@@ -1,16 +1,13 @@
 /**
- * =============================================================================
  * AUDIO ENGINE (audio.js)
- * =============================================================================
- * 
- * This module encapsulates all audio-related logic using the Web Audio API.
- * It is structured as an `AudioEngine` class to maintain clean and organized state.
- * Its main responsibilities are:
+ *
+ * Encapsulates all audio-related logic using the Web Audio API.
+ * Structured as an `AudioEngine` class to maintain clean and organized state.
+ * Responsibilities:
  * 1. Create and manage the audio context (`AudioContext`).
  * 2. Load audio files asynchronously and decode them into `AudioBuffer`.
  * 3. Play sounds when requested.
- * 4. Provide an `AnalyserNode` to allow other modules (like the visualizer)
- *    to analyze audio data in real-time.
+ * 4. Provide an `AnalyserNode` for real-time audio analysis.
  */
 
 class AudioEngine {
@@ -39,19 +36,29 @@ class AudioEngine {
          *   more "fluid" and smoothed effect over time, while lower values (e.g., 0.1) make the
          *   visualizer extremely reactive and "jerky".
          */
-        this.analyser.fftSize = 256;
+        this.analyser.fftSize = 512;
         this.analyser.smoothingTimeConstant = 0.8; // Default value for smooth animation, synchronized with UI.
 
         // 3. AUDIO GRAPH CONNECTION
         // Connect the analyzer to the final destination (speakers).
-        // This way, any sound we want to hear and visualize must be
+        // This way, any sound that must be heard and visualized must be
         // connected to the analyzer, which then passes it to the speakers.
         // Graph: [Sound Source] -> [Analyser] -> [Destination (Speakers)]
         this.analyser.connect(this.audioContext.destination);
 
         // 4. SOUND BUFFERS
-        // This array will contain decoded audio data (`AudioBuffer`) ready to be played.
+        // Decoded audio data (`AudioBuffer`) ready for playback.
         this.soundBuffers = [];
+
+        // 5. RESUME CONTEXT ON VISIBILITY CHANGE
+        // Browsers often suspend AudioContext when the tab is backgrounded.
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && this.audioContext.state === 'suspended') {
+                this.audioContext.resume().then(() => {
+                    console.log("[AUDIO] AudioContext resumed after tab became visible.");
+                });
+            }
+        });
     }
 
     /**
@@ -101,6 +108,11 @@ class AudioEngine {
      * @param {number} padIndex - The index of the pad (0-63) to play.
      */
     playPadSound(padIndex) {
+        // Ensure AudioContext is running (browsers suspend it if no user gesture)
+        if (this.audioContext.state === 'suspended') {
+            this.audioContext.resume();
+        }
+
         // Check if an audio buffer exists for the specified pad.
         if (!this.soundBuffers[padIndex]) {
             console.warn(`No sound loaded for pad ${padIndex}`);
@@ -128,7 +140,7 @@ class AudioEngine {
 }
 
 // SINGLETON EXPORT
-// We create and export a single instance of the `AudioEngine` class.
-// This pattern (singleton) ensures there is only one audio engine in the entire
-// application, avoiding conflicts and wasting resources.
+// Singleton instance of the `AudioEngine` class.
+// Pattern ensures a single audio engine instance throughout
+// the application, preventing conflicts and optimizing resource usage.
 export const audioEngine = new AudioEngine();
