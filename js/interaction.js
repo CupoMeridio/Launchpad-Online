@@ -26,7 +26,7 @@ export function playSound(event, index) {
     }
 
     triggerPad(index);
-    
+
     // For click (legacy), we still keep a short timeout if no release event is used
     if (event.type === 'click') {
         ensurePadCache();
@@ -151,11 +151,11 @@ export function initInteraction() {
     // Add delegated listeners to the Launchpad container
     launchpad.addEventListener('mousedown', handlePress);
     launchpad.addEventListener('touchstart', handlePress, { passive: false });
-    
+
     launchpad.addEventListener('mouseup', handleRelease);
     launchpad.addEventListener('touchend', handleRelease);
     launchpad.addEventListener('touchcancel', handleRelease);
-    
+
     launchpad.addEventListener('mouseout', handleMouseOut);
 }
 

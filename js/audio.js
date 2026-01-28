@@ -20,7 +20,7 @@ class AudioEngine {
         // The construct `(window.AudioContext || window.webkitAudioContext)` ensures compatibility
         // with older browsers that used a prefixed version.
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        
+
         // 2. ANALYZER CREATION
         // `AnalyserNode` is a component that provides frequency and waveform data
         // of audio passing through it, without modifying it. Essential for the visualizer.

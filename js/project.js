@@ -10,13 +10,13 @@ import { audioEngine } from './audio.js';
 import { setLaunchpadBackground } from './ui.js';
 import { setBackgroundVideo } from './video.js';
 import { changeSoundSet } from './interaction.js';
-import { 
-    currentProject, 
-    selectedProjectButton, 
-    setCurrentProject, 
-    setProjectSounds, 
+import {
+    currentProject,
+    selectedProjectButton,
+    setCurrentProject,
+    setProjectSounds,
     setProjectLights,
-    setSelectedProjectButton 
+    setSelectedProjectButton
 } from './app.js';
 
 /**

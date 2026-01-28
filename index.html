@@ -5,24 +5,25 @@
 -->
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
-    <!--
+  <!--
       The <head> section contains important metadata for the browser and search engines,
       as well as links to CSS and JavaScript files.
     -->
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Launchpad PWA</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Launchpad PWA</title>
 
-    <!--
+  <!--
       PWA MANIFEST (Progressive Web App)
       The manifest.json file provides information about the application (such as name, icons, colors)
       and allows it to be installed on desktop and mobile devices as if it were a native app.
       To customize the appearance of the installed app (e.g., name, icon), modify this file.
     -->
-    <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="manifest.json">
 
-    <!--
+  <!--
       ICONS
       These lines define the application icons for different platforms and sizes.
       - favicon.ico: Traditional icon for browsers.
@@ -30,43 +31,44 @@
       - apple-touch-icon.png: Icon for Apple devices when the app is added to the home screen.
       You can replace these files in 'assets/icons/' with your custom icons.
     -->
-    <link rel="icon" href="assets/icons/favicon.ico" type="image/x-icon">
-    <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16x16.png">
-    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <link rel="icon" href="assets/icons/favicon.ico" type="image/x-icon">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16x16.png">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
 
-    <!--
+  <!--
       STYLESHEETS (CSS)
       - style.css: Contains general styles for the layout, sidebar, and other interface elements.
                    Modify this file to change the general appearance of the app (colors, fonts, etc.).
       - launchpad.css: Contains specific styles for the Launchpad grid and its pads.
                        Modify this file to customize the Launchpad appearance (pad colors, animations, etc.).
     -->
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/launchpad.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/launchpad.css">
 
-    <!--
+  <!--
       JAVASCRIPT SCRIPTS
       - app.js: The main script that handles application logic.
                 It imports and coordinates other JavaScript modules.
       - type="module": Enables ES6 module functionality (import/export).
       - defer: Ensures the script runs only after the entire HTML document has loaded.
     -->
-    <script src="js/interaction.js" type="module" defer></script>
-    <script src="js/ui.js" type="module" defer></script>
-    <script src="js/video.js" type="module" defer></script>
-    <script src="js/visualizer-controls.js" type="module" defer></script>
-    <script src="js/project.js" type="module" defer></script>
-    <script src="js/app.js" type="module" defer></script>
+  <script src="js/interaction.js" type="module" defer></script>
+  <script src="js/ui.js" type="module" defer></script>
+  <script src="js/video.js" type="module" defer></script>
+  <script src="js/visualizer-controls.js" type="module" defer></script>
+  <script src="js/project.js" type="module" defer></script>
+  <script src="js/app.js" type="module" defer></script>
 </head>
+
 <body>
 
-<!--
+  <!--
   MAIN LAYOUT
   The div with class "layout" is the main container that organizes the sidebar and the page body.
   The entire structure is based on CSS Grid for a flexible layout.
 -->
-<div class="layout">
+  <div class="layout">
     <!--
       BACKGROUND ELEMENTS AND VISUALIZER
       - video-overlay: A semi-transparent layer overlaying the background video to improve readability.
@@ -90,7 +92,8 @@
       </div>
       <div class="sidebar-content">
         <div class="menu-item">
-          <button class="menu-toggle" onclick="toggleMenu('language-menu')" data-i18n="menu.language.toggle">Lingua</button>
+          <button class="menu-toggle" onclick="toggleMenu('language-menu')"
+            data-i18n="menu.language.toggle">Lingua</button>
           <div class="menu-dropdown" id="language-menu">
             <div class="control-group" style="padding: 15px 15px 5px 15px;">
               <label for="language-select" data-i18n="menu.language.label">Seleziona lingua</label>
@@ -112,7 +115,8 @@
             using static data loaded in JavaScript.
         -->
         <div class="menu-item">
-          <button class="menu-toggle" onclick="toggleMenu('project-menu')" data-i18n="menu.project.toggle">Seleziona progetto</button>
+          <button class="menu-toggle" onclick="toggleMenu('project-menu')" data-i18n="menu.project.toggle">Seleziona
+            progetto</button>
           <div class="menu-dropdown" id="project-menu">
             <!-- Project items will be populated dynamically -->
           </div>
@@ -125,14 +129,17 @@
           - CUSTOMIZATION: To add new videos, place them in the 'assets/videos/' folder.
         -->
         <div class="menu-item">
-          <button class="menu-toggle" onclick="toggleMenu('background-menu')" data-i18n="menu.background.toggle">Sfondo</button>
+          <button class="menu-toggle" onclick="toggleMenu('background-menu')"
+            data-i18n="menu.background.toggle">Sfondo</button>
           <div class="menu-dropdown" id="background-menu">
-            <button class="menu-option selected" data-video="none" onclick="clearBackground()" data-i18n="background.none">Nessuno sfondo</button>
+            <button class="menu-option selected" data-video="none" onclick="clearBackground()"
+              data-i18n="background.none">Nessuno sfondo</button>
             <div class="control-group" style="padding: 15px 15px 5px 15px;">
               <label for="background-file-input" data-i18n="background.upload">Carica file</label>
               <div class="input-group">
                 <input type="file" id="background-file-input" class="file-input-hidden" accept="video/*,image/*">
-                <button type="button" class="menu-option" id="background-file-trigger" data-i18n="background.upload">Carica file</button>
+                <button type="button" class="menu-option" id="background-file-trigger"
+                  data-i18n="background.upload">Carica file</button>
               </div>
             </div>
             <!--
@@ -168,19 +175,20 @@
                 <div class="input-group">
                   <input type="range" id="brightness-slider" min="0" max="200" step="1" value="100">
                   <div class="input-with-unit">
-                    <input type="number" id="brightness-input" min="0" max="200" step="1" value="100" class="manual-input">
+                    <input type="number" id="brightness-input" min="0" max="200" step="1" value="100"
+                      class="manual-input">
                     <span class="value-display">%</span>
                   </div>
                 </div>
               </div>
             </div>
-      </div>
-      <!-- Fixed MIDI Status at the bottom of the sidebar -->
-      <div class="midi-status-fixed">
-        <span id="midi-status-dot" class="midi-status-dot disconnected"></span>
-        <span id="midi-status-text" data-i18n="midi.status.disconnected">Launchpad scollegato</span>
-      </div>
-    </div>
+          </div>
+          <!-- Fixed MIDI Status at the bottom of the sidebar -->
+          <div class="midi-status-fixed">
+            <span id="midi-status-dot" class="midi-status-dot disconnected"></span>
+            <span id="midi-status-text" data-i18n="midi.status.disconnected">Launchpad scollegato</span>
+          </div>
+        </div>
 
         <!--
           VISUALIZER MENU
@@ -190,15 +198,23 @@
             can be modified directly in 'js/visualizer.js'.
         -->
         <div class="menu-item">
-          <button class="menu-toggle" onclick="toggleMenu('visualizer-menu')" data-i18n="menu.visualizer.toggle">Visualizzatore</button>
+          <button class="menu-toggle" onclick="toggleMenu('visualizer-menu')"
+            data-i18n="menu.visualizer.toggle">Visualizzatore</button>
           <div class="menu-dropdown" id="visualizer-menu">
-            <button class="menu-option selected" data-mode="both" onclick="visualizer.setMode('both')" data-i18n="visualizer.mode.both">Entrambi</button>
-            <button class="menu-option" data-mode="both-mirror" onclick="visualizer.setMode('both-mirror')" data-i18n="visualizer.mode.both-mirror">Entrambi (specchiato)</button>
-            <button class="menu-option" data-mode="top" onclick="visualizer.setMode('top')" data-i18n="visualizer.mode.top">Superiore</button>
-            <button class="menu-option" data-mode="top-mirror" onclick="visualizer.setMode('top-mirror')" data-i18n="visualizer.mode.top-mirror">Superiore (specchiato)</button>
-            <button class="menu-option" data-mode="bottom" onclick="visualizer.setMode('bottom')" data-i18n="visualizer.mode.bottom">Inferiore</button>
-            <button class="menu-option" data-mode="bottom-mirror" onclick="visualizer.setMode('bottom-mirror')" data-i18n="visualizer.mode.bottom-mirror">Inferiore (specchiato)</button>
-            <button class="menu-option" data-mode="off" onclick="visualizer.setMode('off')" data-i18n="visualizer.mode.off">Spento</button>
+            <button class="menu-option selected" data-mode="both" onclick="visualizer.setMode('both')"
+              data-i18n="visualizer.mode.both">Entrambi</button>
+            <button class="menu-option" data-mode="both-mirror" onclick="visualizer.setMode('both-mirror')"
+              data-i18n="visualizer.mode.both-mirror">Entrambi (specchiato)</button>
+            <button class="menu-option" data-mode="top" onclick="visualizer.setMode('top')"
+              data-i18n="visualizer.mode.top">Superiore</button>
+            <button class="menu-option" data-mode="top-mirror" onclick="visualizer.setMode('top-mirror')"
+              data-i18n="visualizer.mode.top-mirror">Superiore (specchiato)</button>
+            <button class="menu-option" data-mode="bottom" onclick="visualizer.setMode('bottom')"
+              data-i18n="visualizer.mode.bottom">Inferiore</button>
+            <button class="menu-option" data-mode="bottom-mirror" onclick="visualizer.setMode('bottom-mirror')"
+              data-i18n="visualizer.mode.bottom-mirror">Inferiore (specchiato)</button>
+            <button class="menu-option" data-mode="off" onclick="visualizer.setMode('off')"
+              data-i18n="visualizer.mode.off">Spento</button>
 
             <div class="control-group" id="symmetric-group">
               <label for="symmetric-checkbox">
@@ -213,14 +229,15 @@
                 </select>
               </div>
             </div>
-            
+
             <!-- Visualizer smoothness control -->
             <div class="control-group" id="smoothing-group">
               <label for="smoothing-slider" data-i18n="visualizer.smoothing">Fluidità</label>
               <div class="input-group">
                 <input type="range" id="smoothing-slider" min="0" max="0.95" step="0.05" value="0.8">
                 <div class="input-with-unit">
-                  <input type="number" id="smoothing-input" min="0" max="0.95" step="0.05" value="0.8" class="manual-input">
+                  <input type="number" id="smoothing-input" min="0" max="0.95" step="0.05" value="0.8"
+                    class="manual-input">
                 </div>
               </div>
             </div>
@@ -250,8 +267,10 @@
                 <select id="gradient-direction">
                   <option value="vertical" data-i18n="visualizer.gradient.vertical">Verticale</option>
                   <option value="horizontal" data-i18n="visualizer.gradient.horizontal">Orizzontale</option>
-                  <option value="vertical-reverse" data-i18n="visualizer.gradient.verticalReverse">Verticale (inverso)</option>
-                  <option value="horizontal-reverse" data-i18n="visualizer.gradient.horizontalReverse">Orizzontale (inverso)</option>
+                  <option value="vertical-reverse" data-i18n="visualizer.gradient.verticalReverse">Verticale (inverso)
+                  </option>
+                  <option value="horizontal-reverse" data-i18n="visualizer.gradient.horizontalReverse">Orizzontale
+                    (inverso)</option>
                 </select>
               </div>
             </div>
@@ -276,7 +295,8 @@
                 <div class="input-group">
                   <input type="range" id="bass-threshold-slider" min="0" max="255" step="1" value="150">
                   <div class="input-with-unit">
-                    <input type="number" id="bass-threshold-input" min="0" max="255" step="1" value="150" class="manual-input">
+                    <input type="number" id="bass-threshold-input" min="0" max="255" step="1" value="150"
+                      class="manual-input">
                   </div>
                 </div>
               </div>
@@ -292,7 +312,8 @@
             in the 'assets/images/launchpad covers/' folder.
         -->
         <div class="menu-item">
-          <button class="menu-toggle" onclick="toggleMenu('personalize-launchpad-menu')" data-i18n="menu.launchpad.toggle">Personalize Launchpad</button>
+          <button class="menu-toggle" onclick="toggleMenu('personalize-launchpad-menu')"
+            data-i18n="menu.launchpad.toggle">Personalize Launchpad</button>
           <div class="menu-dropdown" id="personalize-launchpad-menu">
             <div class="control-group">
               <label for="toggle-stickers">
@@ -323,20 +344,23 @@
             <div class="control-group">
               <label for="logo-file-input" data-i18n="launchpad.icon.label">Icona in alto a destra</label>
               <input type="file" id="logo-file-input" class="file-input-hidden" accept="video/*,image/*">
-              <button type="button" class="menu-option" id="logo-file-trigger" data-i18n="launchpad.icon.upload">Carica icona/video</button>
-              <button type="button" class="menu-option" onclick="resetTopRightIcon()" data-i18n="launchpad.icon.reset">Ripristina icona</button>
+              <button type="button" class="menu-option" id="logo-file-trigger" data-i18n="launchpad.icon.upload">Carica
+                icona/video</button>
+              <button type="button" class="menu-option" onclick="resetTopRightIcon()"
+                data-i18n="launchpad.icon.reset">Ripristina icona</button>
             </div>
             <div class="control-group">
               <span class="section-title" data-i18n="launchpad.skins.title">Sfondi Launchpad</span>
             </div>
-            <button class="menu-option selected" data-skin="none" onclick="setLaunchpadBackground(null)" data-i18n="launchpad.default">Default</button>
+            <button class="menu-option selected" data-skin="none" onclick="setLaunchpadBackground(null)"
+              data-i18n="launchpad.default">Default</button>
           </div>
         </div>
 
 
       </div>
     </div>
-    
+
     <!--
       MAIN BODY
       Contains the button to open the sidebar and the Launchpad itself.
@@ -358,7 +382,7 @@
           <div id="audio-unlock-overlay" class="launchpad-overlay">
             <p data-i18n="overlay.clickToStart">Clicca per avviare</p>
           </div>
-          
+
           <!--
             DECORATIVE ELEMENTS OF THE LAUNCHPAD
             These elements (triangles, texts, logo) are purely aesthetic.
@@ -366,16 +390,19 @@
             - CUSTOMIZATION: You can change images, texts, or styles by
               editing CSS in 'launchpad.css' or replacing images in 'assets/icons/'.
           -->
-          <div class="grid-item-triangle"><img src="assets/icons/triangle.png"  class="triangolo"></div>
-          <div class="grid-item-triangle"><img style="transform: rotate(180deg);" src="assets/icons/triangle.png" class="triangolo"></div>
-          <div class="grid-item-triangle"><img style="transform: rotate(270deg);" src="assets/icons/triangle.png" class="triangolo"></div>
-          <div class="grid-item-triangle"><img style="transform: rotate(90deg);" src="assets/icons/triangle.png" class="triangolo"></div>
+          <div class="grid-item-triangle"><img src="assets/icons/triangle.png" class="triangolo"></div>
+          <div class="grid-item-triangle"><img style="transform: rotate(180deg);" src="assets/icons/triangle.png"
+              class="triangolo"></div>
+          <div class="grid-item-triangle"><img style="transform: rotate(270deg);" src="assets/icons/triangle.png"
+              class="triangolo"></div>
+          <div class="grid-item-triangle"><img style="transform: rotate(90deg);" src="assets/icons/triangle.png"
+              class="triangolo"></div>
           <div class="testo_su_launchpad">Session</div>
           <div class="testo_su_launchpad">User 1</div>
           <div class="testo_su_launchpad">User 2</div>
           <div class="testo_su_launchpad">Mixer</div>
           <div id="image-container"><img src="assets/icons/Logo.png" alt="immagine" class="square-image"></div>
-      
+
           <!--
             TOP CONTROL BUTTONS (Row 'a')
             These buttons are currently empty with no associated functions.
@@ -389,7 +416,7 @@
           <button id="a6" class="grid-item-menu"></button>
           <button id="a7" class="grid-item-menu"></button>
           <button id="a8" class="grid-item-menu"></button>
-      
+
           <!--
             8x8 PAD GRID (Rows 'b' to 'i')
             Each button (pad) has:
@@ -402,16 +429,16 @@
             The playback logic is in 'js/audio.js'.
             The assignment of sounds to pads is defined in the JSON project files (e.g., 'projects/Virtual Riot - Idols.json').
           -->
-          <button id="b1" class="grid-item" onclick="playSound(event, 0)" ></button>
-          <button id="b2" class="grid-item" onclick="playSound(event, 1)" ></button>
+          <button id="b1" class="grid-item" onclick="playSound(event, 0)"></button>
+          <button id="b2" class="grid-item" onclick="playSound(event, 1)"></button>
           <!-- ... other pads from b3 to b8 ... -->
-          <button id="b3" class="grid-item" onclick="playSound(event, 2)" ></button>
-          <button id="b4" class="grid-item" onclick="playSound(event, 3)" ></button>
-          <button id="b5" class="grid-item" onclick="playSound(event, 4)" ></button>
-          <button id="b6" class="grid-item" onclick="playSound(event, 5)" ></button>
-          <button id="b7" class="grid-item" onclick="playSound(event, 6)" ></button>
-          <button id="b8" class="grid-item" onclick="playSound(event, 7)" ></button>
-          
+          <button id="b3" class="grid-item" onclick="playSound(event, 2)"></button>
+          <button id="b4" class="grid-item" onclick="playSound(event, 3)"></button>
+          <button id="b5" class="grid-item" onclick="playSound(event, 4)"></button>
+          <button id="b6" class="grid-item" onclick="playSound(event, 5)"></button>
+          <button id="b7" class="grid-item" onclick="playSound(event, 6)"></button>
+          <button id="b8" class="grid-item" onclick="playSound(event, 7)"></button>
+
           <!--
             SIDE CONTROL BUTTONS (column 'm')
             These buttons (m1-m8) change the sound "page" or "set".
@@ -420,90 +447,91 @@
             Logic is handled in 'js/app.js' and 'js/audio.js'.
             The texts next to these buttons (Volume, Pan, etc.) are purely decorative.
           -->
-          <button id="m1" class="grid-item-menu" onclick="changeSoundSet(0)" ></button>
+          <button id="m1" class="grid-item-menu" onclick="changeSoundSet(0)"></button>
           <div class="testo_su_launchpad">Volume</div>
-      
-          <button id="c1" class="grid-item" onclick="playSound(event, 8)" ></button>
-          <button id="c2" class="grid-item" onclick="playSound(event, 9)" ></button>
+
+          <button id="c1" class="grid-item" onclick="playSound(event, 8)"></button>
+          <button id="c2" class="grid-item" onclick="playSound(event, 9)"></button>
           <!-- ... other pads ... -->
-          <button id="c3" class="grid-item" onclick="playSound(event, 10)" ></button>
-          <button id="c4" class="grid-item" onclick="playSound(event, 11)" ></button>
-          <button id="c5" class="grid-item" onclick="playSound(event, 12)" ></button>
-          <button id="c6" class="grid-item" onclick="playSound(event, 13)" ></button>
-          <button id="c7" class="grid-item" onclick="playSound(event, 14)" ></button>
-          <button id="c8" class="grid-item" onclick="playSound(event, 15)" ></button>
-          <button id="m2" class="grid-item-menu" onclick="changeSoundSet(1)" ></button>
+          <button id="c3" class="grid-item" onclick="playSound(event, 10)"></button>
+          <button id="c4" class="grid-item" onclick="playSound(event, 11)"></button>
+          <button id="c5" class="grid-item" onclick="playSound(event, 12)"></button>
+          <button id="c6" class="grid-item" onclick="playSound(event, 13)"></button>
+          <button id="c7" class="grid-item" onclick="playSound(event, 14)"></button>
+          <button id="c8" class="grid-item" onclick="playSound(event, 15)"></button>
+          <button id="m2" class="grid-item-menu" onclick="changeSoundSet(1)"></button>
           <div class="testo_su_launchpad">Pan</div>
-      
-          <button id="d1" class="grid-item" onclick="playSound(event, 16)" ></button>
+
+          <button id="d1" class="grid-item" onclick="playSound(event, 16)"></button>
           <!-- ... and so on for all rows up to 'i' and 'm8' ... -->
-          <button id="d2" class="grid-item" onclick="playSound(event, 17)" ></button>
-          <button id="d3" class="grid-item" onclick="playSound(event, 18)" ></button>
-          <button id="d4" class="grid-item" onclick="playSound(event, 19)" ></button>
-          <button id="d5" class="grid-item" onclick="playSound(event, 20)" ></button>
-          <button id="d6" class="grid-item" onclick="playSound(event, 21)" ></button>
-          <button id="d7" class="grid-item" onclick="playSound(event, 22)" ></button>
-          <button id="d8" class="grid-item" onclick="playSound(event, 23)" ></button>
-          <button id="m3" class="grid-item-menu" onclick="changeSoundSet(2)" ></button>
+          <button id="d2" class="grid-item" onclick="playSound(event, 17)"></button>
+          <button id="d3" class="grid-item" onclick="playSound(event, 18)"></button>
+          <button id="d4" class="grid-item" onclick="playSound(event, 19)"></button>
+          <button id="d5" class="grid-item" onclick="playSound(event, 20)"></button>
+          <button id="d6" class="grid-item" onclick="playSound(event, 21)"></button>
+          <button id="d7" class="grid-item" onclick="playSound(event, 22)"></button>
+          <button id="d8" class="grid-item" onclick="playSound(event, 23)"></button>
+          <button id="m3" class="grid-item-menu" onclick="changeSoundSet(2)"></button>
           <div class="testo_su_launchpad">Send A</div>
-      
+
           <button id="e1" class="grid-item" onclick="playSound(event, 24)"></button>
-          <button id="e2" class="grid-item" onclick="playSound(event, 25)" ></button>
-          <button id="e3" class="grid-item" onclick="playSound(event, 26)" ></button>
-          <button id="e4" class="grid-item" onclick="playSound(event, 27)" ></button>
-          <button id="e5" class="grid-item" onclick="playSound(event, 28)" ></button>
-          <button id="e6" class="grid-item" onclick="playSound(event, 29)" ></button>
-          <button id="e7" class="grid-item" onclick="playSound(event, 30)" ></button>
-          <button id="e8" class="grid-item" onclick="playSound(event, 31)" ></button>
-          <button id="m4" class="grid-item-menu" onclick="changeSoundSet(3)" ></button>
+          <button id="e2" class="grid-item" onclick="playSound(event, 25)"></button>
+          <button id="e3" class="grid-item" onclick="playSound(event, 26)"></button>
+          <button id="e4" class="grid-item" onclick="playSound(event, 27)"></button>
+          <button id="e5" class="grid-item" onclick="playSound(event, 28)"></button>
+          <button id="e6" class="grid-item" onclick="playSound(event, 29)"></button>
+          <button id="e7" class="grid-item" onclick="playSound(event, 30)"></button>
+          <button id="e8" class="grid-item" onclick="playSound(event, 31)"></button>
+          <button id="m4" class="grid-item-menu" onclick="changeSoundSet(3)"></button>
           <div class="testo_su_launchpad">Send B</div>
-      
-          <button id="f1" class="grid-item" onclick="playSound(event, 32)" ></button>
-          <button id="f2" class="grid-item" onclick="playSound(event, 33)" ></button>
-          <button id="f3" class="grid-item" onclick="playSound(event, 34)" ></button>
+
+          <button id="f1" class="grid-item" onclick="playSound(event, 32)"></button>
+          <button id="f2" class="grid-item" onclick="playSound(event, 33)"></button>
+          <button id="f3" class="grid-item" onclick="playSound(event, 34)"></button>
           <button id="f4" class="grid-item" onclick="playSound(event, 35)"></button>
           <button id="f5" class="grid-item" onclick="playSound(event, 36)"></button>
           <button id="f6" class="grid-item" onclick="playSound(event, 37)"></button>
           <button id="f7" class="grid-item" onclick="playSound(event, 38)"></button>
-          <button id="f8" class="grid-item" onclick="playSound(event, 39)" ></button>
-          <button id="m5" class="grid-item-menu" onclick="changeSoundSet(4)" ></button>
+          <button id="f8" class="grid-item" onclick="playSound(event, 39)"></button>
+          <button id="m5" class="grid-item-menu" onclick="changeSoundSet(4)"></button>
           <div class="testo_su_launchpad">Stop</div>
-      
-          <button id="g1" class="grid-item" onclick="playSound(event, 40)" ></button>
-          <button id="g2" class="grid-item" onclick="playSound(event, 41)" ></button>
-          <button id="g3" class="grid-item" onclick="playSound(event, 42)" ></button>
-          <button id="g4" class="grid-item" onclick="playSound(event, 43)" ></button>
-          <button id="g5" class="grid-item" onclick="playSound(event, 44)" ></button>
+
+          <button id="g1" class="grid-item" onclick="playSound(event, 40)"></button>
+          <button id="g2" class="grid-item" onclick="playSound(event, 41)"></button>
+          <button id="g3" class="grid-item" onclick="playSound(event, 42)"></button>
+          <button id="g4" class="grid-item" onclick="playSound(event, 43)"></button>
+          <button id="g5" class="grid-item" onclick="playSound(event, 44)"></button>
           <button id="g6" class="grid-item" onclick="playSound(event, 45)"></button>
           <button id="g7" class="grid-item" onclick="playSound(event, 46)"></button>
           <button id="g8" class="grid-item" onclick="playSound(event, 47)"></button>
-          <button id="m6" class="grid-item-menu" onclick="changeSoundSet(5)" ></button>
+          <button id="m6" class="grid-item-menu" onclick="changeSoundSet(5)"></button>
           <div class="testo_su_launchpad">Mute</div>
-      
-          <button id="h1" class="grid-item" onclick="playSound(event, 48)" ></button>
-          <button id="h2" class="grid-item" onclick="playSound(event, 49)" ></button>
-          <button id="h3" class="grid-item" onclick="playSound(event, 50)" ></button>
+
+          <button id="h1" class="grid-item" onclick="playSound(event, 48)"></button>
+          <button id="h2" class="grid-item" onclick="playSound(event, 49)"></button>
+          <button id="h3" class="grid-item" onclick="playSound(event, 50)"></button>
           <button id="h4" class="grid-item" onclick="playSound(event, 51)"></button>
-          <button id="h5" class="grid-item" onclick="playSound(event, 52)" ></button>
-          <button id="h6" class="grid-item" onclick="playSound(event, 53)" ></button>
-          <button id="h7" class="grid-item" onclick="playSound(event, 54)" ></button>
-          <button id="h8" class="grid-item" onclick="playSound(event, 55)" ></button>
+          <button id="h5" class="grid-item" onclick="playSound(event, 52)"></button>
+          <button id="h6" class="grid-item" onclick="playSound(event, 53)"></button>
+          <button id="h7" class="grid-item" onclick="playSound(event, 54)"></button>
+          <button id="h8" class="grid-item" onclick="playSound(event, 55)"></button>
           <button id="m7" class="grid-item-menu" onclick="changeSoundSet(6)"></button>
           <div class="testo_su_launchpad">Solo</div>
-      
-          <button id="i1" class="grid-item" onclick="playSound(event, 56)" ></button>
-          <button id="i2" class="grid-item" onclick="playSound(event, 57)" ></button>
-          <button id="i3" class="grid-item" onclick="playSound(event, 58)" ></button>
-          <button id="i4"class="grid-item"  onclick="playSound(event, 59)" ></button>
-          <button id="i5" class="grid-item" onclick="playSound(event, 60)" ></button>
-          <button id="i6" class="grid-item" onclick="playSound(event, 61)" ></button>
-          <button id="i7" class="grid-item" onclick="playSound(event, 62)" ></button>
-          <button id="i8" class="grid-item" onclick="playSound(event, 63)" ></button>
-          <button id="m8" class="grid-item-menu" onclick="changeSoundSet(7)" ></button>
+
+          <button id="i1" class="grid-item" onclick="playSound(event, 56)"></button>
+          <button id="i2" class="grid-item" onclick="playSound(event, 57)"></button>
+          <button id="i3" class="grid-item" onclick="playSound(event, 58)"></button>
+          <button id="i4" class="grid-item" onclick="playSound(event, 59)"></button>
+          <button id="i5" class="grid-item" onclick="playSound(event, 60)"></button>
+          <button id="i6" class="grid-item" onclick="playSound(event, 61)"></button>
+          <button id="i7" class="grid-item" onclick="playSound(event, 62)"></button>
+          <button id="i8" class="grid-item" onclick="playSound(event, 63)"></button>
+          <button id="m8" class="grid-item-menu" onclick="changeSoundSet(7)"></button>
           <div class="testo_su_launchpad">Record</div>
         </div>
         <div id="notification-container"></div>
       </main>
     </div>
 </body>
+
 </html>

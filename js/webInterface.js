@@ -11,20 +11,20 @@
  */
 export const webColorMap = {
     // HSL: Hue (colore), Saturation (intensità), Lightness (chiarezza)
-    'red': { 
-        full: 'hsl(0, 100%, 50%)', 
-        medium: 'hsl(0, 70%, 70%)', 
-        low: 'hsl(0, 50%, 85%)' 
+    'red': {
+        full: 'hsl(0, 100%, 50%)',
+        medium: 'hsl(0, 70%, 70%)',
+        low: 'hsl(0, 50%, 85%)'
     },
-    'green': { 
-        full: 'hsl(120, 100%, 50%)', 
-        medium: 'hsl(120, 70%, 70%)', 
-        low: 'hsl(120, 50%, 85%)' 
+    'green': {
+        full: 'hsl(120, 100%, 50%)',
+        medium: 'hsl(120, 70%, 70%)',
+        low: 'hsl(120, 50%, 85%)'
     },
-    'amber': { 
-        full: 'hsl(45, 100%, 50%)', 
-        medium: 'hsl(45, 70%, 70%)', 
-        low: 'hsl(45, 50%, 85%)' 
+    'amber': {
+        full: 'hsl(45, 100%, 50%)',
+        medium: 'hsl(45, 70%, 70%)',
+        low: 'hsl(45, 50%, 85%)'
     }
 };
 

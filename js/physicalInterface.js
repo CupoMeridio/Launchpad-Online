@@ -40,7 +40,7 @@ export function setPhysicalColor(colorObj, p, immediate = false) {
 
     const x = p[0];
     const y = p[1];
-    
+
     // Calculate MIDI command and key (matches launchpad-webmidi logic)
     const cmd = y >= 8 ? 0xb0 : 0x90;
     const key = y >= 8 ? 0x68 + x : 0x10 * y + x;
@@ -64,13 +64,13 @@ export function flushPhysicalColors() {
         pendingUpdates.forEach((val, key) => {
             batch.push(val.cmd, key, val.vel);
         });
-        
+
         try {
             launchpad.midiOut.send(new Uint8Array(batch));
         } catch (e) {
             console.warn("[PHYSICAL] Failed to send MIDI batch:", e);
         }
-        
+
         pendingUpdates.clear();
     }
 }
@@ -83,7 +83,7 @@ export function flushPhysicalColors() {
  */
 export function getLpColor(colorName, level = null) {
     if (!launchpad) return null;
-    
+
     const cacheKey = `${colorName}_${level || 'default'}`;
     if (colorCache.has(cacheKey)) {
         return colorCache.get(cacheKey);

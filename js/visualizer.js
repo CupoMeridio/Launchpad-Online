@@ -16,10 +16,10 @@ export class Visualizer {
      */
     constructor(analyser, canvasTop, canvasBottom) {
         this.analyser = analyser;
-        
+
         this.canvasTop = canvasTop;
         this.ctxTop = this.canvasTop.getContext('2d');
-        
+
         this.canvasBottom = canvasBottom;
         this.ctxBottom = this.canvasBottom.getContext('2d');
 
@@ -30,17 +30,17 @@ export class Visualizer {
         // `frequencyBinCount` is half of the analyser's `fftSize`.
         // It represents the number of frequency data "bins" available.
         this.bufferLength = this.analyser.frequencyBinCount;
-        
+
         // Display a portion of the bins (the "musical range")
         // to avoid the silent high-frequency area at the end.
-        this.displayPercentage = 0.70; 
+        this.displayPercentage = 0.70;
         this.displayLength = Math.floor(this.bufferLength * this.displayPercentage);
 
         // Create an 8-bit integer array (values 0–255) to hold frequency data.
         this.dataArray = new Uint8Array(this.bufferLength);
 
         // Set an initial display mode.
-        this.mode = 'both'; 
+        this.mode = 'both';
         this.isSymmetric = false;
         this.symmetryReverse = false;
 
@@ -49,7 +49,7 @@ export class Visualizer {
         this.color2 = '#00aaff';
         this.gradientDirection = 'vertical';
         this.alpha = 0.6;
-        
+
         // Pre-calculated gradients
         this.gradientTop = null;
         this.gradientBottom = null;
@@ -82,7 +82,7 @@ export class Visualizer {
 
         this.canvasTop.width = rectTop.width;
         this.canvasTop.height = rectTop.height;
-        
+
         this.canvasBottom.width = rectBottom.width;
         this.canvasBottom.height = rectBottom.height;
 
@@ -220,7 +220,7 @@ export class Visualizer {
                 bassSum += this.dataArray[i];
             }
             const avgBass = bassSum / bassBins;
-            
+
             const bg = document.querySelector('.background-media');
             if (bg) {
                 if (avgBass > this.bassThreshold) {
@@ -261,7 +261,7 @@ export class Visualizer {
                     barHeight = this.dataArray[sourceIndex] * 0.7;
                     const xLeft = center - (i + 1) * (barW + spacing);
                     const xRight = center + i * (barW + spacing);
-                    
+
                     // Standard vertical growth: bottom canvas grows from bottom up
                     this.ctxBottom.fillRect(xLeft, this.canvasBottom.height - barHeight, barW, barHeight);
                     this.ctxBottom.fillRect(xRight, this.canvasBottom.height - barHeight, barW, barHeight);
@@ -280,7 +280,7 @@ export class Visualizer {
                     barHeight = this.dataArray[sourceIndex] * 0.7;
                     const xLeft = center - (i + 1) * (barW + spacing);
                     const xRight = center + i * (barW + spacing);
-                    
+
                     // Standard vertical growth: top canvas grows from top down
                     this.ctxTop.fillRect(xLeft, 0, barW, barHeight);
                     this.ctxTop.fillRect(xRight, 0, barW, barHeight);

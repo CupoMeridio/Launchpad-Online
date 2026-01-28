@@ -45,18 +45,18 @@ let midiInitialized = false;
 // ----------------------------------------------------------------------------
 // MAIN ENTRY POINT (DOMContentLoaded)
 // ----------------------------------------------------------------------------
-document.addEventListener('DOMContentLoaded', async function() {
+document.addEventListener('DOMContentLoaded', async function () {
     // --- 1. AudioContext Unlock ---
     const unlockOverlay = document.getElementById('audio-unlock-overlay');
     let audioUnlocked = false; // Flag to avoid double execution
 
     // Initialize UI interactions
     initInteraction();
-    
+
     const unlockAudioAndHideOverlay = () => {
         if (audioUnlocked) return; // Exit if already unlocked
         audioUnlocked = true; // Set the flag
-        
+
         if (unlockOverlay) {
             unlockOverlay.classList.add('hidden');
         }
@@ -76,12 +76,12 @@ document.addEventListener('DOMContentLoaded', async function() {
             initMidi().catch(error => console.error("Error during MIDI initialization:", error));
             midiInitialized = true;
         }
-        
+
         // Remove both event listeners to be safe
         document.removeEventListener('click', unlockAudioAndHideOverlay);
         document.removeEventListener('touchstart', unlockAudioAndHideOverlay);
     };
-    
+
     // Add both event listeners but without { once: true }
     // so we can remove them manually after the first execution
     document.addEventListener('click', unlockAudioAndHideOverlay);
@@ -125,7 +125,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         const analyser = audioEngine.getAnalyser();
         const canvasTop = document.getElementById('visualizer-canvas-top');
         const canvasBottom = document.getElementById('visualizer-canvas-bottom');
-        
         const visualizer = new Visualizer(analyser, canvasTop, canvasBottom);
         visualizer.draw();
         // The visualizer object must be global as it's used by onclick attributes in HTML
@@ -134,8 +133,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     } catch (error) {
         console.error("Unable to initialize visualizer:", error);
     }
-
-    
 
     // --- 7. Service Worker Registration ---
     if ('serviceWorker' in navigator) {

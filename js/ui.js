@@ -291,7 +291,7 @@ export function initializeLanguageControls() {
     currentLanguage = saved || 'it';
     if (select) {
         select.value = currentLanguage;
-        select.addEventListener('change', function() {
+        select.addEventListener('change', function () {
             currentLanguage = this.value;
             localStorage.setItem('ui.language', currentLanguage);
             applyTranslations();
@@ -388,17 +388,17 @@ export function toggleLaunchpadStickers(isActive) {
 export function syncInputSlider(sliderId, inputId, callback, min, max, isFloat = false) {
     const slider = document.getElementById(sliderId);
     const input = document.getElementById(inputId);
-    
+
     if (!slider || !input) return;
 
     const updateValue = (val, source) => {
         let value = isFloat ? parseFloat(val) : parseInt(val, 10);
-        
+
         if (isNaN(value)) return;
 
         // Only clamp if it's not a partial manual input
         const clampedValue = Math.max(min, Math.min(max, value));
-        
+
         if (source === 'slider') {
             input.value = String(clampedValue);
             callback(clampedValue);
@@ -412,16 +412,16 @@ export function syncInputSlider(sliderId, inputId, callback, min, max, isFloat =
         }
     };
 
-    slider.addEventListener('input', function() {
+    slider.addEventListener('input', function () {
         updateValue(this.value, 'slider');
     });
 
-    input.addEventListener('input', function() {
+    input.addEventListener('input', function () {
         updateValue(this.value, 'input');
     });
 
     // Final clamp and sync on blur (when user finishes typing)
-    input.addEventListener('blur', function() {
+    input.addEventListener('blur', function () {
         let value = isFloat ? parseFloat(this.value) : parseInt(this.value, 10);
         if (isNaN(value)) value = min;
         const clampedValue = Math.max(min, Math.min(max, value));
@@ -437,7 +437,7 @@ export function syncInputSlider(sliderId, inputId, callback, min, max, isFloat =
  */
 export function initializePersonalizeLaunchpadMenu(imageFiles) {
     const menu = document.getElementById('personalize-launchpad-menu');
-    
+
     imageFiles.forEach(imageFile => {
         const button = document.createElement('button');
         button.className = 'menu-option';
@@ -451,7 +451,7 @@ export function initializePersonalizeLaunchpadMenu(imageFiles) {
     const rotationSlider = document.getElementById('rotation-slider');
     const rotationInput = document.getElementById('rotation-input');
     const savedRotation = localStorage.getItem('launchpad.rotation');
-    
+
     if (savedRotation !== null) {
         currentRotation = parseInt(savedRotation, 10);
         if (rotationSlider) rotationSlider.value = savedRotation;
@@ -480,11 +480,11 @@ export function initializePersonalizeLaunchpadMenu(imageFiles) {
     const logoInput = document.getElementById('logo-file-input');
     const logoTrigger = document.getElementById('logo-file-trigger');
     if (logoTrigger && logoInput) {
-        logoTrigger.addEventListener('click', function() {
+        logoTrigger.addEventListener('click', function () {
             logoInput.value = '';
             logoInput.click();
         });
-        logoInput.addEventListener('change', function() {
+        logoInput.addEventListener('change', function () {
             const file = this.files && this.files[0];
             if (!file) return;
             setTopRightIconFile(file);

@@ -74,7 +74,7 @@ function setupLaunchpadEvents() {
         } else if (x < 8 && y < 8) {
             // 8x8 grid pads (excluding Automap buttons which have y=8)
             const padIndex = y * 8 + x;
-            
+
             if (pressed) {
                 // Trigger sound and light on press
                 triggerPad(padIndex);
@@ -162,7 +162,7 @@ export async function initMidi() {
             if (event.port.type !== 'input') return;
 
             console.log(`[MIDI] MIDI device state change: ${event.port.name}, ${event.port.state}`);
-            
+
             const isLaunchpad = event.port.name.includes('Launchpad');
 
             if (event.port.state === 'disconnected' && isLaunchpad) {
@@ -208,9 +208,9 @@ export async function disposeMidi() {
     midiDisposed = true;
     try {
         if (launchpad) {
-            try { launchpad.reset(0); } catch (e) {}
-            try { if (launchpad.midiIn && typeof launchpad.midiIn.close === 'function') await launchpad.midiIn.close(); } catch (e) {}
-            try { if (launchpad.midiOut && typeof launchpad.midiOut.close === 'function') await launchpad.midiOut.close(); } catch (e) {}
+            try { launchpad.reset(0); } catch (e) { }
+            try { if (launchpad.midiIn && typeof launchpad.midiIn.close === 'function') await launchpad.midiIn.close(); } catch (e) { }
+            try { if (launchpad.midiOut && typeof launchpad.midiOut.close === 'function') await launchpad.midiOut.close(); } catch (e) { }
             launchpad = null;
             updateMidiStatus(false);
         }
@@ -218,7 +218,7 @@ export async function disposeMidi() {
             midiAccessRef.onstatechange = null;
             midiAccessRef = null;
         }
-    } catch (e) {}
+    } catch (e) { }
 }
 
 window.addEventListener('beforeunload', () => { disposeMidi(); });
