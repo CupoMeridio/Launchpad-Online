@@ -53,7 +53,9 @@ document.addEventListener('DOMContentLoaded', async function () {
     // Initialize UI interactions
     initInteraction();
 
-    const unlockAudioAndHideOverlay = () => {
+    let projectsData = null;
+
+    const unlockAudioAndHideOverlay = async () => {
         if (audioUnlocked) return; // Exit if already unlocked
         audioUnlocked = true; // Set the flag
 
@@ -61,21 +63,27 @@ document.addEventListener('DOMContentLoaded', async function () {
             unlockOverlay.classList.add('hidden');
         }
         if (audioEngine.audioContext.state === 'suspended') {
-            audioEngine.audioContext.resume().then(() => {
-                console.log('AudioContext resumed successfully.');
-                // Trigger visual update for the current page and mode once audio is unlocked
-                changeSoundSet(currentPage);
-                changeMode(currentMode);
-            });
-        } else {
-            // If already running, just update visuals
-            changeSoundSet(currentPage);
-            changeMode(currentMode);
+            await audioEngine.audioContext.resume();
+            console.log('AudioContext resumed successfully.');
         }
+
         if (!midiInitialized) {
             initMidi().catch(error => console.error("Error during MIDI initialization:", error));
             midiInitialized = true;
         }
+
+        // --- 4. Default Project Loading (Delayed until click) ---
+        // Carichiamo PRIMA il progetto in modo che i dati siano pronti
+        if (projectsData && projectsData.length > 0) {
+            console.log("Loading initial project after interaction...");
+            const firstProjectButton = document.querySelector('#project-menu .menu-option');
+            await loadProject(projectsData[0].configPath, firstProjectButton);
+            console.log("Initial project loaded.");
+        }
+
+        // SOLO ORA aggiorniamo l'interfaccia visiva, quando abbiamo i suoni e le luci caricate
+        changeSoundSet(currentPage);
+        changeMode(currentMode);
 
         // Remove both event listeners to be safe
         document.removeEventListener('click', unlockAudioAndHideOverlay);
@@ -105,16 +113,11 @@ document.addEventListener('DOMContentLoaded', async function () {
             throw new Error(`HTTP Error: ${response.status}`);
         }
         const data = await response.json();
+        projectsData = data.projects;
 
         initializeBackgroundMenu(data.videos);
         initializeProjectMenu(data.projects);
         initializePersonalizeLaunchpadMenu(data.skins);
-
-        // --- 4. Default Project Loading ---
-        if (data.projects && data.projects.length > 0) {
-            const firstProjectButton = document.querySelector('#project-menu .menu-option');
-            await loadProject(data.projects[0].configPath, firstProjectButton);
-        }
 
     } catch (error) {
         console.error("Unable to load static data for menus:", error);

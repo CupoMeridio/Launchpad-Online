@@ -51,11 +51,18 @@ export async function loadProject(configPath, button) {
         const project = await response.json();
         setCurrentProject(project);
 
+        const baseUrl = configPath.substring(0, configPath.lastIndexOf('/') + 1);
+        const resolvePath = (path) => {
+            if (!path) return path;
+            if (path.startsWith('http') || path.startsWith('/') || path.startsWith('assets/')) return path;
+            return baseUrl + path;
+        };
+
         const sounds = [];
         const lights = [];
         if (project.pages) {
             project.pages.forEach(page => {
-                sounds.push(...page.sounds);
+                sounds.push(...page.sounds.map(s => resolvePath(s)));
                 if (page.lights) {
                     lights.push(...page.lights);
                 } else {
@@ -68,7 +75,15 @@ export async function loadProject(configPath, button) {
         setProjectLights(lights);
         await audioEngine.loadSounds(sounds);
 
-        setLaunchpadBackground(project.coverImage);
+        setLaunchpadBackground(resolvePath(project.coverImage));
+
+        if (project.backgroundVideo) {
+            console.log("Loading project background video:", project.backgroundVideo);
+            setBackgroundVideo(resolvePath(project.backgroundVideo));
+        } else {
+            // Se il progetto non ha un video, rimuovi quello attuale
+            setBackgroundVideo(null);
+        }
 
         if (selectedProjectButton) {
             selectedProjectButton.classList.remove('selected');

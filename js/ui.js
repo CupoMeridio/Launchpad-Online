@@ -4,11 +4,6 @@ const translations = {
         'sidebar.title': 'Menu',
         'menu.language.toggle': 'Lingua interfaccia',
         'menu.language.label': 'Seleziona lingua',
-        'menu.language.option.it': 'Italiano',
-        'menu.language.option.en': 'English',
-        'menu.language.option.es': 'Español',
-        'menu.language.option.de': 'Deutsch',
-        'menu.language.option.fr': 'Français',
         'menu.project.toggle': 'Seleziona progetto',
         'menu.background.toggle': 'Sfondo',
         'menu.visualizer.toggle': 'Visualizzatore',
@@ -59,11 +54,6 @@ const translations = {
         'sidebar.title': 'Menu',
         'menu.language.toggle': 'Interface Language',
         'menu.language.label': 'Select language',
-        'menu.language.option.it': 'Italian',
-        'menu.language.option.en': 'English',
-        'menu.language.option.es': 'Spanish',
-        'menu.language.option.de': 'German',
-        'menu.language.option.fr': 'French',
         'menu.project.toggle': 'Select Project',
         'menu.background.toggle': 'Background',
         'menu.visualizer.toggle': 'Visualizer',
@@ -114,11 +104,6 @@ const translations = {
         'sidebar.title': 'Menú',
         'menu.language.toggle': 'Idioma de la interfaz',
         'menu.language.label': 'Seleccionar idioma',
-        'menu.language.option.it': 'Italiano',
-        'menu.language.option.en': 'English',
-        'menu.language.option.es': 'Español',
-        'menu.language.option.de': 'Deutsch',
-        'menu.language.option.fr': 'Français',
         'menu.project.toggle': 'Seleccionar proyecto',
         'menu.background.toggle': 'Fondo',
         'menu.visualizer.toggle': 'Visualizador',
@@ -166,11 +151,6 @@ const translations = {
         'sidebar.title': 'Menü',
         'menu.language.toggle': 'Interface-Sprache',
         'menu.language.label': 'Sprache auswählen',
-        'menu.language.option.it': 'Italienisch',
-        'menu.language.option.en': 'Englisch',
-        'menu.language.option.es': 'Spanisch',
-        'menu.language.option.de': 'Deutsch',
-        'menu.language.option.fr': 'Französisch',
         'menu.project.toggle': 'Projekt auswählen',
         'menu.background.toggle': 'Hintergrund',
         'menu.visualizer.toggle': 'Visualizer',
@@ -218,11 +198,6 @@ const translations = {
         'sidebar.title': 'Menu',
         'menu.language.toggle': 'Langue de l’interface',
         'menu.language.label': 'Sélectionner la langue',
-        'menu.language.option.it': 'Italien',
-        'menu.language.option.en': 'Anglais',
-        'menu.language.option.es': 'Espagnol',
-        'menu.language.option.de': 'Allemand',
-        'menu.language.option.fr': 'Français',
         'menu.project.toggle': 'Sélectionner le projet',
         'menu.background.toggle': 'Arrière-plan',
         'menu.visualizer.toggle': 'Visualiseur',
@@ -357,7 +332,10 @@ export function setLaunchpadBackground(imageFile) {
         if (active) active.classList.add('selected');
     }
     if (imageFile) {
-        launchpad.style.backgroundImage = `url('/assets/images/launchpad covers/${imageFile}?t=${new Date().getTime()}')`;
+        // If the imageFile path contains a slash, assume it's a full path,
+        // otherwise assume it's a file in the default assets/images/launchpad covers/ directory.
+        const imageSrc = imageFile.includes('/') ? imageFile : `assets/images/launchpad covers/${imageFile}`;
+        launchpad.style.backgroundImage = `url('${imageSrc}?t=${new Date().getTime()}')`;
     } else {
         launchpad.style.backgroundImage = 'none';
     }

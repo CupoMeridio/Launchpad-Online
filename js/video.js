@@ -47,7 +47,12 @@ export function setBackgroundVideo(videoFile) {
     if (videoFile) {
         const video = document.createElement('video');
         video.className = 'background-media';
-        video.src = `assets/videos/${videoFile}?t=${new Date().getTime()}`;
+        
+        // If the videoFile path contains a slash, assume it's a full path,
+        // otherwise assume it's a file in the default assets/videos/ directory.
+        const videoSrc = videoFile.includes('/') ? videoFile : `assets/videos/${videoFile}`;
+        video.src = `${videoSrc}?t=${new Date().getTime()}`;
+        
         video.autoplay = true;
         video.loop = true;
         video.muted = true;

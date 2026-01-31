@@ -3,6 +3,7 @@
     "Disco Globes.mp4",
     "DiscoCity Loop.mp4",
     "Neon Square Drift.mp4",
+    "Neon Tunnel.webm",
     "Pulse Infinity VJ.mp4",
     "Purple Horizon Loop.mp4",
     "Sci-fi Drift.mp4"
@@ -18,7 +19,7 @@
     {
       "id": "virtual-riot-idols",
       "name": "Virtual Riot - Idols",
-      "configPath": "projects/Virtual Riot - Idols.json"
+      "configPath": "projects/Virtual Riot - Idols/Virtual Riot - Idols.json"
     }
   ]
 }
