@@ -20,6 +20,11 @@
       "id": "virtual-riot-idols",
       "name": "Virtual Riot - Idols",
       "configPath": "projects/Virtual Riot - Idols/Virtual Riot - Idols.json"
+    },
+    {
+      "id": "krewella-alive-cash-cash-x-kalkutta-remix",
+      "name": "Krewella - Alive (Cash Cash x Kalkutta Remix)",
+      "configPath": "projects/Krewella - Alive (Cash Cash x Kalkutta Remix)/Krewella - Alive (Cash Cash x Kalkutta Remix).json"
     }
   ]
 }

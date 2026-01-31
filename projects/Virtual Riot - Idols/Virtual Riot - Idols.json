@@ -17,10 +17,10 @@
         "samples/pagina1/intro2.wav", "samples/pagina1/intro3.wav", "", "samples/pagina1/intro4.wav", "samples/pagina1/intro7.wav", "", "samples/pagina1/intro6.wav", "samples/pagina1/intro5.wav"
       ],
       "lights": [
-        "letter_v_red", "letter_i_green", "letter_r_amber", "letter_t_red", "letter_u_green", "letter_a_amber", "letter_l_red", "symbol_exclamation_green",
-        "letter_r_amber", "letter_i_red", "letter_o_green", "letter_t_amber", "symbol_question_red", "", "", "",
-        "number_1_green", "number_2_amber", "number_3_red", "number_4_green", "number_5_amber", "number_6_red", "number_7_green", "number_8_amber",
-        "number_9_red", "number_0_green", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
         "", "", "", "", "", "", "", "",
         "", "", "", "", "", "", "", "",
         "", "", "", "", "", "", "", "",

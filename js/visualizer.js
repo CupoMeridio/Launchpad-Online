@@ -160,6 +160,11 @@ export class Visualizer {
             let grad;
             const w = canvas.width;
             const h = canvas.height;
+            // The visualizer bars are scaled by 0.7 and the max data value is 255.
+            // Using a factor of 0.35 - 0.4 ensures the color transition (midpoint) 
+            // happens at about half the height of an average bar, 
+            // making both colors clearly visible even at medium volumes.
+            const maxBarHeight = Math.min(h, 255 * 0.35);
 
             switch (this.gradientDirection) {
                 case 'horizontal':
@@ -170,20 +175,20 @@ export class Visualizer {
                     break;
                 case 'vertical-reverse':
                     if (isTop) {
-                        // Top visualizer grows from 0 to h. Reverse: color1 at tip (h), color2 at base (0)
-                        grad = ctx.createLinearGradient(0, h, 0, 0);
+                        // Top visualizer grows from 0 down. Reverse: color1 at tip, color2 at base (0)
+                        grad = ctx.createLinearGradient(0, maxBarHeight, 0, 0);
                     } else {
-                        // Bottom visualizer grows from h to 0. Reverse: color1 at tip (0), color2 at base (h)
-                        grad = ctx.createLinearGradient(0, 0, 0, h);
+                        // Bottom visualizer grows from h up. Reverse: color1 at tip, color2 at base (h)
+                        grad = ctx.createLinearGradient(0, h - maxBarHeight, 0, h);
                     }
                     break;
                 default: // vertical
                     if (isTop) {
-                        // Top visualizer grows from 0 to h. Vertical: color1 at base (0), color2 at tip (h)
-                        grad = ctx.createLinearGradient(0, 0, 0, h);
+                        // Top visualizer grows from 0 down. Vertical: color1 at base (0), color2 at tip
+                        grad = ctx.createLinearGradient(0, 0, 0, maxBarHeight);
                     } else {
-                        // Bottom visualizer grows from h to 0. Vertical: color1 at base (h), color2 at tip (0)
-                        grad = ctx.createLinearGradient(0, h, 0, 0);
+                        // Bottom visualizer grows from h up. Vertical: color1 at base (h), color2 at tip
+                        grad = ctx.createLinearGradient(0, h, 0, h - maxBarHeight);
                     }
                     break;
             }

@@ -1,0 +1,55 @@
+{
+  "id": "krewella-alive-cash-cash-x-kalkutta-remix",
+  "name": "Krewella - Alive (Cash Cash x Kalkutta Remix)",
+  "coverImage": "",
+  "backgroundVideo": "",
+  "pages": [
+    {
+      "name": "Page 1",
+      "sounds": [
+        "samples/pagina1/Alive (SickRomance) [2026-01-31 200903].wav", "samples/pagina1/Alive (SickRomance) [2026-01-31 200907].wav", "samples/pagina1/Alive (SickRomance) [2026-01-31 200910].wav", "samples/pagina1/Alive (SickRomance) [2026-01-31 200913].wav", "samples/pagina1/Alive (SickRomance) [2026-01-31 200815].wav", "", "", "samples/pagina1/Alive (SickRomance) [2026-01-31 200822].wav",
+        "samples/pagina1/Alive (SickRomance) [2026-01-31 200916].wav", "samples/pagina1/Alive (SickRomance) [2026-01-31 200919].wav", "", "samples/pagina1/Alive (SickRomance) [2026-01-31 200921].wav", "samples/pagina1/Alive (SickRomance) [2026-01-31 200828].wav", "samples/pagina1/Alive (SickRomance) [2026-01-31 200833].wav", "", "samples/pagina1/Alive (SickRomance) [2026-01-31 200837].wav",
+        "samples/pagina1/Alive (SickRomance) [2026-01-31 200925].wav", "samples/pagina1/Alive (SickRomance) [2026-01-31 200928].wav", "", "samples/pagina1/Alive (SickRomance) [2026-01-31 234938].wav", "samples/pagina1/Alive (SickRomance) [2026-01-31 200841].wav", "samples/pagina1/Alive (SickRomance) [2026-01-31 200844].wav", "", "samples/pagina1/Alive (SickRomance) [2026-01-31 200847].wav",
+        "samples/pagina1/Alive (SickRomance) [2026-01-31 200933].wav", "samples/pagina1/Alive (SickRomance) [2026-01-31 200936].wav", "", "samples/pagina1/Alive (SickRomance) [2026-01-31 200938].wav", "samples/pagina1/Alive (SickRomance) [2026-01-31 200852].wav", "samples/pagina1/Alive (SickRomance) [2026-01-31 200855].wav", "", "samples/pagina1/Alive (SickRomance) [2026-01-31 200858].wav",
+        "", "", "", "", "", "", "", "",
+        "samples/pagina1/Alive (SickRomance) [2026-01-31 200953].wav", "samples/pagina1/Alive (SickRomance) [2026-01-31 200956].wav", "samples/pagina1/Alive (SickRomance) [2026-01-31 200958].wav", "samples/pagina1/Alive (SickRomance) [2026-01-31 201000].wav", "", "", "", "",
+        "samples/pagina1/Alive (SickRomance) [2026-01-31 234430].wav", "", "", "samples/pagina1/Alive (SickRomance) [2026-01-31 201006].wav", "", "", "", "",
+        "samples/pagina1/Alive (SickRomance) [2026-01-31 201011].wav", "samples/pagina1/Alive (SickRomance) [2026-01-31 201013].wav", "samples/pagina1/Alive (SickRomance) [2026-01-31 201016].wav", "samples/pagina1/Alive (SickRomance) [2026-01-31 201019].wav", "", "", "", ""
+      ],
+      "lights": [
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", ""
+      ]
+    },
+    {
+      
+      "name": "Page 2",
+      "sounds": [
+        "", "", "", "", "samples/pagina2/Alive (SickRomance) [2026-01-31 201104].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201107].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201109].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201113].wav",
+        "", "", "", "", "samples/pagina2/Alive (SickRomance) [2026-01-31 201116].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201118].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201121].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201122].wav",
+        "samples/pagina2/Alive (SickRomance) [2026-01-31 201228].wav", "", "", "", "samples/pagina2/Alive (SickRomance) [2026-01-31 201125].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201127].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201131].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201133].wav",
+        "samples/pagina2/Alive (SickRomance) [2026-01-31 201231].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201235].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201238].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201240].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201136].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201138].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201140].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201142].wav",
+        "samples/pagina2/Alive (SickRomance) [2026-01-31 200438].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201245].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201247].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201250].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201218].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201216].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201214].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201212].wav",
+        "samples/pagina2/Alive (SickRomance) [2026-01-31 201252].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201254].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201256].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201259].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201210].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201207].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201202].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201158].wav",
+        "samples/pagina2/Alive (SickRomance) [2026-01-31 201301].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201304].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201306].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201308].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201155].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201153].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201151].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201149].wav",
+        "samples/pagina2/Alive (SickRomance) [2026-01-31 201310].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201312].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201315].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201317].wav", "samples/pagina2/Alive (SickRomance) [2026-01-31 201146].wav", "", "", ""
+      ],
+      "lights": [
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", ""
+      ]
+    }
+  ]
+}
