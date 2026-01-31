@@ -174,7 +174,7 @@ const createAnimationLibrary = () => {
     };
 
     const symbolCoords = {
-        'question': [[2, 0], [3, 0], [4, 0], [5, 0], [1, 1], [6, 1], [6, 2], [4, 3], [5, 3], [4, 4], [4, 5], [4, 7]],
+        'question': [[3, 0], [4, 0], [5, 0], [2, 1], [6, 1], [6, 2], [4, 3], [5, 3], [4, 4], [4, 5], [4, 7]],
         'exclamation': [[3, 0], [4, 0], [3, 1], [4, 1], [3, 2], [4, 2], [3, 3], [4, 3], [3, 4], [4, 4], [3, 5], [4, 5], [3, 7], [4, 7]]
     };
 
@@ -1655,8 +1655,6 @@ export function triggerAnimation(name, x, y) {
         anim.on(x, y);
         // Ensure changes are sent immediately for non-loop animations
         flushPhysicalColors();
-    } else if (!anim) {
-        console.warn(`Animation "${name}" not found.`);
     }
 }
 

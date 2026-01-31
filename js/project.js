@@ -9,9 +9,7 @@
 import { audioEngine } from './audio.js';
 import { setLaunchpadBackground } from './ui.js';
 import { setBackgroundVideo } from './video.js';
-import { changeSoundSet } from './interaction.js';
 import {
-    currentProject,
     selectedProjectButton,
     setCurrentProject,
     setProjectSounds,
@@ -92,9 +90,6 @@ export async function loadProject(configPath, button) {
             button.classList.add('selected');
             setSelectedProjectButton(button);
         }
-
-        // Load page 0 but don't update visuals yet (wait for audio unlock)
-        changeSoundSet(0, false);
 
         console.log(`Project "${project.name}" loaded.`);
     } catch (error) {

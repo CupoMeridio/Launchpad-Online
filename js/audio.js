@@ -115,7 +115,6 @@ class AudioEngine {
 
         // Check if an audio buffer exists for the specified pad.
         if (!this.soundBuffers[padIndex]) {
-            console.warn(`No sound loaded for pad ${padIndex}`);
             return;
         }
         // Create a new `AudioBufferSourceNode` for playback.

@@ -7,7 +7,7 @@
 // Main application modules
 import { audioEngine } from './audio.js';
 import { Visualizer } from './visualizer.js';
-import { initMidi } from './midi.js';
+import { initMidi, isMidiConnected } from './midi.js';
 
 // Initialization and management functions from separate modules
 import { initializeVisualizerControls } from './visualizer-controls.js';
@@ -55,6 +55,28 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     let projectsData = null;
 
+    const loadStaticData = async () => {
+        try {
+            const response = await fetch('js/static-data.json');
+            if (!response.ok) {
+                throw new Error(`HTTP Error: ${response.status}`);
+            }
+            const data = await response.json();
+            projectsData = data.projects;
+
+            initializeBackgroundMenu(data.videos);
+            initializeProjectMenu(data.projects);
+            initializePersonalizeLaunchpadMenu(data.skins);
+
+            return projectsData;
+        } catch (error) {
+            console.error("Unable to load static data for menus:", error);
+            return null;
+        }
+    };
+
+    const projectsDataPromise = loadStaticData();
+
     const unlockAudioAndHideOverlay = async () => {
         if (audioUnlocked) return; // Exit if already unlocked
         audioUnlocked = true; // Set the flag
@@ -67,13 +89,11 @@ document.addEventListener('DOMContentLoaded', async function () {
             console.log('AudioContext resumed successfully.');
         }
 
-        if (!midiInitialized) {
-            initMidi().catch(error => console.error("Error during MIDI initialization:", error));
-            midiInitialized = true;
+        const loadedProjects = await projectsDataPromise;
+        if (!projectsData && loadedProjects) {
+            projectsData = loadedProjects;
         }
 
-        // --- 4. Default Project Loading (Delayed until click) ---
-        // Carichiamo PRIMA il progetto in modo che i dati siano pronti
         if (projectsData && projectsData.length > 0) {
             console.log("Loading initial project after interaction...");
             const firstProjectButton = document.querySelector('#project-menu .menu-option');
@@ -81,9 +101,22 @@ document.addEventListener('DOMContentLoaded', async function () {
             console.log("Initial project loaded.");
         }
 
-        // SOLO ORA aggiorniamo l'interfaccia visiva, quando abbiamo i suoni e le luci caricate
-        changeSoundSet(currentPage);
-        changeMode(currentMode);
+        if (!midiInitialized) {
+            // We await initMidi to ensure we know the connection status 
+            // BEFORE deciding whether to manually initialize the UI.
+            await initMidi().catch(error => console.error("Error during MIDI initialization:", error));
+            midiInitialized = true;
+        }
+
+        // If NO MIDI is connected, we still need to call them once for the UI.
+        // We use isMidiConnected from midi.js to check the actual hardware status.
+        if (!isMidiConnected) {
+            console.log("[App] No MIDI connected, initializing UI visuals manually.");
+            if (currentProject) {
+                changeSoundSet(currentPage);
+            }
+            changeMode(currentMode);
+        }
 
         // Remove both event listeners to be safe
         document.removeEventListener('click', unlockAudioAndHideOverlay);
@@ -106,22 +139,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (toggleButton) toggleButton.classList.add('active');
     });
 
-    // --- 3. Static Data Loading for Menus ---
-    try {
-        const response = await fetch('js/static-data.json');
-        if (!response.ok) {
-            throw new Error(`HTTP Error: ${response.status}`);
-        }
-        const data = await response.json();
-        projectsData = data.projects;
-
-        initializeBackgroundMenu(data.videos);
-        initializeProjectMenu(data.projects);
-        initializePersonalizeLaunchpadMenu(data.skins);
-
-    } catch (error) {
-        console.error("Unable to load static data for menus:", error);
-    }
+    await projectsDataPromise;
 
     // --- 5. Audio Visualizer Initialization ---
     try {

@@ -1,5 +1,5 @@
 import { audioEngine } from './audio.js';
-import { currentPage, currentProject, projectLights, activePageButton, setCurrentPage, setActivePageButton, currentMode, activeModeButton, setCurrentMode, setActiveModeButton } from './app.js';
+import { currentPage, currentProject, projectLights, activePageButton, setCurrentPage, setActivePageButton, activeModeButton, setCurrentMode, setActiveModeButton } from './app.js';
 import { triggerAnimation, releaseAnimation } from './lights.js';
 import { setPhysicalColor, getLpColor, flushPhysicalColors } from './physicalInterface.js';
 
@@ -201,7 +201,6 @@ export function changeSoundSet(index, updateVisuals = true) {
             updatePhysicalPageLights(index);
         }
     } else {
-        console.warn(`Attempt to access non-existent page: ${index}`);
         const launchpadElement = document.getElementById('Launchpad');
         if (launchpadElement) {
             launchpadElement.classList.add('error-shake');
