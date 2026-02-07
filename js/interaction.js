@@ -56,14 +56,14 @@ export function triggerPad(index) {
         const soundIndex = currentPage * 64 + index;
 
         // Play audio
-        audioEngine.playPadSound(soundIndex);
+        const duration = audioEngine.playPadSound(soundIndex);
 
         // Trigger light animation if it exists
         if (projectLights && projectLights[soundIndex]) {
             const animationName = projectLights[soundIndex];
             const x = index % 8;
             const y = Math.floor(index / 8);
-            triggerAnimation(animationName, x, y);
+            triggerAnimation(animationName, x, y, duration);
         }
 
         pad.classList.add('active');

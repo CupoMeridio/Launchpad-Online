@@ -23,8 +23,8 @@
         "", "", "", "", "", "", "", "",
         "", "", "", "", "", "", "", "",
         "", "", "", "", "", "", "", "",
-        "", "", "", "", "", "", "", "",
-        "", "", "", "", "", "", "", ""
+        "rain_multi_up_green_to_red", "", "", "matrix_rain_multi_up_green_to_red", "", "", "", "",
+        "rain_up_red", "matrix_rain_multi_red_to_green", "rain_up_green", "rain_up_amber", "", "", "", ""
       ]
     },
     {

@@ -115,7 +115,7 @@ class AudioEngine {
 
         // Check if an audio buffer exists for the specified pad.
         if (!this.soundBuffers[padIndex]) {
-            return;
+            return 0;
         }
         // Create a new `AudioBufferSourceNode` for playback.
         // Each call creates a new independent "player".
@@ -127,6 +127,7 @@ class AudioEngine {
         this.analyser.connect(this.audioContext.destination);
         // Start playback immediately.
         source.start();
+        return source.buffer.duration;
     }
 
     /**
