@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // --- 2. UI Controls Initialization ---
     initializeVideoControls();
-    initializeLanguageControls();
+    await initializeLanguageControls();
     initializeVisualizerControls();
 
     document.querySelectorAll('.menu-dropdown.open').forEach(dropdown => {

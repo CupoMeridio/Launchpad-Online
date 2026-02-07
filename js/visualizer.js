@@ -58,6 +58,9 @@ export class Visualizer {
         // Bass pulse settings
         this.bassPulseEnabled = false;
         this.bassThreshold = 150;
+
+        // Animation frame reference
+        this.animationId = null;
     }
 
     /**
@@ -94,10 +97,20 @@ export class Visualizer {
      * @param {string} mode - Mode to set ('off', 'top', 'bottom', 'both').
      */
     setMode(mode) {
+        const wasOff = this.mode === 'off';
         this.mode = mode;
+
         this.ctxTop.clearRect(0, 0, this.canvasTop.width, this.canvasTop.height);
         this.ctxBottom.clearRect(0, 0, this.canvasBottom.width, this.canvasBottom.height);
         window.dispatchEvent(new CustomEvent('visualizer:mode', { detail: { mode } }));
+
+        // Manage animation loop
+        if (wasOff && mode !== 'off') {
+            this.draw();
+        } else if (mode === 'off' && this.animationId) {
+            cancelAnimationFrame(this.animationId);
+            this.animationId = null;
+        }
     }
 
     setSymmetric(enabled) {
@@ -206,9 +219,12 @@ export class Visualizer {
      * Main drawing loop (animation).
      */
     draw() {
-        requestAnimationFrame(() => this.draw());
+        if (this.mode === 'off') {
+            this.animationId = null;
+            return;
+        }
 
-        if (this.mode === 'off') return;
+        this.animationId = requestAnimationFrame(() => this.draw());
 
         this.updateGradients();
 
