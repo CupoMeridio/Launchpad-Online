@@ -13,7 +13,7 @@ import { initMidi, isMidiConnected } from './midi.js';
 import { initializeVisualizerControls } from './visualizer-controls.js';
 import { initializeVideoControls } from './video.js';
 import { loadProject, initializeProjectMenu, initializeBackgroundMenu } from './project.js';
-import { initializePersonalizeLaunchpadMenu, initializeLanguageControls } from './ui.js';
+import { initializePersonalizeLaunchpadMenu, initializeLanguageControls, getTranslation } from './ui.js';
 import { initInteraction, changeSoundSet, changeMode } from './interaction.js';
 
 // ----------------------------------------------------------------------------
@@ -82,8 +82,13 @@ document.addEventListener('DOMContentLoaded', async function () {
         audioUnlocked = true; // Set the flag
 
         if (unlockOverlay) {
-            unlockOverlay.classList.add('hidden');
+            const progressText = unlockOverlay.querySelector('p');
+            if (progressText) {
+                const loadingText = getTranslation('overlay.loading').replace('{progress}', '0');
+                progressText.textContent = loadingText;
+            }
         }
+
         if (audioEngine.audioContext.state === 'suspended') {
             await audioEngine.audioContext.resume();
             console.log('AudioContext resumed successfully.');
@@ -97,6 +102,8 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (projectsData && projectsData.length > 0) {
             console.log("Loading initial project after interaction...");
             const firstProjectButton = document.querySelector('#project-menu .menu-option');
+            
+            // loadProject ora gestisce autonomamente l'overlay e la percentuale
             await loadProject(projectsData[0].configPath, firstProjectButton);
             console.log("Initial project loaded.");
         }

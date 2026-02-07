@@ -7,7 +7,7 @@
  */
 
 import { audioEngine } from './audio.js';
-import { setLaunchpadBackground } from './ui.js';
+import { setLaunchpadBackground, getTranslation } from './ui.js';
 import { setBackgroundVideo } from './video.js';
 import {
     selectedProjectButton,
@@ -39,9 +39,22 @@ export function initializeBackgroundMenu(videoFiles) {
  * Loads a project, its sounds, and sets the associated background.
  * @param {string} configPath - Path to the project configuration JSON file.
  * @param {HTMLElement} button - Clicked button element to update 'selected' state.
+ * @param {function} onProgress - Optional callback for loading progress (0-100).
  */
-export async function loadProject(configPath, button) {
+export async function loadProject(configPath, button, onProgress = null) {
+    const overlay = document.getElementById('audio-unlock-overlay');
+    const progressText = overlay ? overlay.querySelector('p') : null;
+
     try {
+        // Mostra l'overlay durante il caricamento del progetto
+        if (overlay) {
+            overlay.classList.remove('hidden');
+            if (progressText) {
+                const loadingText = getTranslation('overlay.loading').replace('{progress}', '0');
+                progressText.textContent = loadingText;
+            }
+        }
+
         const response = await fetch(configPath);
         if (!response.ok) {
             throw new Error(`Errore HTTP: ${response.status}`);
@@ -71,7 +84,18 @@ export async function loadProject(configPath, button) {
         }
         setProjectSounds(sounds);
         setProjectLights(lights);
-        await audioEngine.loadSounds(sounds);
+
+        // Se non è stato passato un onProgress esterno (es. dall'app.js all'avvio),
+        // ne creiamo uno interno che aggiorna l'overlay.
+        const internalProgress = (progress) => {
+            if (progressText) {
+                const loadingText = getTranslation('overlay.loading').replace('{progress}', Math.round(progress));
+                progressText.textContent = loadingText;
+            }
+            if (onProgress) onProgress(progress);
+        };
+
+        await audioEngine.loadSounds(sounds, internalProgress);
 
         setLaunchpadBackground(resolvePath(project.coverImage));
 
@@ -94,6 +118,11 @@ export async function loadProject(configPath, button) {
         console.log(`Project "${project.name}" loaded.`);
     } catch (error) {
         console.error("Unable to load project:", error);
+    } finally {
+        // Nascondi sempre l'overlay alla fine del caricamento
+        if (overlay) {
+            overlay.classList.add('hidden');
+        }
     }
 }
 

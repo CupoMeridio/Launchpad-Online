@@ -90,16 +90,25 @@ class AudioEngine {
     }
 
     /**
-     * Loads an entire array of sound URLs.
+     * Loads an entire array of sound URLs in batches to avoid saturating connections.
      * @param {string[]} soundUrls - An array of URLs to load.
+     * @param {function} onProgress - Optional callback for loading progress.
      */
-    async loadSounds(soundUrls) {
+    async loadSounds(soundUrls, onProgress = null) {
         this.soundBuffers = []; // Clear previous project buffers.
-        // `map` creates an array of promises, where each promise represents loading a sound.
-        const loadPromises = soundUrls.map((url, index) => this.loadSound(url, index));
-        // `Promise.all` waits for all loading promises to complete.
-        // This allows loading all sounds in parallel, speeding up the process.
-        await Promise.all(loadPromises);
+        const total = soundUrls.length;
+        const BATCH_SIZE = 10; // Load 10 sounds at a time
+
+        for (let i = 0; i < total; i += BATCH_SIZE) {
+            const batch = soundUrls.slice(i, i + BATCH_SIZE);
+            const batchPromises = batch.map((url, index) => this.loadSound(url, i + index));
+            await Promise.all(batchPromises);
+            
+            if (onProgress) {
+                const progress = Math.min(((i + BATCH_SIZE) / total) * 100, 100);
+                onProgress(progress);
+            }
+        }
         console.log('All project sounds have been loaded!');
     }
 

@@ -33,6 +33,7 @@
     "launchpad.stickers.show": "Show stickers on Launchpad",
     "launchpad.default": "Default",
     "overlay.clickToStart": "Click to start",
+    "overlay.loading": "Loading... {progress}%",
     "midi.status.connected": "Launchpad Connected",
     "midi.status.disconnected": "Launchpad Disconnected",
     "midi.notSupported": "MIDI Not Supported",

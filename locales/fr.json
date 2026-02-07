@@ -33,6 +33,7 @@
     "launchpad.stickers.show": "Afficher les autocollants sur le Launchpad",
     "launchpad.default": "Par défaut",
     "overlay.clickToStart": "Cliquez pour démarrer",
+    "overlay.loading": "Chargement... {progress}%",
     "midi.status.connected": "Launchpad connecté",
     "midi.status.disconnected": "Launchpad déconnecté",
     "midi.notSupported": "MIDI non pris en charge",
