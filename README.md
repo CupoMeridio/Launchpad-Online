@@ -38,6 +38,7 @@ The project serves as a specialized alternative to Ableton Live, focusing exclus
   - **Layout Control**: Rotation and scalability settings for optimal visuals.
 - **PWA Ready**: Installable as a native app on desktop and mobile, with offline support.
 - **Project Management**: Project loading via JSON files with support for up to 8 pages (512 total sounds).
+- **Built-in Project Library**: Access a growing collection of pre-configured projects ready to be played immediately.
 
 ---
 
@@ -49,17 +50,9 @@ Planned features for future development:
 - **In-App Project Creator**: Integrated tool to build and configure projects directly within the application without manual JSON editing.
 - **In-App Animation Designer**: Visual interface to create and customize lighting patterns and animations.
 - **Project Library Expansion**: Continuous addition of ready-to-play projects to the built-in library.
-
----
-
-## Technical Architecture
-
-The project follows a modular structure for scalability and code maintenance:
-
-- **[animationEngine.js](file:///js/animationEngine.js)**: Manages the `FadeSystem` and animation scheduling.
-- **[animationLibrary.js](file:///js/animationLibrary.js)**: Central registry for all available animations.
-- **[midi.js](file:///js/midi.js)**: Handles MIDI protocol and hardware device hot-plugging.
-- **[audio.js](file:///js/audio.js)**: Engine for audio buffer management and multi-channel playback.
+- **Performance Optimization**: Continuous research into app optimization to ensure lightweight and fast execution across browsers and the widest possible range of devices.
+- **Asset Compression & Memory Management**: Implementation of methods to reduce or compress the size of video and audio assets (currently .mp4 and .wav) to make the app lighter and less memory-intensive.
+- **Localization & Multi-language Support**: Implement translations for as many languages as possible to make the application accessible to a global audience.
 
 ---
 
