@@ -19,7 +19,6 @@ Queste animazioni vengono eseguite una volta quando il tasto viene premuto. Sost
 | Stringa JSON | Descrizione |
 |--------------|-------------|
 | `fade_{color}` | Dissolvenza standard del tasto premuto. |
-| `short_fade_{color}` | Dissolvenza rapida. |
 | `matrix_rain_{color}` | Effetto pioggia stile Matrix su tutta la griglia. |
 | `explode_{color}` | Espansione a quadrato dal punto di pressione verso l'esterno. |
 | `implode_{color}` | Contrazione a quadrato dai bordi verso il punto di pressione. |

@@ -68,7 +68,7 @@ export class FadeSystem {
      * @param {Object} p - The pad element (HTML Node) or [x, y] coordinates.
      * @param {string} colorName - Color name key.
      * @param {number} duration - Total duration in ms.
-     * @param {string} mode - 'standard', 'short', or 'instant'.
+     * @param {string} mode - 'standard' or 'instant'.
      */
     add(p, colorName, duration, mode = 'standard', config = null) {
         const key = Array.isArray(p) ? `${p[0]},${p[1]}` : p;
@@ -83,7 +83,7 @@ export class FadeSystem {
         state.p = p;
         state.color = colorName;
         state.start = performance.now();
-        state.dur = duration || (mode === 'short' ? 140 : 300);
+        state.dur = duration || 300;
         state.mode = mode;
         state.config = config;
 
@@ -142,20 +142,6 @@ export class FadeSystem {
                 if (elapsed < state.dur) {
                     setWebColor(webColors.full, p);
                     setPhysicalColor(state.base?.full, p);
-                } else {
-                    setWebColor('off', p);
-                    setPhysicalColor(state.off, p);
-                    this._recycle(key, state);
-                }
-            } else if (state.mode === 'short') {
-                // Short Fade: Full -> Low -> Off
-                const step1 = state.dur / 2;
-                if (elapsed < step1) {
-                    setWebColor(webColors.full, p);
-                    setPhysicalColor(state.base?.full, p);
-                } else if (elapsed < state.dur) {
-                    setWebColor(webColors.low, p);
-                    setPhysicalColor(state.base?.low, p);
                 } else {
                     setWebColor('off', p);
                     setPhysicalColor(state.off, p);

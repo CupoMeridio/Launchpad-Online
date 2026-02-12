@@ -42,7 +42,7 @@ export class MatrixRainAnimation {
                     // Only trigger fade if we entered a new row
                     if (currentRow > col.lastRow) {
                         const fadeDuration = col.speed * 2;
-                        fader.add([x, currentRow], this.colorName, fadeDuration, 'short');
+                        fader.add([x, currentRow], this.colorName, fadeDuration, 'standard');
                         col.lastRow = currentRow;
                     }
                 }
@@ -312,7 +312,7 @@ export class PrecomputedAnimation {
                     this.onTrigger(event, this.colorName);
                 } else {
                     // Default behavior: FadeSystem
-                    let mode = event.mode || (event.short ? 'short' : 'standard');
+                    let mode = event.mode || 'standard';
                     fader.add(event.p, this.colorName, event.dur, mode);
                 }
                 this.cursor++;
