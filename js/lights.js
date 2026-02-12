@@ -67,14 +67,34 @@ createAnimationLibrary();
  * @param {number} duration - Total duration in seconds.
  */
 export function triggerAnimation(name, x, y, duration) {
-    // Check for dynamic scroll animations (e.g., scroll_HELLO_green)
+    // Check for dynamic scroll animations (e.g., scroll_HELLO_green or scroll_up_HELLO_green)
     if (name.startsWith('scroll_')) {
         const parts = name.split('_');
-        if (parts.length >= 3) {
-            const text = parts[1];
-            const colorName = parts[2];
+        let text, colorName, direction = 'left';
+
+        if (parts.length >= 4) {
+            // Check if parts[1] is a valid direction
+            let possibleDir = parts[1].toLowerCase();
+            if (['left', 'right', 'up', 'down', 'top', 'bottom'].includes(possibleDir)) {
+                // Map aliases
+                if (possibleDir === 'top') possibleDir = 'down'; // scroll FROM top means moving DOWN
+                if (possibleDir === 'bottom') possibleDir = 'up'; // scroll FROM bottom means moving UP
+                
+                direction = possibleDir;
+                text = parts[2];
+                colorName = parts[3];
+            } else {
+                text = parts[1];
+                colorName = parts[2];
+            }
+        } else if (parts.length >= 3) {
+            text = parts[1];
+            colorName = parts[2];
+        }
+
+        if (text && colorName) {
             const durationMs = duration ? duration * 1000 : 3000;
-            activeAnimations.add(new ScrollingTextAnimation(text, colorName, durationMs));
+            activeAnimations.add(new ScrollingTextAnimation(text, colorName, durationMs, direction));
             flushPhysicalColors();
             return;
         }

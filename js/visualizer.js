@@ -40,7 +40,7 @@ export class Visualizer {
         this.dataArray = new Uint8Array(this.bufferLength);
 
         // Set an initial display mode.
-        this.mode = 'both';
+        this.mode = 'off';
         this.isSymmetric = false;
         this.symmetryReverse = false;
 

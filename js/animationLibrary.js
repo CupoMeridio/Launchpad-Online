@@ -243,8 +243,14 @@ export function createAnimationLibrary() {
 
         // 10. ROTATE: Sweep around the trigger point
         const rotateDirections = {
-            'cw_left': (tx, ty, x, y) => Math.atan2(ty - y, tx - x),
-            'ccw_left': (tx, ty, x, y) => -Math.atan2(ty - y, tx - x)
+            'cw_right': (tx, ty, x, y) => Math.atan2(ty - y, tx - x),
+            'ccw_right': (tx, ty, x, y) => -Math.atan2(ty - y, tx - x),
+            'cw_bottom': (tx, ty, x, y) => Math.atan2(ty - y, tx - x) - Math.PI / 2,
+            'ccw_bottom': (tx, ty, x, y) => -(Math.atan2(ty - y, tx - x) - Math.PI / 2),
+            'cw_left': (tx, ty, x, y) => Math.atan2(ty - y, tx - x) - Math.PI,
+            'ccw_left': (tx, ty, x, y) => -(Math.atan2(ty - y, tx - x) - Math.PI),
+            'cw_top': (tx, ty, x, y) => Math.atan2(ty - y, tx - x) - 3 * Math.PI / 2,
+            'ccw_top': (tx, ty, x, y) => -(Math.atan2(ty - y, tx - x) - 3 * Math.PI / 2)
         };
 
         Object.entries(rotateDirections).forEach(([dirName, angleFn]) => {
@@ -329,6 +335,69 @@ export function createAnimationLibrary() {
             },
             type: 'fixed'
         };
+
+        // 11.1 ARROW_UP/DOWN/LEFT/RIGHT/DIAGONALS: Arrow sweeps covering the whole grid
+        const arrowConfigs = {
+            'arrow_up': { dx: 0, dy: -1 },
+            'arrow_down': { dx: 0, dy: 1 },
+            'arrow_left': { dx: -1, dy: 0 },
+            'arrow_right': { dx: 1, dy: 0 },
+            'arrow_up_left': { dx: -1, dy: -1 },
+            'arrow_up_right': { dx: 1, dy: -1 },
+            'arrow_down_left': { dx: -1, dy: 1 },
+            'arrow_down_right': { dx: 1, dy: 1 }
+        };
+
+        Object.entries(arrowConfigs).forEach(([arrowName, config]) => {
+            animations[`${arrowName}_${colorName}`] = {
+                on: (x, y, duration) => {
+                     activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
+                         const stepDelay = dur ? dur / 12 : 60;
+                         const fadeDuration = dur ? stepDelay * 5 : 450;
+                          const events = [];
+                        
+                         // We calculate the "wave front" for each arrow.
+                         // For a chevron shape, the tip of the arrow is ahead of the sides.
+                         
+                         for (let step = 0; step < 15; step++) {
+                             const time = step * stepDelay;
+                             let pointsFound = false;
+ 
+                             for (let ty = 0; ty < 8; ty++) {
+                                 for (let tx = 0; tx < 8; tx++) {
+                                     let d;
+                                     if (config.dx === 0) {
+                                         // Vertical arrow (UP/DOWN)
+                                         const dist_y = config.dy > 0 ? ty : 7 - ty;
+                                         // Add horizontal offset to create V-shape
+                                         d = dist_y + Math.abs(tx - 3.5) - 0.5;
+                                     } else if (config.dy === 0) {
+                                         // Horizontal arrow (LEFT/RIGHT)
+                                         const dist_x = config.dx > 0 ? tx : 7 - tx;
+                                         // Add vertical offset to create V-shape
+                                         d = dist_x + Math.abs(ty - 3.5) - 0.5;
+                                     } else {
+                                         // Diagonal arrow
+                                         const dist_x = config.dx > 0 ? tx : 7 - tx;
+                                         const dist_y = config.dy > 0 ? ty : 7 - ty;
+                                         // V-shape for diagonal: tip is ahead, sides are delayed
+                                         d = (dist_x + dist_y) + Math.abs(dist_x - dist_y) * 0.5;
+                                     }
+ 
+                                     if (Math.abs(d - step) < 0.6) {
+                                         events.push({ p: [tx, ty], time, dur: fadeDuration, short: false });
+                                         pointsFound = true;
+                                     }
+                                 }
+                             }
+                             if (step > 12 && !pointsFound) break;
+                         }
+                         return events;
+                    }));
+                },
+                type: 'fixed'
+            };
+        });
 
         // 12. SPARKLE
         animations[`sparkle_${colorName}`] = {

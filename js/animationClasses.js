@@ -201,16 +201,28 @@ export class TextAnimation {
 }
 
 /**
- * ScrollingTextAnimation scrolls a string of characters from right to left.
+ * ScrollingTextAnimation scrolls a string of characters in a specified direction.
  * The entire word moves across the grid.
  */
 export class ScrollingTextAnimation {
-    constructor(text, colorName, duration) {
+    constructor(text, colorName, duration, direction = 'left') {
         this.startTime = performance.now();
         this.text = text.toLowerCase();
         this.colorName = colorName;
         this.totalDuration = duration || 3000;
-        this.totalDistance = this.text.length * 8 + 8;
+        this.direction = direction; // 'left', 'right', 'up', 'down'
+
+        // Determine total distance based on direction
+        if (this.direction === 'left' || this.direction === 'right') {
+            this.totalDistance = this.text.length * 8 + 8;
+        } else {
+            // For vertical, we might want to stack characters or scroll them one by one?
+            // Usually vertical scroll means the whole word moves up/down.
+            // Since the grid is only 8 high, scrolling a whole word vertically 
+            // means characters are stacked vertically.
+            this.totalDistance = this.text.length * 8 + 8;
+        }
+
         this.msPerPixel = this.totalDuration / this.totalDistance;
         this.lastOffset = null;
     }
@@ -221,26 +233,46 @@ export class ScrollingTextAnimation {
 
         if (progress >= 1) return true;
 
-        const currentOffset = Math.floor(8 - progress * this.totalDistance);
+        let currentOffset;
+        if (this.direction === 'left') {
+            currentOffset = Math.floor(8 - progress * this.totalDistance);
+        } else if (this.direction === 'right') {
+            currentOffset = Math.floor(-this.totalDistance + 8 + progress * this.totalDistance);
+        } else if (this.direction === 'up') {
+            currentOffset = Math.floor(8 - progress * this.totalDistance);
+        } else if (this.direction === 'down') {
+            currentOffset = Math.floor(-this.totalDistance + 8 + progress * this.totalDistance);
+        }
 
         // Only update if the offset has changed to avoid redundant fader calls
         if (currentOffset !== this.lastOffset) {
             this.lastOffset = currentOffset;
-            
+
             for (let i = 0; i < this.text.length; i++) {
                 const char = this.text[i];
                 if (char === ' ') continue; // Skip spaces
 
-                const charBaseX = i * 8;
                 const coords = alphabetCoords[char] || numberCoords[char] || symbolCoords[char];
-                
+
                 if (coords) {
                     coords.forEach(([tx, ty]) => {
-                        const finalX = tx + charBaseX + currentOffset;
+                        let finalX, finalY;
+
+                        if (this.direction === 'left' || this.direction === 'right') {
+                            const charBaseX = i * 8;
+                            finalX = tx + charBaseX + currentOffset;
+                            finalY = ty;
+                        } else {
+                            // Vertical scroll: characters are stacked vertically
+                            const charBaseY = i * 8;
+                            finalX = tx;
+                            finalY = ty + charBaseY + currentOffset;
+                        }
+
                         // Only draw if within the 8x8 viewport
-                        if (finalX >= 0 && finalX <= 7) {
+                        if (finalX >= 0 && finalX <= 7 && finalY >= 0 && finalY <= 7) {
                             // Duration is slightly longer than the time spent on one pixel to prevent flickering
-                            fader.add([finalX, ty], this.colorName, this.msPerPixel * 1.2, 'instant');
+                            fader.add([finalX, finalY], this.colorName, this.msPerPixel * 1.2, 'instant');
                         }
                     });
                 }

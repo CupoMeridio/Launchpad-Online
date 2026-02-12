@@ -145,7 +145,7 @@ export function initializeVisualizerControls() {
         }
     });
 
-    const initialMode = window.visualizer ? window.visualizer.mode : 'both';
+    const initialMode = window.visualizer ? window.visualizer.mode : 'off';
     updateControlsVisibility(initialMode);
     const menu = document.getElementById('visualizer-menu');
     if (menu) {

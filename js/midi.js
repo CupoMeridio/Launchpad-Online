@@ -19,7 +19,7 @@
 import Launchpad from './vendor/launchpad-webmidi.js';
 import { getTranslation, showNotification } from './ui.js';
 import { setLaunchpadInstance } from './physicalInterface.js';
-import { triggerPad, releasePad, changeSoundSet, changeMode } from './interaction.js';
+import { triggerPad, releasePad, changeSoundSet } from './interaction.js';
 import { currentPage, currentMode } from './app.js';
 
 // Launchpad instance

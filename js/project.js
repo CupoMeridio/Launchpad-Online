@@ -1,7 +1,5 @@
 /**
- * =============================================================================
  * PROJECT MANAGEMENT (project.js)
- * =============================================================================
  * Populates background and project menus and loads project configuration,
  * sounds, and associated Launchpad cover.
  */
@@ -9,13 +7,8 @@
 import { audioEngine } from './audio.js';
 import { setLaunchpadBackground, getTranslation } from './ui.js';
 import { setBackgroundVideo } from './video.js';
-import {
-    selectedProjectButton,
-    setCurrentProject,
-    setProjectSounds,
-    setProjectLights,
-    setSelectedProjectButton
-} from './app.js';
+import {selectedProjectButton, setCurrentProject, setProjectSounds, setProjectLights, setSelectedProjectButton } from './app.js';
+import {changeSoundSet} from './interaction.js';
 
 /**
  * Dynamically populates the background video menu.
@@ -106,6 +99,15 @@ export async function loadProject(configPath, button, onProgress = null) {
             // Se il progetto non ha un video, rimuovi quello attuale
             setBackgroundVideo(null);
         }
+
+        // Visualizer mode handling
+        if (window.visualizer) {
+            const visualizerMode = project.visualizerMode || 'off';
+            window.visualizer.setMode(visualizerMode);
+        }
+
+        // Reset to first page when loading a new project
+        changeSoundSet(0);
 
         if (selectedProjectButton) {
             selectedProjectButton.classList.remove('selected');

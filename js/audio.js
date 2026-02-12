@@ -50,7 +50,12 @@ class AudioEngine {
         // Decoded audio data (`AudioBuffer`) ready for playback.
         this.soundBuffers = [];
 
-        // 5. RESUME CONTEXT ON VISIBILITY CHANGE
+        // 5. ACTIVE SOURCES
+        // Map to keep track of currently playing source nodes by pad index.
+        // Used to stop sounds before restarting them if the pad is pressed again.
+        this.activeSources = new Map();
+
+        // 6. RESUME CONTEXT ON VISIBILITY CHANGE
         // Browsers often suspend AudioContext when the tab is backgrounded.
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible' && this.audioContext.state === 'suspended') {
@@ -126,6 +131,19 @@ class AudioEngine {
         if (!this.soundBuffers[padIndex]) {
             return 0;
         }
+
+        // STOP PREVIOUS SOUND (RESTART LOGIC)
+        // If a sound is already playing for this pad, stop it before starting a new one.
+        if (this.activeSources.has(padIndex)) {
+            try {
+                const oldSource = this.activeSources.get(padIndex);
+                oldSource.stop();
+            } catch (e) {
+                // Ignore errors if the source has already finished or hasn't started
+            }
+            this.activeSources.delete(padIndex);
+        }
+
         // Create a new `AudioBufferSourceNode` for playback.
         // Each call creates a new independent "player".
         const source = this.audioContext.createBufferSource();
@@ -134,6 +152,17 @@ class AudioEngine {
         // Connect the source node to the analyzer and then to the final output (speakers).
         source.connect(this.analyser);
         this.analyser.connect(this.audioContext.destination);
+
+        // Store the source node to manage its lifecycle
+        this.activeSources.set(padIndex, source);
+
+        // Clean up the source from activeSources once it finished naturally
+        source.onended = () => {
+            if (this.activeSources.get(padIndex) === source) {
+                this.activeSources.delete(padIndex);
+            }
+        };
+
         // Start playback immediately.
         source.start();
         return source.buffer.duration;
