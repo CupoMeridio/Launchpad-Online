@@ -1,7 +1,5 @@
 /**
- * =============================================================================
  * VIDEO BACKGROUND MODULE (video.js)
- * =============================================================================
  * Manages background video selection, effect controls visibility, and
  * applies visual effects (overlay opacity, blur, brightness).
  */
