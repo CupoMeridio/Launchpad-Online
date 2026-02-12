@@ -79,10 +79,10 @@ export function register(animations, colors) {
         Object.entries(arrowConfigs).forEach(([arrowName, config]) => {
             animations[`${arrowName}_${colorName}`] = {
                 on: (x, y, duration) => {
-                     activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
-                         const stepDelay = dur ? dur / 12 : 60;
-                         const fadeDuration = dur ? stepDelay * 5 : 450;
-                          const events = [];
+                        activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
+                            const stepDelay = dur ? dur / 13 : 55;
+                            const fadeDuration = dur ? stepDelay * 4.5 : 400;
+                             const events = [];
                          
                          for (let step = 0; step < 15; step++) {
                              const time = step * stepDelay;
