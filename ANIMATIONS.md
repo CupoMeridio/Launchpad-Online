@@ -9,7 +9,7 @@ Molte animazioni richiedono un suffisso per il colore. I colori validi sono:
 - `amber` (Ambra)
 - `yellow` (Giallo)
 - `orange` (Arancione)
-- `lime` (Lime)
+
 
 ---
 
@@ -50,13 +50,13 @@ Queste animazioni vengono eseguite una volta quando il tasto viene premuto. Sost
 | `arrow_up_right_{color}` | Freccia/Onda verso l'angolo in alto a destra. |
 | `arrow_down_left_{color}` | Freccia/Onda verso l'angolo in basso a sinistra. |
 | `arrow_down_right_{color}` | Freccia/Onda verso l'angolo in basso a destra. |
-| `sparkle_{color}` | Scintillio casuale di pixel su tutta la griglia. |
 | `bounce_{color}` | Rimbalzo di luci che partono dal tasto verso i bordi e tornano indietro. |
 | `snake_{color}` | Percorso a spirale che copre tutta la griglia. |
 | `warp_speed_{color}` | Effetto "velocità curvatura" dal centro verso gli angoli. |
 | `snake_collision_{color}` | Due percorsi che si scontrano al centro con un'esplosione. |
 | `eq_spectrum_{color}` | Effetto equalizzatore casuale su tutta la griglia. |
 | `eq_bounce_{color}` | Equalizzatore che sale e scende. |
+| `eq_real` | Equalizzatore realistico (Base verde, centro ambra, cima rossa). |
 | `eq_peak_hold_{color}` | Equalizzatore con mantenimento del picco. |
 | `strobe_burst_{color}` | Effetto strobo rapido su tutta la griglia. |
 | `scanline_v_{color}` | Linea verticale che scorre da sinistra a destra. |
@@ -64,6 +64,8 @@ Queste animazioni vengono eseguite una volta quando il tasto viene premuto. Sost
 | `spiral_{color}` | Spirale che riempie la griglia verso l'interno. |
 | `checkerboard_{color}` | Scacchiera lampeggiante. |
 | `random_fill_{color}` | Riempimento casuale di tutta la griglia punto per punto. |
+| `atomic_bounce_{color}` | Una luce che rimbalza sui bordi della griglia partendo dal tasto. |
+| `dna_spiral_{color}` | Due eliche intrecciate che scorrono lungo la riga del tasto. |
 
 ---
 
@@ -86,6 +88,14 @@ Sequenze disponibili: `red_to_green`, `green_to_red`.
 | `diagonal_multi_bottom_left_{seq}` | Diagonale dall'angolo in basso a sinistra. |
 | `diagonal_multi_bottom_right_{seq}` | Diagonale dall'angolo in basso a destra. |
 | `strobe_multi_{seq}` | Effetto strobo che alterna i colori della sequenza. |
+| `matrix_rain_multi_{seq}` | Effetto pioggia Matrix (giù) con cambio colore. |
+| `matrix_rain_multi_up_{seq}` | Effetto pioggia Matrix (su) con cambio colore. |
+| `matrix_rain_multi_left_{seq}` | Effetto pioggia Matrix (sinistra) con cambio colore. |
+| `matrix_rain_multi_right_{seq}` | Effetto pioggia Matrix (destra) con cambio colore. |
+| `rain_down_multi_{seq}` | Singola goccia multicolore che cade verticalmente. |
+| `rain_up_multi_{seq}` | Singola goccia multicolore che sale verticalmente. |
+| `rain_left_multi_{seq}` | Singola goccia multicolore verso sinistra sulla riga. |
+| `rain_right_multi_{seq}` | Singola goccia multicolore verso destra sulla riga. |
 
 ---
 
@@ -108,8 +118,24 @@ Sostituire `{char}` con la lettera, `{digit}` con il numero, o `{symbol}` con il
 | Pattern Stringa | Esempi |
 |-----------------|---------|
 | `letter_{char}_{color}` | `letter_a_red`, `letter_z_green` |
-| `number_{digit}_{color}` | `number_0_yellow`, `number_5_lime` |
+| `number_{digit}_{color}` | `number_0_yellow`, `number_5_red` |
 | `symbol_{name}_{color}` | `symbol_question_orange`, `symbol_exclamation_red` |
+| `hold_{color}` | Mantiene il singolo tasto acceso finché è premuto. |
+| `cross_hold_{color}` | Visualizza una croce statica finché il tasto è premuto. |
+| `x_hold_{color}` | Visualizza una "X" diagonale finché il tasto è premuto. |
+| `square_hold_{color}` | Visualizza un quadrato 3x3 centrato sul tasto. |
+| `row_hold_{color}` | Accende l'intera riga del tasto finché è premuto. |
+| `col_hold_{color}` | Accende l'intera colonna del tasto finché è premuto. |
+| `grid_hold_{color}` | Accende l'intera griglia finché il tasto è premuto. |
+| `border_hold_{color}` | Accende solo la cornice esterna finché il tasto è premuto. |
+| `checkerboard_hold_{color}` | Visualizza una scacchiera statica finché il tasto è premuto. |
+| `inv_checkerboard_hold_{color}` | Visualizza la scacchiera inversa finché il tasto è premuto. |
+| `half_up_hold_{color}` | Accende la metà superiore della griglia. |
+| `half_down_hold_{color}` | Accende la metà inferiore della griglia. |
+| `half_left_hold_{color}` | Accende la metà sinistra della griglia. |
+| `half_right_hold_{color}` | Accende la metà destra della griglia. |
+| `stripes_v_hold_{color}` | Accende colonne alternate (verticali). |
+| `stripes_h_hold_{color}` | Accende righe alternate (orizzontali). |
 
 **Caratteri disponibili:**
 - Lettere: `a-z`

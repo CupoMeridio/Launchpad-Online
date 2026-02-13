@@ -25,6 +25,16 @@ export const webColorMap = {
         full: 'hsl(45, 100%, 50%)',
         medium: 'hsl(45, 70%, 70%)',
         low: 'hsl(45, 50%, 85%)'
+    },
+    'yellow': {
+        full: 'hsl(60, 100%, 50%)',
+        medium: 'hsl(60, 70%, 70%)',
+        low: 'hsl(60, 50%, 85%)'
+    },
+    'orange': {
+        full: 'hsl(30, 100%, 50%)',
+        medium: 'hsl(30, 70%, 70%)',
+        low: 'hsl(30, 50%, 85%)'
     }
 };
 

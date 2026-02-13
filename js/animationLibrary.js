@@ -21,7 +21,7 @@ export const animations = {};
  * Populates the animations registry.
  */
 export function createAnimationLibrary() {
-    const colors = ['red', 'green', 'amber', 'yellow', 'orange', 'lime'];
+    const colors = ['red', 'green', 'amber', 'yellow', 'orange'];
 
     // Register animations from modules
     basic.register(animations, colors);

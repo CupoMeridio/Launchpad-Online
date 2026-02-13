@@ -1,9 +1,17 @@
 import { activeAnimations } from '../animationEngine.js';
-import { PrecomputedAnimation } from '../animationClasses.js';
+import { PrecomputedAnimation, RealEQAnimation } from '../animationClasses.js';
 
 export function register(animations, colors) {
+    // EQ_REAL: Multi-color realistic EQ (Green -> Amber -> Red)
+    animations['eq_real'] = {
+        on: (x, y, duration) => {
+            activeAnimations.add(new RealEQAnimation(duration));
+        },
+        type: 'fixed'
+    };
+
     colors.forEach(colorName => {
-        // 14. SNAKE: Spiral pattern covering the grid
+        // SNAKE: Spiral pattern covering the grid
         animations[`snake_${colorName}`] = {
             on: (x, y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
@@ -40,7 +48,7 @@ export function register(animations, colors) {
             type: 'fixed'
         };
 
-        // 16. WARP_SPEED
+        // WARP_SPEED
         animations[`warp_speed_${colorName}`] = {
             on: (x, y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
@@ -63,7 +71,7 @@ export function register(animations, colors) {
             type: 'fixed'
         };
 
-        // 17. SNAKE_COLLISION
+        // SNAKE_COLLISION
         animations[`snake_collision_${colorName}`] = {
             on: (x, y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
@@ -93,7 +101,7 @@ export function register(animations, colors) {
             type: 'fixed'
         };
 
-        // 18. EQ_SPECTRUM
+        // EQ_SPECTRUM
         animations[`eq_spectrum_${colorName}`] = {
             on: (x, y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
@@ -112,7 +120,7 @@ export function register(animations, colors) {
             type: 'fixed'
         };
 
-        // 20. EQ_BOUNCE
+        // EQ_BOUNCE
         animations[`eq_bounce_${colorName}`] = {
             on: (x, y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
@@ -140,7 +148,7 @@ export function register(animations, colors) {
             type: 'fixed'
         };
 
-        // 21. EQ_PEAK_HOLD
+        // EQ_PEAK_HOLD
         animations[`eq_peak_hold_${colorName}`] = {
             on: (x, y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
@@ -175,25 +183,7 @@ export function register(animations, colors) {
             type: 'fixed'
         };
 
-        // 12. SPARKLE
-        animations[`sparkle_${colorName}`] = {
-            on: (x, y, duration) => {
-                activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
-                    const fadeDuration = dur ? (dur * 0.2) : 140;
-                    const events = [];
-                    for (let i = 0; i < 20; i++) {
-                        const delay = Math.random() * (dur ? dur * 0.8 : 600);
-                        const tx = Math.floor(Math.random() * 8);
-                        const ty = Math.floor(Math.random() * 8);
-                        events.push({ p: [tx, ty], time: delay, dur: fadeDuration });
-                    }
-                    return events;
-                }));
-            },
-            type: 'fixed'
-        };
-
-        // 25. CHECKERBOARD
+        // CHECKERBOARD
         animations[`checkerboard_${colorName}`] = {
             on: (x, y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
@@ -212,7 +202,70 @@ export function register(animations, colors) {
             type: 'fixed'
         };
 
-        // 26. RANDOM_FILL
+        // ATOMIC_BOUNCE: A particle that bounces off the grid edges
+        animations[`atomic_bounce_${colorName}`] = {
+            on: (startX, startY, duration) => {
+                activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
+                    const totalSteps = 15;
+                    const stepDelay = dur ? dur / totalSteps : 60;
+                    const fadeDuration = stepDelay * 2;
+                    const events = [];
+                    
+                    let currX = startX;
+                    let currY = startY;
+                    
+                    // Random initial direction (-1 or 1)
+                    let dx = Math.random() > 0.5 ? 1 : -1;
+                    let dy = Math.random() > 0.5 ? 1 : -1;
+
+                    for (let i = 0; i < totalSteps; i++) {
+                        events.push({ p: [Math.round(currX), Math.round(currY)], time: i * stepDelay, dur: fadeDuration });
+                        
+                        currX += dx;
+                        currY += dy;
+
+                        // Bounce logic
+                        if (currX <= 0 || currX >= 7) {
+                            dx *= -1;
+                            currX = Math.max(0, Math.min(7, currX));
+                        }
+                        if (currY <= 0 || currY >= 7) {
+                            dy *= -1;
+                            currY = Math.max(0, Math.min(7, currY));
+                        }
+                    }
+                    return events;
+                }));
+            },
+            type: 'fixed'
+        };
+
+        // DNA_SPIRAL: Two intertwined spirals along the row of the pressed key
+        animations[`dna_spiral_${colorName}`] = {
+            on: (startX, startY, duration) => {
+                activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
+                    const totalSteps = 16;
+                    const stepDelay = dur ? dur / totalSteps : 50;
+                    const fadeDuration = stepDelay * 3;
+                    const events = [];
+
+                    for (let i = 0; i < totalSteps; i++) {
+                        const tx = i % 8;
+                        // Sine waves for the "spiral" effect on Y axis
+                        const offset = Math.sin(i * 0.8) * 2;
+                        const ty1 = Math.max(0, Math.min(7, Math.round(startY + offset)));
+                        const ty2 = Math.max(0, Math.min(7, Math.round(startY - offset)));
+
+                        events.push({ p: [tx, ty1], time: i * stepDelay, dur: fadeDuration });
+                        events.push({ p: [tx, ty2], time: i * stepDelay, dur: fadeDuration });
+                    }
+                    return events;
+                }));
+            },
+            type: 'fixed'
+        };
+
+        // RANDOM_FILL
         animations[`random_fill_${colorName}`] = {
             on: (x, y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
@@ -235,9 +288,173 @@ export function register(animations, colors) {
             },
             type: 'fixed'
         };
+
+        // GRID_HOLD: All 64 LEDs while held
+        animations[`grid_hold_${colorName}`] = {
+            on: () => {
+                for (let ty = 0; ty < 8; ty++) {
+                    for (let tx = 0; tx < 8; tx++) fader.add([tx, ty], colorName, 999999, 'instant');
+                }
+            },
+            off: () => {
+                for (let ty = 0; ty < 8; ty++) {
+                    for (let tx = 0; tx < 8; tx++) fader.add([tx, ty], 'off', 0, 'instant');
+                }
+            },
+            type: 'momentary'
+        };
+
+        // BORDER_HOLD: Outer frame while held
+        animations[`border_hold_${colorName}`] = {
+            on: () => {
+                for (let i = 0; i < 8; i++) {
+                    fader.add([i, 0], colorName, 999999, 'instant');
+                    fader.add([i, 7], colorName, 999999, 'instant');
+                    fader.add([0, i], colorName, 999999, 'instant');
+                    fader.add([7, i], colorName, 999999, 'instant');
+                }
+            },
+            off: () => {
+                for (let i = 0; i < 8; i++) {
+                    fader.add([i, 0], 'off', 0, 'instant');
+                    fader.add([i, 7], 'off', 0, 'instant');
+                    fader.add([0, i], 'off', 0, 'instant');
+                    fader.add([7, i], 'off', 0, 'instant');
+                }
+            },
+            type: 'momentary'
+        };
+
+        // CHECKERBOARD_HOLD: Checkerboard pattern while held
+        animations[`checkerboard_hold_${colorName}`] = {
+            on: () => {
+                for (let ty = 0; ty < 8; ty++) {
+                    for (let tx = 0; tx < 8; tx++) {
+                        if ((tx + ty) % 2 === 0) fader.add([tx, ty], colorName, 999999, 'instant');
+                    }
+                }
+            },
+            off: () => {
+                for (let ty = 0; ty < 8; ty++) {
+                    for (let tx = 0; tx < 8; tx++) {
+                        if ((tx + ty) % 2 === 0) fader.add([tx, ty], 'off', 0, 'instant');
+                    }
+                }
+            },
+            type: 'momentary'
+        };
+
+        // INV_CHECKERBOARD_HOLD: Inverse checkerboard while held
+        animations[`inv_checkerboard_hold_${colorName}`] = {
+            on: () => {
+                for (let ty = 0; ty < 8; ty++) {
+                    for (let tx = 0; tx < 8; tx++) {
+                        if ((tx + ty) % 2 !== 0) fader.add([tx, ty], colorName, 999999, 'instant');
+                    }
+                }
+            },
+            off: () => {
+                for (let ty = 0; ty < 8; ty++) {
+                    for (let tx = 0; tx < 8; tx++) {
+                        if ((tx + ty) % 2 !== 0) fader.add([tx, ty], 'off', 0, 'instant');
+                    }
+                }
+            },
+            type: 'momentary'
+        };
+
+        // HALF_UP_HOLD: Top half while held
+        animations[`half_up_hold_${colorName}`] = {
+            on: () => {
+                for (let ty = 0; ty < 4; ty++) {
+                    for (let tx = 0; tx < 8; tx++) fader.add([tx, ty], colorName, 999999, 'instant');
+                }
+            },
+            off: () => {
+                for (let ty = 0; ty < 4; ty++) {
+                    for (let tx = 0; tx < 8; tx++) fader.add([tx, ty], 'off', 0, 'instant');
+                }
+            },
+            type: 'momentary'
+        };
+
+        // HALF_DOWN_HOLD: Bottom half while held
+        animations[`half_down_hold_${colorName}`] = {
+            on: () => {
+                for (let ty = 4; ty < 8; ty++) {
+                    for (let tx = 0; tx < 8; tx++) fader.add([tx, ty], colorName, 999999, 'instant');
+                }
+            },
+            off: () => {
+                for (let ty = 4; ty < 8; ty++) {
+                    for (let tx = 0; tx < 8; tx++) fader.add([tx, ty], 'off', 0, 'instant');
+                }
+            },
+            type: 'momentary'
+        };
+
+        // HALF_LEFT_HOLD: Left half while held
+        animations[`half_left_hold_${colorName}`] = {
+            on: () => {
+                for (let ty = 0; ty < 8; ty++) {
+                    for (let tx = 0; tx < 4; tx++) fader.add([tx, ty], colorName, 999999, 'instant');
+                }
+            },
+            off: () => {
+                for (let ty = 0; ty < 8; ty++) {
+                    for (let tx = 0; tx < 4; tx++) fader.add([tx, ty], 'off', 0, 'instant');
+                }
+            },
+            type: 'momentary'
+        };
+
+        // HALF_RIGHT_HOLD: Right half while held
+        animations[`half_right_hold_${colorName}`] = {
+            on: () => {
+                for (let ty = 0; ty < 8; ty++) {
+                    for (let tx = 4; tx < 8; tx++) fader.add([tx, ty], colorName, 999999, 'instant');
+                }
+            },
+            off: () => {
+                for (let ty = 0; ty < 8; ty++) {
+                    for (let tx = 4; tx < 8; tx++) fader.add([tx, ty], 'off', 0, 'instant');
+                }
+            },
+            type: 'momentary'
+        };
+
+        // STRIPES_V_HOLD: Vertical stripes while held
+        animations[`stripes_v_hold_${colorName}`] = {
+            on: () => {
+                for (let ty = 0; ty < 8; ty++) {
+                    for (let tx = 0; tx < 8; tx += 2) fader.add([tx, ty], colorName, 999999, 'instant');
+                }
+            },
+            off: () => {
+                for (let ty = 0; ty < 8; ty++) {
+                    for (let tx = 0; tx < 8; tx += 2) fader.add([tx, ty], 'off', 0, 'instant');
+                }
+            },
+            type: 'momentary'
+        };
+
+        // STRIPES_H_HOLD: Horizontal stripes while held
+        animations[`stripes_h_hold_${colorName}`] = {
+            on: () => {
+                for (let ty = 0; ty < 8; ty += 2) {
+                    for (let tx = 0; tx < 8; tx++) fader.add([tx, ty], colorName, 999999, 'instant');
+                }
+            },
+            off: () => {
+                for (let ty = 0; ty < 8; ty += 2) {
+                    for (let tx = 0; tx < 8; tx++) fader.add([tx, ty], 'off', 0, 'instant');
+                }
+            },
+            type: 'momentary'
+        };
     });
 
-    // 27. FIREWORK
+    // FIREWORK
     animations['firework'] = {
         on: (x, y, duration) => {
             activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
@@ -276,7 +493,7 @@ export function register(animations, colors) {
         [0, 4], [1, 4], [2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [7, 4], [1, 5], [2, 5], [3, 5], [4, 5], [5, 5], [6, 5], [2, 6], [3, 6], [4, 6], [5, 6], [3, 7], [4, 7]
     ];
 
-    // 28. HEART_FILL
+        // HEART_FILL
     animations['heart_fill'] = {
         on: (x, y, duration) => {
             activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
@@ -293,7 +510,7 @@ export function register(animations, colors) {
         type: 'fixed'
     };
 
-    // 29. HEART_SIMPLE
+    // HEART_SIMPLE
     animations['heart_simple'] = {
         on: (x, y, duration) => {
             activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
@@ -309,7 +526,7 @@ export function register(animations, colors) {
         type: 'fixed'
     };
 
-    // 30. HEART_WAVE
+    // HEART_WAVE
     animations['heart_wave'] = {
         on: (x, y, duration) => {
             activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {

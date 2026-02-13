@@ -3,7 +3,7 @@ import { PrecomputedAnimation } from '../animationClasses.js';
 
 export function register(animations, colors) {
     colors.forEach(colorName => {
-        // 4. EXPLODE: Outward square expansion
+        // EXPLODE: Outward square expansion
         animations[`explode_${colorName}`] = {
             on: (x, y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
@@ -29,7 +29,7 @@ export function register(animations, colors) {
             type: 'fixed'
         };
 
-        // 5. IMPLODE: Inward square contraction
+        // IMPLODE: Inward square contraction
         animations[`implode_${colorName}`] = {
             on: (x, y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
@@ -55,7 +55,7 @@ export function register(animations, colors) {
             type: 'fixed'
         };
 
-        // 6. CROSS: Expanding cross
+        // CROSS: Expanding cross
         animations[`cross_${colorName}`] = {
             on: (x, y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
@@ -78,7 +78,96 @@ export function register(animations, colors) {
             type: 'fixed'
         };
 
-        // 7. CROSS_REVERSE: Contracting cross
+        // CROSS_HOLD: Static cross while held
+        animations[`cross_hold_${colorName}`] = {
+            on: (x, y) => {
+                const points = [[x, y]];
+                for (let dist = 1; dist < 8; dist++) {
+                    [[x + dist, y], [x - dist, y], [x, y + dist], [x, y - dist]].forEach(p => {
+                        if (p[0] >= 0 && p[0] < 8 && p[1] >= 0 && p[1] < 8) points.push(p);
+                    });
+                }
+                points.forEach(p => fader.add(p, colorName, 999999, 'instant'));
+            },
+            off: (x, y) => {
+                const points = [[x, y]];
+                for (let dist = 1; dist < 8; dist++) {
+                    [[x + dist, y], [x - dist, y], [x, y + dist], [x, y - dist]].forEach(p => {
+                        if (p[0] >= 0 && p[0] < 8 && p[1] >= 0 && p[1] < 8) points.push(p);
+                    });
+                }
+                points.forEach(p => fader.add(p, 'off', 0, 'instant'));
+            },
+            type: 'momentary'
+        };
+
+        // X_HOLD: Diagonal cross while held
+        animations[`x_hold_${colorName}`] = {
+            on: (x, y) => {
+                const points = [];
+                for (let i = -7; i <= 7; i++) {
+                    [[x + i, y + i], [x + i, y - i]].forEach(p => {
+                        if (p[0] >= 0 && p[0] < 8 && p[1] >= 0 && p[1] < 8) points.push(p);
+                    });
+                }
+                points.forEach(p => fader.add(p, colorName, 999999, 'instant'));
+            },
+            off: (x, y) => {
+                const points = [];
+                for (let i = -7; i <= 7; i++) {
+                    [[x + i, y + i], [x + i, y - i]].forEach(p => {
+                        if (p[0] >= 0 && p[0] < 8 && p[1] >= 0 && p[1] < 8) points.push(p);
+                    });
+                }
+                points.forEach(p => fader.add(p, 'off', 0, 'instant'));
+            },
+            type: 'momentary'
+        };
+
+        // SQUARE_HOLD: 3x3 square while held
+        animations[`square_hold_${colorName}`] = {
+            on: (x, y) => {
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -1; dy <= 1; dy++) {
+                        const tx = x + dx, ty = y + dy;
+                        if (tx >= 0 && tx < 8 && ty >= 0 && ty < 8) fader.add([tx, ty], colorName, 999999, 'instant');
+                    }
+                }
+            },
+            off: (x, y) => {
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -1; dy <= 1; dy++) {
+                        const tx = x + dx, ty = y + dy;
+                        if (tx >= 0 && tx < 8 && ty >= 0 && ty < 8) fader.add([tx, ty], 'off', 0, 'instant');
+                    }
+                }
+            },
+            type: 'momentary'
+        };
+
+        // ROW_HOLD: Full row while held
+        animations[`row_hold_${colorName}`] = {
+            on: (x, y) => {
+                for (let tx = 0; tx < 8; tx++) fader.add([tx, y], colorName, 999999, 'instant');
+            },
+            off: (x, y) => {
+                for (let tx = 0; tx < 8; tx++) fader.add([tx, y], 'off', 0, 'instant');
+            },
+            type: 'momentary'
+        };
+
+        // COL_HOLD: Full column while held
+        animations[`col_hold_${colorName}`] = {
+            on: (x, y) => {
+                for (let ty = 0; ty < 8; ty++) fader.add([x, ty], colorName, 999999, 'instant');
+            },
+            off: (x, y) => {
+                for (let ty = 0; ty < 8; ty++) fader.add([x, ty], 'off', 0, 'instant');
+            },
+            type: 'momentary'
+        };
+
+        // CROSS_REVERSE: Contracting cross
         animations[`cross_reverse_${colorName}`] = {
             on: (x, y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
@@ -105,7 +194,7 @@ export function register(animations, colors) {
             type: 'fixed'
         };
 
-        // 8. WAVE: Expanding circle/diamond
+        // WAVE: Expanding circle/diamond
         animations[`wave_${colorName}`] = {
             on: (x, y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
@@ -126,7 +215,7 @@ export function register(animations, colors) {
             type: 'fixed'
         };
 
-        // 8.1 WAVE_REVERSE
+        // WAVE_REVERSE
         animations[`wave_reverse_${colorName}`] = {
             on: (x, y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
@@ -153,7 +242,7 @@ export function register(animations, colors) {
             type: 'fixed'
         };
 
-        // 9. WAVE_CENTER
+        // WAVE_CENTER
         animations[`wave_center_${colorName}`] = {
             on: (x, y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
@@ -176,7 +265,7 @@ export function register(animations, colors) {
             type: 'fixed'
         };
 
-        // 9.1 WAVE_CENTER_REVERSE
+        // WAVE_CENTER_REVERSE
         animations[`wave_center_reverse_${colorName}`] = {
             on: (x, y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
@@ -199,7 +288,7 @@ export function register(animations, colors) {
             type: 'fixed'
         };
 
-        // 10. ROTATE
+        // ROTATE
         const rotateDirections = {
             'cw_right': (tx, ty, x, y) => Math.atan2(ty - y, tx - x),
             'ccw_right': (tx, ty, x, y) => -Math.atan2(ty - y, tx - x),
@@ -215,13 +304,14 @@ export function register(animations, colors) {
             animations[`rotate_${dirName}_${colorName}`] = {
                 on: (x, y, duration) => {
                     activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
+                        const centerX = 3.5;
+                        const centerY = 3.5;
                         const stepDelay = dur ? dur / 12 : 60;
                         const fadeDuration = dur ? stepDelay * 2 : 140;
                         const events = [];
                         for (let targetY = 0; targetY < 8; targetY++) {
                             for (let targetX = 0; targetX < 8; targetX++) {
-                                if (targetX === x && targetY === y) continue;
-                                let angle = angleFn(targetX, targetY, x, y);
+                                let angle = angleFn(targetX, targetY, centerX, centerY);
                                 if (angle < 0) angle += 2 * Math.PI;
                                 events.push({ p: [targetX, targetY], time: angle * (6 * stepDelay / Math.PI), dur: fadeDuration });
                             }
@@ -233,7 +323,7 @@ export function register(animations, colors) {
             };
         });
 
-        // 24. SPIRAL
+        // SPIRAL
         animations[`spiral_${colorName}`] = {
             on: (x, y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {

@@ -1,5 +1,5 @@
 import { fader, activeAnimations } from '../animationEngine.js';
-import { PrecomputedAnimation, StrobeBurstMultiAnimation } from '../animationClasses.js';
+import { PrecomputedAnimation, StrobeBurstMultiAnimation, MatrixRainMultiAnimation } from '../animationClasses.js';
 
 export function register(animations, colors) {
     const multiColorConfigs = [
@@ -29,7 +29,7 @@ export function register(animations, colors) {
         animations[`cross_multi_${config.name}`] = {
             on: (x, y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
-                    const stepDelay = dur ? dur / 8 : 70;
+                    const stepDelay = dur ? dur / 10 : 70;
                     const fadeDuration = dur ? stepDelay * 4.5 : 450;
                     const events = [];
                     events.push({ p: [x, y], time: 0, dur: fadeDuration });
@@ -52,7 +52,7 @@ export function register(animations, colors) {
             on: (x, y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
                     const maxDist = Math.max(x, 7 - x, y, 7 - y);
-                    const stepDelay = dur ? dur / (maxDist + 1) : 70;
+                    const stepDelay = dur ? dur / (maxDist + 3) : 70;
                     const fadeDuration = dur ? stepDelay * 4.5 : 450;
                     const events = [];
                     for (let dist = maxDist; dist >= 0; dist--) {
@@ -80,7 +80,7 @@ export function register(animations, colors) {
         animations[`wave_multi_${config.name}`] = {
             on: (x, y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
-                    const stepDelay = dur ? dur / 10 : 60;
+                    const stepDelay = dur ? dur / 12 : 60;
                     const fadeDuration = dur ? stepDelay * 4.5 : 450;
                     const events = [];
                     for (let targetY = 0; targetY < 8; targetY++) {
@@ -106,7 +106,7 @@ export function register(animations, colors) {
                         Math.sqrt(x * x + Math.pow(7 - y, 2)),
                         Math.sqrt(Math.pow(7 - x, 2) + Math.pow(7 - y, 2))
                     );
-                    const stepDelay = dur ? dur / (maxDistance || 1) : 60;
+                    const stepDelay = dur ? dur / (maxDistance + 3) : 60;
                     const fadeDuration = dur ? stepDelay * 4.5 : 450;
                     const events = [];
                     for (let targetY = 0; targetY < 8; targetY++) {
@@ -128,7 +128,7 @@ export function register(animations, colors) {
                 activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
                     const centerX = 3.5;
                     const centerY = 3.5;
-                    const stepDelay = dur ? dur / 5 : 60;
+                    const stepDelay = dur ? dur / 7.5 : 60;
                     const fadeDuration = dur ? stepDelay * 4.5 : 450;
                     const events = [];
                     for (let targetY = 0; targetY < 8; targetY++) {
@@ -150,7 +150,7 @@ export function register(animations, colors) {
                 activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
                     const centerX = 3.5;
                     const centerY = 3.5;
-                    const stepDelay = dur ? dur / 5 : 60;
+                    const stepDelay = dur ? dur / 7.5 : 60;
                     const fadeDuration = dur ? stepDelay * 4.5 : 450;
                     const events = [];
                     for (let targetY = 0; targetY < 8; targetY++) {
@@ -178,7 +178,7 @@ export function register(animations, colors) {
             animations[`diagonal_multi_${cornerName}_${config.name}`] = {
                 on: (x, y, duration) => {
                     activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
-                        const stepDelay = dur ? dur / 10 : 70;
+                        const stepDelay = dur ? dur / 14.5 : 70;
                         const fadeDuration = dur ? stepDelay * 4.5 : 450;
                         const events = [];
                         for (let ty = 0; ty < 8; ty++) {
@@ -197,6 +197,96 @@ export function register(animations, colors) {
         animations[`strobe_multi_${config.name}`] = {
             on: (x, y, duration) => {
                 activeAnimations.add(new StrobeBurstMultiAnimation(config, duration));
+            },
+            type: 'fixed'
+        };
+
+        // MATRIX_RAIN_MULTI
+        animations[`matrix_rain_multi_${config.name}`] = {
+            on: (x, y, duration) => {
+                activeAnimations.add(new MatrixRainMultiAnimation(config, duration, 'down'));
+            },
+            type: 'fixed'
+        };
+
+        animations[`matrix_rain_multi_up_${config.name}`] = {
+            on: (x, y, duration) => {
+                activeAnimations.add(new MatrixRainMultiAnimation(config, duration, 'up'));
+            },
+            type: 'fixed'
+        };
+
+        animations[`matrix_rain_multi_left_${config.name}`] = {
+            on: (x, y, duration) => {
+                activeAnimations.add(new MatrixRainMultiAnimation(config, duration, 'left'));
+            },
+            type: 'fixed'
+        };
+
+        animations[`matrix_rain_multi_right_${config.name}`] = {
+            on: (x, y, duration) => {
+                activeAnimations.add(new MatrixRainMultiAnimation(config, duration, 'right'));
+            },
+            type: 'fixed'
+        };
+
+        // RAIN_UP/DOWN/LEFT/RIGHT MULTI
+        animations[`rain_down_multi_${config.name}`] = {
+            on: (x, y, duration) => {
+                activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
+                    const stepDelay = dur ? dur / 12 : 80;
+                    const fadeDuration = dur ? stepDelay * 4.5 : 450;
+                    const events = [];
+                    for (let ty = y; ty < 8; ty++) {
+                        events.push({ p: [x, ty], time: (ty - y) * stepDelay, dur: fadeDuration });
+                    }
+                    return events;
+                }, triggerMultiFade));
+            },
+            type: 'fixed'
+        };
+
+        animations[`rain_up_multi_${config.name}`] = {
+            on: (x, y, duration) => {
+                activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
+                    const stepDelay = dur ? dur / 12 : 80;
+                    const fadeDuration = dur ? stepDelay * 4.5 : 450;
+                    const events = [];
+                    for (let ty = y; ty >= 0; ty--) {
+                        events.push({ p: [x, ty], time: (y - ty) * stepDelay, dur: fadeDuration });
+                    }
+                    return events;
+                }, triggerMultiFade));
+            },
+            type: 'fixed'
+        };
+
+        animations[`rain_left_multi_${config.name}`] = {
+            on: (x, y, duration) => {
+                activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
+                    const stepDelay = dur ? dur / 12 : 80;
+                    const fadeDuration = dur ? stepDelay * 4.5 : 450;
+                    const events = [];
+                    for (let tx = x; tx >= 0; tx--) {
+                        events.push({ p: [tx, y], time: (x - tx) * stepDelay, dur: fadeDuration });
+                    }
+                    return events;
+                }, triggerMultiFade));
+            },
+            type: 'fixed'
+        };
+
+        animations[`rain_right_multi_${config.name}`] = {
+            on: (x, y, duration) => {
+                activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
+                    const stepDelay = dur ? dur / 12 : 80;
+                    const fadeDuration = dur ? stepDelay * 4.5 : 450;
+                    const events = [];
+                    for (let tx = x; tx < 8; tx++) {
+                        events.push({ p: [tx, y], time: (tx - x) * stepDelay, dur: fadeDuration });
+                    }
+                    return events;
+                }, triggerMultiFade));
             },
             type: 'fixed'
         };

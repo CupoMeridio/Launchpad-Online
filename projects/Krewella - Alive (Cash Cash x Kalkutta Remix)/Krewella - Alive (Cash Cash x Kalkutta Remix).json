@@ -17,13 +17,13 @@
         "samples/pagina1/Alive (SickRomance) [2026-01-31 201011].wav", "samples/pagina1/Alive (SickRomance) [2026-01-31 201013].wav", "samples/pagina1/Alive (SickRomance) [2026-01-31 201016].wav", "samples/pagina1/Alive (SickRomance) [2026-01-31 201019].wav", "", "", "", ""
       ],
       "lights": [
+        "", "", "text_LIVE_green", "", "", "", "", "",
         "", "", "", "", "", "", "", "",
         "", "", "", "", "", "", "", "",
+        "", "", "", "", "rain_left_red", "matrix_rain_multi_left_red_to_green", "", "rain_left_amber",
         "", "", "", "", "", "", "", "",
         "", "", "", "", "", "", "", "",
-        "", "", "", "", "", "", "", "",
-        "", "", "", "", "", "", "", "",
-        "rain_multi_up_green_to_red", "", "", "matrix_rain_multi_up_green_to_red", "", "", "", "",
+        "rain_up_multi_green_to_red", "", "", "matrix_rain_multi_up_green_to_red", "", "", "", "",
         "rain_up_red", "matrix_rain_multi_red_to_green", "rain_up_green", "rain_up_amber", "", "", "", ""
       ]
     },
@@ -48,7 +48,7 @@
         "", "", "", "", "", "", "", "",
         "", "", "", "", "", "", "", "",
         "", "", "", "", "", "", "", "",
-        "", "", "", "", "", "", "", ""
+        "eq_real", "", "", "", "", "", "", ""
       ]
     }
   ]

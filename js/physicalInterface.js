@@ -92,6 +92,10 @@ export function getLpColor(colorName, level = null) {
     let color;
     if (colorName === 'off') {
         color = launchpad.off;
+    } else if (colorName === 'yellow') {
+        // Custom yellow fading to bypass library limitation (always full)
+        // Full: R=2, G=3 (50), Medium: R=1, G=2 (33), Low: R=1, G=1 (17)
+        color = { code: 50, full: { code: 50 }, medium: { code: 33 }, low: { code: 17 } };
     } else if (colorName === 'orange') {
         // Custom orange for Launchpad S/Mini/Classic (r=3, g=1 or 2)
         // Code 35 is a good orange (r=3, g=2)

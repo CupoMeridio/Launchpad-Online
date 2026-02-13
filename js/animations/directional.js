@@ -3,7 +3,7 @@ import { PrecomputedAnimation } from '../animationClasses.js';
 
 export function register(animations, colors) {
     colors.forEach(colorName => {
-        // 11. RAIN_UP/DOWN/LEFT/RIGHT
+        // RAIN_UP/DOWN/LEFT/RIGHT
         animations[`rain_down_${colorName}`] = {
             on: (x, y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
@@ -64,7 +64,7 @@ export function register(animations, colors) {
             type: 'fixed'
         };
 
-        // 11.1 ARROW_UP/DOWN/LEFT/RIGHT/DIAGONALS
+        // ARROW_UP/DOWN/LEFT/RIGHT/DIAGONALS
         const arrowConfigs = {
             'arrow_up': { dx: 0, dy: -1 },
             'arrow_down': { dx: 0, dy: 1 },
@@ -118,7 +118,7 @@ export function register(animations, colors) {
             };
         });
 
-        // 13. BOUNCE
+        // BOUNCE
         animations[`bounce_${colorName}`] = {
             on: (x, y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
@@ -149,7 +149,7 @@ export function register(animations, colors) {
             type: 'fixed'
         };
 
-        // 23. SCANLINE
+        // SCANLINE
         animations[`scanline_v_${colorName}`] = {
             on: (x, y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {

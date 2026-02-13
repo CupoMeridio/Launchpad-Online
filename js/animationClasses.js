@@ -8,19 +8,20 @@ import { fader, getLpColor, webColorMap } from './animationEngine.js';
 import { alphabetCoords, numberCoords, symbolCoords } from './animationData.js';
 
 export class MatrixRainAnimation {
-    constructor(colorName, duration) {
+    constructor(colorName, duration, direction = 'down') {
         this.startTime = performance.now();
         this.colorName = colorName;
-        this.baseDuration = 1340;
+        this.baseDuration = 1450;
         this.factor = duration ? duration / this.baseDuration : 1;
+        this.direction = direction; // 'down', 'up', 'left', 'right'
 
-        // Pre-calculate per-column physics
-        this.columns = [];
-        for (let x = 0; x < 8; x++) {
-            this.columns.push({
+        // Pre-calculate per-line physics (columns or rows depending on direction)
+        this.lines = [];
+        for (let i = 0; i < 8; i++) {
+            this.lines.push({
                 delay: Math.random() * 500 * this.factor,
                 speed: (70 + Math.random() * 50) * this.factor,
-                lastRow: -1 // Track which row we last triggered
+                lastIdx: -1 // Track which row/col we last triggered
             });
         }
     }
@@ -29,21 +30,33 @@ export class MatrixRainAnimation {
         let activeCount = 0;
         const elapsed = now - this.startTime;
 
-        for (let x = 0; x < 8; x++) {
-            const col = this.columns[x];
-            const colTime = elapsed - col.delay;
+        for (let i = 0; i < 8; i++) {
+            const line = this.lines[i];
+            const lineTime = elapsed - line.delay;
 
-            if (colTime > 0) {
-                // Determine which row should be active at this time
-                const currentRow = Math.floor(colTime / col.speed);
+            if (lineTime > 0) {
+                // Determine which index should be active at this time
+                const currentIdx = Math.floor(lineTime / line.speed);
 
-                if (currentRow < 8) {
+                if (currentIdx < 8) {
                     activeCount++;
-                    // Only trigger fade if we entered a new row
-                    if (currentRow > col.lastRow) {
-                        const fadeDuration = col.speed * 2;
-                        fader.add([x, currentRow], this.colorName, fadeDuration, 'standard');
-                        col.lastRow = currentRow;
+                    // Only trigger fade if we entered a new cell
+                    if (currentIdx > line.lastIdx) {
+                        const fadeDuration = line.speed * 4;
+                        let x, y;
+
+                        if (this.direction === 'down') {
+                            x = i; y = currentIdx;
+                        } else if (this.direction === 'up') {
+                            x = i; y = 7 - currentIdx;
+                        } else if (this.direction === 'right') {
+                            x = currentIdx; y = i;
+                        } else if (this.direction === 'left') {
+                            x = 7 - currentIdx; y = i;
+                        }
+
+                        fader.add([x, y], this.colorName, fadeDuration, 'standard');
+                        line.lastIdx = currentIdx;
                     }
                 }
             } else {
@@ -51,7 +64,69 @@ export class MatrixRainAnimation {
             }
         }
 
-        return activeCount === 0; // Finished when all columns are done
+        return activeCount === 0; // Finished when all lines are done
+    }
+}
+
+export class MatrixRainMultiAnimation {
+    constructor(config, duration, direction = 'down') {
+        this.startTime = performance.now();
+        this.config = config;
+        this.baseDuration = 1450;
+        this.factor = duration ? duration / this.baseDuration : 1;
+        this.direction = direction; // 'down', 'up', 'left', 'right'
+
+        // Pre-calculate per-line physics
+        this.lines = [];
+        for (let i = 0; i < 8; i++) {
+            this.lines.push({
+                delay: Math.random() * 500 * this.factor,
+                speed: (70 + Math.random() * 50) * this.factor,
+                lastIdx: -1 // Track which row/col we last triggered
+            });
+        }
+    }
+
+    update(now) {
+        let activeCount = 0;
+        const elapsed = now - this.startTime;
+
+        for (let i = 0; i < 8; i++) {
+            const line = this.lines[i];
+            const lineTime = elapsed - line.delay;
+
+            if (lineTime > 0) {
+                // Determine which index should be active at this time
+                const currentIdx = Math.floor(lineTime / line.speed);
+
+                if (currentIdx < 8) {
+                    activeCount++;
+                    // Only trigger fade if we entered a new cell
+                    if (currentIdx > line.lastIdx) {
+                        const fadeDuration = line.speed * 4;
+                        let x, y;
+
+                        if (this.direction === 'down') {
+                            x = i; y = currentIdx;
+                        } else if (this.direction === 'up') {
+                            x = i; y = 7 - currentIdx;
+                        } else if (this.direction === 'right') {
+                            x = currentIdx; y = i;
+                        } else if (this.direction === 'left') {
+                            x = 7 - currentIdx; y = i;
+                        }
+
+                        // Use 'multi' mode with config
+                        fader.add([x, y], null, fadeDuration, 'multi', this.config);
+                        line.lastIdx = currentIdx;
+                    }
+                }
+            } else {
+                activeCount++; // Waiting to start
+            }
+        }
+
+        return activeCount === 0; // Finished when all lines are done
     }
 }
 
@@ -318,6 +393,65 @@ export class PrecomputedAnimation {
                 this.cursor++;
             } else {
                 break; // Next event is in the future
+            }
+        }
+
+        return this.cursor >= this.events.length;
+    }
+}
+
+/**
+ * RealEQAnimation creates a realistic equalizer look with:
+ * Green at the base (bottom), Amber in the middle, and Red at the top.
+ */
+export class RealEQAnimation {
+    constructor(duration) {
+        this.startTime = performance.now();
+        this.totalDuration = duration || 1000;
+        
+        const baseSteps = 16;
+        const speed = this.totalDuration / baseSteps;
+        const hold = speed * 2;
+        
+        this.events = [];
+        
+        for (let tx = 0; tx < 8; tx++) {
+            const height = Math.floor(Math.random() * 7) + 1;
+            const peakRow = 8 - height;
+
+            for (let ty = 7; ty >= peakRow; ty--) {
+                const turnOnTime = (7 - ty) * speed;
+                const turnOffTime = (7 - peakRow) * speed + hold + (ty - peakRow) * speed;
+                const activeDur = turnOffTime - turnOnTime;
+                
+                // Determine color based on Y position (row)
+                let color;
+                if (ty <= 1) { // Top 2 rows
+                    color = 'red';
+                } else if (ty <= 4) { // Middle rows
+                    color = 'amber';
+                } else { // Bottom rows
+                    color = 'green';
+                }
+
+                this.events.push({ p: [tx, ty], time: turnOnTime, dur: activeDur, color: color });
+            }
+        }
+        
+        this.events.sort((a, b) => a.time - b.time);
+        this.cursor = 0;
+    }
+
+    update(now) {
+        const elapsed = now - this.startTime;
+
+        while (this.cursor < this.events.length) {
+            const event = this.events[this.cursor];
+            if (elapsed >= event.time) {
+                fader.add(event.p, event.color, event.dur, 'instant');
+                this.cursor++;
+            } else {
+                break;
             }
         }
 

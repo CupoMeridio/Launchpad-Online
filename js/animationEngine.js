@@ -153,13 +153,13 @@ export class FadeSystem {
                 const step2 = state.dur * (2 / 3);
                 if (elapsed < step1) {
                     setWebColor(webColors.full, p);
-                    setPhysicalColor(state.base?.full, p);
+                    setPhysicalColor(state.base?.full || state.base, p);
                 } else if (elapsed < step2) {
                     setWebColor(webColors.medium, p);
-                    setPhysicalColor(state.base?.medium, p);
+                    setPhysicalColor(state.base?.medium || state.base, p);
                 } else if (elapsed < state.dur) {
                     setWebColor(webColors.low, p);
-                    setPhysicalColor(state.base?.low, p);
+                    setPhysicalColor(state.base?.low || state.base, p);
                 } else {
                     setWebColor('off', p);
                     setPhysicalColor(state.off, p);
