@@ -38,6 +38,16 @@
         "", "", "samples/pagina2/drop2.wav", "samples/pagina2/drop4.wav", "", "samples/pagina2/drop21.wav", "", "",
         "", "", "", "", "", "", "samples/pagina2/drop19.wav", "samples/pagina2/drop20.wav",
         "samples/pagina2/drop1.wav", "", "", "", "", "", "samples/pagina2/alt-drop3.wav", "samples/pagina2/drop18.wav"
+      ],
+      "lights": [
+        "number_bold_4_green", "", "", "", "", "", "", "",
+        "", "number_bold_3_yellow", "", "", "", "", "", "",
+        "", "", "number_bold_2_amber", "", "", "", "", "",
+        "", "", "", "number_bold_1_red", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", ""
       ]
     },
     {
@@ -74,7 +84,7 @@
         "samples/pagina5/vocals17.wav", "", "samples/pagina5/vocals8.wav", "", "", "samples/pagina5/vocals5.wav", "", "",
         "samples/pagina5/vocals18.wav", "", "", "samples/pagina5/vocals7.wav", "samples/pagina5/vocals4.wav", "", "", "",
         "samples/pagina5/vocals19.wav", "", "", "samples/pagina5/vocals2.wav", "samples/pagina5/vocals6.wav", "", "", "",
-        "", "", "samples/pagina5/vocals3.wav", "samples/pagina5/vocals2.wav", "", "samples/pagina5/vocals9.wav", "", "",
+        "", "", "samples/pagina5/vocals3.wav", "samples/pagina5/vocals22.wav", "", "samples/pagina5/vocals9.wav", "", "",
         "", "samples/pagina5/vocals20.wav", "", "", "", "", "samples/pagina5/vocals10.wav", "",
         "samples/pagina5/vocals21.wav", "", "", "", "", "samples/pagina5/vocals13.wav", "samples/pagina5/vocals12.wav", "samples/pagina5/vocals11.wav" 
       ]

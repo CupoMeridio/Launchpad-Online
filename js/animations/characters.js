@@ -1,10 +1,11 @@
 import { fader } from '../animationEngine.js';
-import { alphabetCoords, numberCoords, symbolCoords } from '../animationData.js';
+import { alphabetCoords, numberCoords, numberCoordsBold, symbolCoords } from '../animationData.js';
 
 export function register(animations, colors) {
     const characterGroups = [
         { prefix: 'letter', coords: alphabetCoords },
         { prefix: 'number', coords: numberCoords },
+        { prefix: 'number_bold', coords: numberCoordsBold },
         { prefix: 'symbol', coords: symbolCoords }
     ];
 
