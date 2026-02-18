@@ -100,17 +100,15 @@ export function initInteraction() {
     const launchpad = document.getElementById('Launchpad');
     if (!launchpad) return;
 
-    // Initialize pads: remove old onclick and set data-index for delegation
+    // Initialize pads: set data-index for delegation
     const pads = launchpad.querySelectorAll('.grid-item');
     pads.forEach((pad, index) => {
-        pad.removeAttribute('onclick');
         pad.dataset.index = index;
     });
 
-    // Initialize menu buttons: remove old onclick and set data-page for side buttons
+    // Initialize menu buttons: set data-page for side buttons
     const menuButtons = launchpad.querySelectorAll('.grid-item-menu');
     menuButtons.forEach(btn => {
-        btn.removeAttribute('onclick');
         if (btn.id.startsWith('m')) {
             btn.dataset.page = parseInt(btn.id.substring(1), 10) - 1;
         } else if (btn.id.startsWith('a')) {

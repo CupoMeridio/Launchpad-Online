@@ -60,7 +60,13 @@ Queste animazioni vengono eseguite una volta quando il tasto viene premuto. Sost
 | `eq_peak_hold_{color}` | Equalizzatore con mantenimento del picco. |
 | `strobe_burst_{color}` | Effetto strobo rapido su tutta la griglia. |
 | `scanline_v_{color}` | Linea verticale che scorre da sinistra a destra. |
+| `scanline_v_reverse_{color}` | Linea verticale che scorre da destra a sinistra. |
+| `scanline_v_bounce_{color}` | Linea verticale che scorre da sinistra a destra e torna indietro. |
+| `scanline_v_bounce_reverse_{color}` | Linea verticale che scorre da destra a sinistra e torna indietro. |
 | `scanline_h_{color}` | Linea orizzontale che scorre dall'alto verso il basso. |
+| `scanline_h_reverse_{color}` | Linea orizzontale che scorre dal basso verso l'alto. |
+| `scanline_h_bounce_{color}` | Linea orizzontale che scorre dall'alto al basso e torna indietro. |
+| `scanline_h_bounce_reverse_{color}` | Linea orizzontale che scorre dal basso all'alto e torna indietro. |
 | `spiral_{color}` | Spirale che riempie la griglia verso l'interno. |
 | `checkerboard_{color}` | Scacchiera lampeggiante. |
 | `random_fill_{color}` | Riempimento casuale di tutta la griglia punto per punto. |

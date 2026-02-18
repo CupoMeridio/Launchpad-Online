@@ -408,125 +408,128 @@
             These buttons are currently empty with no associated functions.
             They may be used in the future for global functions.
           -->
-          <button id="a1" class="grid-item-menu"></button>
-          <button id="a2" class="grid-item-menu"></button>
-          <button id="a3" class="grid-item-menu"></button>
-          <button id="a4" class="grid-item-menu"></button>
-          <button id="a5" class="grid-item-menu"></button>
-          <button id="a6" class="grid-item-menu"></button>
-          <button id="a7" class="grid-item-menu"></button>
-          <button id="a8" class="grid-item-menu"></button>
+          <div id="a1" class="grid-item-menu"></div>
+          <div id="a2" class="grid-item-menu"></div>
+          <div id="a3" class="grid-item-menu"></div>
+          <div id="a4" class="grid-item-menu"></div>
+          <div id="a5" class="grid-item-menu"></div>
+          <div id="a6" class="grid-item-menu"></div>
+          <div id="a7" class="grid-item-menu"></div>
+          <div id="a8" class="grid-item-menu"></div>
 
           <!--
             8x8 PAD GRID (Rows 'b' to 'i')
-            Each button (pad) has:
+            Each pad has:
             - A unique ID (e.g., "b1", "c2", ...).
             - The "grid-item" class for styling.
-            - An 'onclick' attribute that calls the function 'playSound(event, index)'.
-              - 'event': The click event object.
-              - 'index': A number from 0 to 63 that uniquely identifies the pad.
-                         This index is used to find the corresponding audio sample in the loaded project.
+            - Interaction is handled via event delegation in 'js/interaction.js'.
+              - The 'data-index' attribute is assigned dynamically to identify the pad (0-63).
             The playback logic is in 'js/audio.js'.
             The assignment of sounds to pads is defined in the JSON project files (e.g., 'projects/Virtual Riot - Idols.json').
           -->
-          <button id="b1" class="grid-item" onclick="playSound(event, 0)"></button>
-          <button id="b2" class="grid-item" onclick="playSound(event, 1)"></button>
+          <div id="b1" class="grid-item"></div>
+          <div id="b2" class="grid-item"></div>
           <!-- ... other pads from b3 to b8 ... -->
-          <button id="b3" class="grid-item" onclick="playSound(event, 2)"></button>
-          <button id="b4" class="grid-item" onclick="playSound(event, 3)"></button>
-          <button id="b5" class="grid-item" onclick="playSound(event, 4)"></button>
-          <button id="b6" class="grid-item" onclick="playSound(event, 5)"></button>
-          <button id="b7" class="grid-item" onclick="playSound(event, 6)"></button>
-          <button id="b8" class="grid-item" onclick="playSound(event, 7)"></button>
+          <div id="b3" class="grid-item"></div>
+          <div id="b4" class="grid-item"></div>
+          <div id="b5" class="grid-item"></div>
+          <div id="b6" class="grid-item"></div>
+          <div id="b7" class="grid-item"></div>
+          <div id="b8" class="grid-item"></div>
 
           <!--
             SIDE CONTROL BUTTONS (column 'm')
             These buttons (m1-m8) change the sound "page" or "set".
-            - 'onclick="changeSoundSet(index)"': Calls the function to load a new set of samples.
-              - 'index': Identifies the page to load (0 to 7).
+            - Interaction is handled via event delegation in 'js/interaction.js'.
+              - The 'data-page' attribute is assigned dynamically to identify the page (0-7).
             Logic is handled in 'js/app.js' and 'js/audio.js'.
             The texts next to these buttons (Volume, Pan, etc.) are purely decorative.
           -->
-          <button id="m1" class="grid-item-menu" onclick="changeSoundSet(0)"></button>
+          <div id="m1" class="grid-item-menu"></div>
           <div class="testo_su_launchpad">Volume</div>
 
-          <button id="c1" class="grid-item" onclick="playSound(event, 8)"></button>
-          <button id="c2" class="grid-item" onclick="playSound(event, 9)"></button>
-          <!-- ... other pads ... -->
-          <button id="c3" class="grid-item" onclick="playSound(event, 10)"></button>
-          <button id="c4" class="grid-item" onclick="playSound(event, 11)"></button>
-          <button id="c5" class="grid-item" onclick="playSound(event, 12)"></button>
-          <button id="c6" class="grid-item" onclick="playSound(event, 13)"></button>
-          <button id="c7" class="grid-item" onclick="playSound(event, 14)"></button>
-          <button id="c8" class="grid-item" onclick="playSound(event, 15)"></button>
-          <button id="m2" class="grid-item-menu" onclick="changeSoundSet(1)"></button>
+          <div id="c1" class="grid-item"></div>
+          <div id="c2" class="grid-item"></div>
+          <div id="c3" class="grid-item"></div>
+          <div id="c4" class="grid-item"></div>
+          <div id="c5" class="grid-item"></div>
+          <div id="c6" class="grid-item"></div>
+          <div id="c7" class="grid-item"></div>
+          <div id="c8" class="grid-item"></div>
+
+          <div id="m2" class="grid-item-menu"></div>
           <div class="testo_su_launchpad">Pan</div>
 
-          <button id="d1" class="grid-item" onclick="playSound(event, 16)"></button>
-          <!-- ... and so on for all rows up to 'i' and 'm8' ... -->
-          <button id="d2" class="grid-item" onclick="playSound(event, 17)"></button>
-          <button id="d3" class="grid-item" onclick="playSound(event, 18)"></button>
-          <button id="d4" class="grid-item" onclick="playSound(event, 19)"></button>
-          <button id="d5" class="grid-item" onclick="playSound(event, 20)"></button>
-          <button id="d6" class="grid-item" onclick="playSound(event, 21)"></button>
-          <button id="d7" class="grid-item" onclick="playSound(event, 22)"></button>
-          <button id="d8" class="grid-item" onclick="playSound(event, 23)"></button>
-          <button id="m3" class="grid-item-menu" onclick="changeSoundSet(2)"></button>
+          <div id="d1" class="grid-item"></div>
+          <div id="d2" class="grid-item"></div>
+          <div id="d3" class="grid-item"></div>
+          <div id="d4" class="grid-item"></div>
+          <div id="d5" class="grid-item"></div>
+          <div id="d6" class="grid-item"></div>
+          <div id="d7" class="grid-item"></div>
+          <div id="d8" class="grid-item"></div>
+
+          <div id="m3" class="grid-item-menu"></div>
           <div class="testo_su_launchpad">Send A</div>
 
-          <button id="e1" class="grid-item" onclick="playSound(event, 24)"></button>
-          <button id="e2" class="grid-item" onclick="playSound(event, 25)"></button>
-          <button id="e3" class="grid-item" onclick="playSound(event, 26)"></button>
-          <button id="e4" class="grid-item" onclick="playSound(event, 27)"></button>
-          <button id="e5" class="grid-item" onclick="playSound(event, 28)"></button>
-          <button id="e6" class="grid-item" onclick="playSound(event, 29)"></button>
-          <button id="e7" class="grid-item" onclick="playSound(event, 30)"></button>
-          <button id="e8" class="grid-item" onclick="playSound(event, 31)"></button>
-          <button id="m4" class="grid-item-menu" onclick="changeSoundSet(3)"></button>
+          <div id="e1" class="grid-item"></div>
+          <div id="e2" class="grid-item"></div>
+          <div id="e3" class="grid-item"></div>
+          <div id="e4" class="grid-item"></div>
+          <div id="e5" class="grid-item"></div>
+          <div id="e6" class="grid-item"></div>
+          <div id="e7" class="grid-item"></div>
+          <div id="e8" class="grid-item"></div>
+
+          <div id="m4" class="grid-item-menu"></div>
           <div class="testo_su_launchpad">Send B</div>
 
-          <button id="f1" class="grid-item" onclick="playSound(event, 32)"></button>
-          <button id="f2" class="grid-item" onclick="playSound(event, 33)"></button>
-          <button id="f3" class="grid-item" onclick="playSound(event, 34)"></button>
-          <button id="f4" class="grid-item" onclick="playSound(event, 35)"></button>
-          <button id="f5" class="grid-item" onclick="playSound(event, 36)"></button>
-          <button id="f6" class="grid-item" onclick="playSound(event, 37)"></button>
-          <button id="f7" class="grid-item" onclick="playSound(event, 38)"></button>
-          <button id="f8" class="grid-item" onclick="playSound(event, 39)"></button>
-          <button id="m5" class="grid-item-menu" onclick="changeSoundSet(4)"></button>
+          <div id="f1" class="grid-item"></div>
+          <div id="f2" class="grid-item"></div>
+          <div id="f3" class="grid-item"></div>
+          <div id="f4" class="grid-item"></div>
+          <div id="f5" class="grid-item"></div>
+          <div id="f6" class="grid-item"></div>
+          <div id="f7" class="grid-item"></div>
+          <div id="f8" class="grid-item"></div>
+
+          <div id="m5" class="grid-item-menu"></div>
           <div class="testo_su_launchpad">Stop</div>
 
-          <button id="g1" class="grid-item" onclick="playSound(event, 40)"></button>
-          <button id="g2" class="grid-item" onclick="playSound(event, 41)"></button>
-          <button id="g3" class="grid-item" onclick="playSound(event, 42)"></button>
-          <button id="g4" class="grid-item" onclick="playSound(event, 43)"></button>
-          <button id="g5" class="grid-item" onclick="playSound(event, 44)"></button>
-          <button id="g6" class="grid-item" onclick="playSound(event, 45)"></button>
-          <button id="g7" class="grid-item" onclick="playSound(event, 46)"></button>
-          <button id="g8" class="grid-item" onclick="playSound(event, 47)"></button>
-          <button id="m6" class="grid-item-menu" onclick="changeSoundSet(5)"></button>
+          <div id="g1" class="grid-item"></div>
+          <div id="g2" class="grid-item"></div>
+          <div id="g3" class="grid-item"></div>
+          <div id="g4" class="grid-item"></div>
+          <div id="g5" class="grid-item"></div>
+          <div id="g6" class="grid-item"></div>
+          <div id="g7" class="grid-item"></div>
+          <div id="g8" class="grid-item"></div>
+
+          <div id="m6" class="grid-item-menu"></div>
           <div class="testo_su_launchpad">Mute</div>
 
-          <button id="h1" class="grid-item" onclick="playSound(event, 48)"></button>
-          <button id="h2" class="grid-item" onclick="playSound(event, 49)"></button>
-          <button id="h3" class="grid-item" onclick="playSound(event, 50)"></button>
-          <button id="h4" class="grid-item" onclick="playSound(event, 51)"></button>
-          <button id="h5" class="grid-item" onclick="playSound(event, 52)"></button>
-          <button id="h6" class="grid-item" onclick="playSound(event, 53)"></button>
-          <button id="h7" class="grid-item" onclick="playSound(event, 54)"></button>
-          <button id="h8" class="grid-item" onclick="playSound(event, 55)"></button>
-          <button id="m7" class="grid-item-menu" onclick="changeSoundSet(6)"></button>
+          <div id="h1" class="grid-item"></div>
+          <div id="h2" class="grid-item"></div>
+          <div id="h3" class="grid-item"></div>
+          <div id="h4" class="grid-item"></div>
+          <div id="h5" class="grid-item"></div>
+          <div id="h6" class="grid-item"></div>
+          <div id="h7" class="grid-item"></div>
+          <div id="h8" class="grid-item"></div>
+
+          <div id="m7" class="grid-item-menu"></div>
           <div class="testo_su_launchpad">Solo</div>
 
-          <button id="i1" class="grid-item" onclick="playSound(event, 56)"></button>
-          <button id="i2" class="grid-item" onclick="playSound(event, 57)"></button>
-          <button id="i3" class="grid-item" onclick="playSound(event, 58)"></button>
-          <button id="i4" class="grid-item" onclick="playSound(event, 59)"></button>
-          <button id="i5" class="grid-item" onclick="playSound(event, 60)"></button>
-          <button id="i6" class="grid-item" onclick="playSound(event, 61)"></button>
-          <button id="i7" class="grid-item" onclick="playSound(event, 62)"></button>
-          <button id="i8" class="grid-item" onclick="playSound(event, 63)"></button>
-          <button id="m8" class="grid-item-menu" onclick="changeSoundSet(7)"></button>
+          <div id="i1" class="grid-item"></div>
+          <div id="i2" class="grid-item"></div>
+          <div id="i3" class="grid-item"></div>
+          <div id="i4" class="grid-item"></div>
+          <div id="i5" class="grid-item"></div>
+          <div id="i6" class="grid-item"></div>
+          <div id="i7" class="grid-item"></div>
+          <div id="i8" class="grid-item"></div>
+          
+          <div id="m8" class="grid-item-menu"></div>
           <div class="testo_su_launchpad">Record</div>
         </div>
         <div id="notification-container"></div>

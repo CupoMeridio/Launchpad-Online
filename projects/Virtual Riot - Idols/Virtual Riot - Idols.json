@@ -19,12 +19,12 @@
       "lights": [
         "", "", "", "", "", "", "", "",
         "", "", "", "", "", "", "", "",
-        "", "", "", "", "", "", "", "",
-        "", "", "", "", "", "", "", "",
-        "", "", "", "", "", "", "", "",
-        "", "", "", "", "", "", "", "",
-        "", "", "", "", "", "", "", "",
-        "", "", "", "", "", "", "", ""
+        "rain_right_red", "", "", "", "", "", "", "rain_left_red",
+        "rain_right_amber", "", "", "", "", "", "", "rain_left_amber",
+        "rain_right_yellow", "", "", "explode_red", "explode_green", "", "", "rain_left_yellow",
+        "rain_right_green", "rain_up_red", "rain_up_amber", "rain_up_green", "rain_up_green", "rain_up_amber", "rain_up_red", "rain_left_green",
+        "scanline_v_yellow", "scanline_v_reverse_yellow", "", "scanline_v_bounce_yellow", "scanline_v_bounce_reverse_green", "", "scanline_v_green", "scanline_v_reverse_green",
+        "scanline_v_red", "scanline_v_reverse_red", "", "scanline_v_bounce_red", "scanline_v_bounce_reverse_amber", "", "scanline_v_amber", "scanline_v_reverse_amber"
       ]
     },
     {

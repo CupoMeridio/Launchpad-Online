@@ -167,6 +167,75 @@ export function register(animations, colors) {
             type: 'fixed'
         };
 
+        animations[`scanline_v_reverse_${colorName}`] = {
+            on: (x, y, duration) => {
+                activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
+                    const stepDelay = dur ? dur / 8 : 100;
+                    const fadeDuration = dur ? stepDelay * 2 : 140;
+                    const events = [];
+                    for (let tx = 7; tx >= 0; tx--) {
+                        const time = (7 - tx) * stepDelay;
+                        for (let ty = 0; ty < 8; ty++) {
+                            events.push({ p: [tx, ty], time: time, dur: fadeDuration });
+                        }
+                    }
+                    return events;
+                }));
+            },
+            type: 'fixed'
+        };
+
+        animations[`scanline_v_bounce_${colorName}`] = {
+            on: (x, y, duration) => {
+                activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
+                    const stepDelay = dur ? dur / 16 : 50; // Faster steps to fit both ways
+                    const fadeDuration = dur ? stepDelay * 2 : 140;
+                    const events = [];
+                    // Left to Right
+                    for (let tx = 0; tx < 8; tx++) {
+                        for (let ty = 0; ty < 8; ty++) {
+                            events.push({ p: [tx, ty], time: tx * stepDelay, dur: fadeDuration });
+                        }
+                    }
+                    // Right to Left (starting after the first pass)
+                    for (let tx = 6; tx >= 0; tx--) { // Start from 6 to avoid double flash on 7
+                        const time = (8 + (6 - tx)) * stepDelay;
+                        for (let ty = 0; ty < 8; ty++) {
+                            events.push({ p: [tx, ty], time: time, dur: fadeDuration });
+                        }
+                    }
+                    return events;
+                }));
+            },
+            type: 'fixed'
+        };
+
+        animations[`scanline_v_bounce_reverse_${colorName}`] = {
+            on: (x, y, duration) => {
+                activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
+                    const stepDelay = dur ? dur / 16 : 50; // Faster steps to fit both ways
+                    const fadeDuration = dur ? stepDelay * 2 : 140;
+                    const events = [];
+                    // Right to Left
+                    for (let tx = 7; tx >= 0; tx--) {
+                        const time = (7 - tx) * stepDelay;
+                        for (let ty = 0; ty < 8; ty++) {
+                            events.push({ p: [tx, ty], time: time, dur: fadeDuration });
+                        }
+                    }
+                    // Left to Right (starting after the first pass)
+                    for (let tx = 1; tx < 8; tx++) { // Start from 1 to avoid double flash on 0
+                        const time = (8 + (tx - 1)) * stepDelay;
+                        for (let ty = 0; ty < 8; ty++) {
+                            events.push({ p: [tx, ty], time: time, dur: fadeDuration });
+                        }
+                    }
+                    return events;
+                }));
+            },
+            type: 'fixed'
+        };
+
         animations[`scanline_h_${colorName}`] = {
             on: (x, y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
@@ -176,6 +245,75 @@ export function register(animations, colors) {
                     for (let ty = 0; ty < 8; ty++) {
                         for (let tx = 0; tx < 8; tx++) {
                             events.push({ p: [tx, ty], time: ty * stepDelay, dur: fadeDuration });
+                        }
+                    }
+                    return events;
+                }));
+            },
+            type: 'fixed'
+        };
+
+        animations[`scanline_h_reverse_${colorName}`] = {
+            on: (x, y, duration) => {
+                activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
+                    const stepDelay = dur ? dur / 8 : 100;
+                    const fadeDuration = dur ? stepDelay * 2 : 140;
+                    const events = [];
+                    for (let ty = 7; ty >= 0; ty--) {
+                        const time = (7 - ty) * stepDelay;
+                        for (let tx = 0; tx < 8; tx++) {
+                            events.push({ p: [tx, ty], time: time, dur: fadeDuration });
+                        }
+                    }
+                    return events;
+                }));
+            },
+            type: 'fixed'
+        };
+
+        animations[`scanline_h_bounce_${colorName}`] = {
+            on: (x, y, duration) => {
+                activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
+                    const stepDelay = dur ? dur / 16 : 50; // Faster steps to fit both ways
+                    const fadeDuration = dur ? stepDelay * 2 : 140;
+                    const events = [];
+                    // Top to Bottom
+                    for (let ty = 0; ty < 8; ty++) {
+                        for (let tx = 0; tx < 8; tx++) {
+                            events.push({ p: [tx, ty], time: ty * stepDelay, dur: fadeDuration });
+                        }
+                    }
+                    // Bottom to Top
+                    for (let ty = 6; ty >= 0; ty--) { // Start from 6 to avoid double flash on 7
+                        const time = (8 + (6 - ty)) * stepDelay;
+                        for (let tx = 0; tx < 8; tx++) {
+                            events.push({ p: [tx, ty], time: time, dur: fadeDuration });
+                        }
+                    }
+                    return events;
+                }));
+            },
+            type: 'fixed'
+        };
+
+        animations[`scanline_h_bounce_reverse_${colorName}`] = {
+            on: (x, y, duration) => {
+                activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
+                    const stepDelay = dur ? dur / 16 : 50; // Faster steps to fit both ways
+                    const fadeDuration = dur ? stepDelay * 2 : 140;
+                    const events = [];
+                    // Bottom to Top
+                    for (let ty = 7; ty >= 0; ty--) {
+                        const time = (7 - ty) * stepDelay;
+                        for (let tx = 0; tx < 8; tx++) {
+                            events.push({ p: [tx, ty], time: time, dur: fadeDuration });
+                        }
+                    }
+                    // Top to Bottom
+                    for (let ty = 1; ty < 8; ty++) { // Start from 1 to avoid double flash on 0
+                        const time = (8 + (ty - 1)) * stepDelay;
+                        for (let tx = 0; tx < 8; tx++) {
+                            events.push({ p: [tx, ty], time: time, dur: fadeDuration });
                         }
                     }
                     return events;
