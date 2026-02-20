@@ -92,7 +92,7 @@
       </div>
       <div class="sidebar-content">
         <div class="menu-item">
-          <button class="menu-toggle" onclick="toggleMenu('language-menu')"
+          <button class="menu-toggle" data-menu="language-menu"
             data-i18n="menu.language.toggle">Lingua</button>
           <div class="menu-dropdown" id="language-menu">
             <div class="control-group" style="padding: 15px 15px 5px 15px;">
@@ -115,7 +115,7 @@
             using static data loaded in JavaScript.
         -->
         <div class="menu-item">
-          <button class="menu-toggle" onclick="toggleMenu('project-menu')" data-i18n="menu.project.toggle">Seleziona
+          <button class="menu-toggle" data-menu="project-menu" data-i18n="menu.project.toggle">Seleziona
             progetto</button>
           <div class="menu-dropdown" id="project-menu">
             <!-- Project items will be populated dynamically -->
@@ -129,10 +129,10 @@
           - CUSTOMIZATION: To add new videos, place them in the 'assets/videos/' folder.
         -->
         <div class="menu-item">
-          <button class="menu-toggle" onclick="toggleMenu('background-menu')"
+          <button class="menu-toggle" data-menu="background-menu"
             data-i18n="menu.background.toggle">Sfondo</button>
           <div class="menu-dropdown" id="background-menu">
-            <button class="menu-option selected" data-video="none" onclick="clearBackground()"
+            <button class="menu-option selected" data-video="none"
               data-i18n="background.none">Nessuno sfondo</button>
             <div class="control-group" style="padding: 15px 15px 5px 15px;">
               <label for="background-file-input" data-i18n="background.upload">Carica file</label>
@@ -198,22 +198,22 @@
             can be modified directly in 'js/visualizer.js'.
         -->
         <div class="menu-item">
-          <button class="menu-toggle" onclick="toggleMenu('visualizer-menu')"
+          <button class="menu-toggle" data-menu="visualizer-menu"
             data-i18n="menu.visualizer.toggle">Visualizzatore</button>
           <div class="menu-dropdown" id="visualizer-menu">
-            <button class="menu-option selected" data-mode="both" onclick="visualizer.setMode('both')"
+            <button class="menu-option selected" data-mode="both"
               data-i18n="visualizer.mode.both">Entrambi</button>
-            <button class="menu-option" data-mode="both-mirror" onclick="visualizer.setMode('both-mirror')"
+            <button class="menu-option" data-mode="both-mirror"
               data-i18n="visualizer.mode.both-mirror">Entrambi (specchiato)</button>
-            <button class="menu-option" data-mode="top" onclick="visualizer.setMode('top')"
+            <button class="menu-option" data-mode="top"
               data-i18n="visualizer.mode.top">Superiore</button>
-            <button class="menu-option" data-mode="top-mirror" onclick="visualizer.setMode('top-mirror')"
+            <button class="menu-option" data-mode="top-mirror"
               data-i18n="visualizer.mode.top-mirror">Superiore (specchiato)</button>
-            <button class="menu-option" data-mode="bottom" onclick="visualizer.setMode('bottom')"
+            <button class="menu-option" data-mode="bottom"
               data-i18n="visualizer.mode.bottom">Inferiore</button>
-            <button class="menu-option" data-mode="bottom-mirror" onclick="visualizer.setMode('bottom-mirror')"
+            <button class="menu-option" data-mode="bottom-mirror"
               data-i18n="visualizer.mode.bottom-mirror">Inferiore (specchiato)</button>
-            <button class="menu-option" data-mode="off" onclick="visualizer.setMode('off')"
+            <button class="menu-option" data-mode="off"
               data-i18n="visualizer.mode.off">Spento</button>
 
             <div class="control-group" id="symmetric-group">
@@ -312,12 +312,12 @@
             in the 'assets/images/launchpad covers/' folder.
         -->
         <div class="menu-item">
-          <button class="menu-toggle" onclick="toggleMenu('personalize-launchpad-menu')"
+          <button class="menu-toggle" data-menu="personalize-launchpad-menu"
             data-i18n="menu.launchpad.toggle">Personalize Launchpad</button>
           <div class="menu-dropdown" id="personalize-launchpad-menu">
             <div class="control-group">
               <label for="toggle-stickers">
-                <input type="checkbox" id="toggle-stickers" onchange="toggleLaunchpadStickers(this.checked)">
+                <input type="checkbox" id="toggle-stickers">
                 <span data-i18n="launchpad.stickers.show">Mostra Adesivi</span>
               </label>
             </div>
@@ -346,13 +346,13 @@
               <input type="file" id="logo-file-input" class="file-input-hidden" accept="video/*,image/*">
               <button type="button" class="menu-option" id="logo-file-trigger" data-i18n="launchpad.icon.upload">Carica
                 icona/video</button>
-              <button type="button" class="menu-option" onclick="resetTopRightIcon()"
+              <button type="button" class="menu-option" data-action="resetTopRightIcon"
                 data-i18n="launchpad.icon.reset">Ripristina icona</button>
             </div>
             <div class="control-group">
               <span class="section-title" data-i18n="launchpad.skins.title">Sfondi Launchpad</span>
             </div>
-            <button class="menu-option selected" data-skin="none" onclick="setLaunchpadBackground(null)"
+            <button class="menu-option selected" data-skin="none"
               data-i18n="launchpad.default">Default</button>
           </div>
         </div>
@@ -366,7 +366,7 @@
       Contains the button to open the sidebar and the Launchpad itself.
     -->
     <div class="body">
-      <button id="openSidebar" onclick="toggleSidebar()"><span class="icon">☰</span></button>
+      <button id="openSidebar"><span class="icon">☰</span></button>
       <main>
         <!--
           LAUNCHPAD

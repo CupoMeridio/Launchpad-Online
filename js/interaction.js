@@ -250,10 +250,3 @@ export function changeMode(index, updateVisuals = true) {
         updatePhysicalModeLights(index);
     }
 }
-
-// Functions are exposed globally to be used in HTML
-window.playSound = playSound;
-window.triggerPad = triggerPad;
-window.releasePad = releasePad;
-window.changeSoundSet = changeSoundSet;
-window.changeMode = changeMode;

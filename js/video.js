@@ -45,12 +45,12 @@ export function setBackgroundVideo(videoFile) {
     if (videoFile) {
         const video = document.createElement('video');
         video.className = 'background-media';
-        
+
         // If the videoFile path contains a slash, assume it's a full path,
         // otherwise assume it's a file in the default assets/videos/ directory.
         const videoSrc = videoFile.includes('/') ? videoFile : `assets/videos/${videoFile}`;
         video.src = `${videoSrc}?t=${new Date().getTime()}`;
-        
+
         video.autoplay = true;
         video.loop = true;
         video.muted = true;
@@ -151,7 +151,15 @@ export function initializeVideoControls() {
     }
 }
 
+/**
+ * Removes the current background element and revokes its blob URL if present,
+ * preventing memory leaks from repeated file uploads.
+ */
 function removeExistingBackground() {
+    // Revoke any blob URL previously created via createObjectURL
+    if (currentBackgroundEl && currentBackgroundEl.src && currentBackgroundEl.src.startsWith('blob:')) {
+        URL.revokeObjectURL(currentBackgroundEl.src);
+    }
     const existingVideo = document.querySelector('.background-video');
     if (existingVideo) existingVideo.remove();
     const existingMedia = document.querySelector('.background-media');
@@ -191,28 +199,19 @@ export function setBackgroundFile(file) {
     updateVideoControlsVisibility();
 }
 
-function setNoneSelected() {
-    const backgroundMenu = document.getElementById('background-menu');
-    if (backgroundMenu) {
-        const buttons = backgroundMenu.querySelectorAll('.menu-option');
-        buttons.forEach(b => b.classList.remove('selected'));
-        const noneBtn = backgroundMenu.querySelector('[data-video="none"]');
-        if (noneBtn) noneBtn.classList.add('selected');
-    }
-}
-
 export function clearBackground() {
     const overlay = document.querySelector('.video-overlay');
     removeExistingBackground();
     if (overlay) overlay.classList.remove('active');
     currentBackgroundEl = null;
     resetVideoControls();
-    setNoneSelected();
+    // Deselect all buttons and mark 'none' as selected (unified logic, replaces setNoneSelected)
+    const backgroundMenu = document.getElementById('background-menu');
+    if (backgroundMenu) {
+        backgroundMenu.querySelectorAll('.menu-option').forEach(b => b.classList.remove('selected'));
+        const noneBtn = backgroundMenu.querySelector('[data-video="none"]');
+        if (noneBtn) noneBtn.classList.add('selected');
+    }
     updateVideoControlsVisibility();
-    // no file name display
 }
 
-// Global exposure for usage in HTML
-window.setBackgroundVideo = setBackgroundVideo;
-window.setBackgroundFile = setBackgroundFile;
-window.clearBackground = clearBackground;

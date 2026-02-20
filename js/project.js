@@ -7,8 +7,8 @@
 import { audioEngine } from './audio.js';
 import { setLaunchpadBackground, getTranslation } from './ui.js';
 import { setBackgroundVideo } from './video.js';
-import {selectedProjectButton, setCurrentProject, setProjectSounds, setProjectLights, setSelectedProjectButton } from './app.js';
-import {changeSoundSet} from './interaction.js';
+import { selectedProjectButton, setCurrentProject, setProjectSounds, setProjectLights, setSelectedProjectButton } from './app.js';
+import { changeSoundSet } from './interaction.js';
 
 /**
  * Dynamically populates the background video menu.
@@ -23,7 +23,10 @@ export function initializeBackgroundMenu(videoFiles) {
         button.className = 'menu-option';
         button.setAttribute('data-video', videoFile);
         button.textContent = videoFile.replace('.mp4', '');
-        button.onclick = () => setBackgroundVideo(videoFile);
+        button.onclick = () => {
+            if (button.classList.contains('selected')) return;
+            setBackgroundVideo(videoFile);
+        };
         backgroundMenu.insertBefore(button, videoControls);
     });
 }
@@ -100,11 +103,11 @@ export async function loadProject(configPath, button, onProgress = null) {
             setBackgroundVideo(null);
         }
 
-        // Visualizer mode handling
-        if (window.visualizer) {
-            const visualizerMode = project.visualizerMode || 'off';
-            window.visualizer.setMode(visualizerMode);
-        }
+        // Communicate the desired visualizer mode via CustomEvent,
+        // decoupling project.js from the window.visualizer instance.
+        // visualizer-controls.js (and visualizer.js itself) listen for this event.
+        const visualizerMode = project.visualizerMode || 'off';
+        window.dispatchEvent(new CustomEvent('visualizer:setMode', { detail: { mode: visualizerMode } }));
 
         // Reset to first page when loading a new project
         changeSoundSet(0);
@@ -140,7 +143,10 @@ export function initializeProjectMenu(projects) {
         const button = document.createElement('button');
         button.className = 'menu-option';
         button.textContent = project.name;
-        button.onclick = () => loadProject(project.configPath, button);
+        button.onclick = () => {
+            if (button.classList.contains('selected')) return;
+            loadProject(project.configPath, button);
+        };
         projectMenu.appendChild(button);
 
         if (index === 0) {
