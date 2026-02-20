@@ -3,6 +3,7 @@
     "Disco Globes.mp4",
     "DiscoCity Loop.mp4",
     "Neon Square Drift.mp4",
+    "Neon Tunnel.webm",
     "Pulse Infinity VJ.mp4",
     "Purple Horizon Loop.mp4",
     "Sci-fi Drift.mp4"
@@ -15,6 +16,15 @@
     "black_bg_zigzag_yellow_black_tb.png"
   ],
   "projects": [
-    { "id": "virtual-riot-idols", "name": "Virtual Riot - Idols", "configPath": "projects/Virtual Riot - Idols.json" }
+    {
+      "id": "virtual-riot-idols",
+      "name": "Virtual Riot - Idols",
+      "configPath": "projects/Virtual Riot - Idols/Virtual Riot - Idols.json"
+    },
+    {
+      "id": "krewella-alive-cash-cash-x-kalkutta-remix",
+      "name": "Krewella - Alive (Cash Cash x Kalkutta Remix)",
+      "configPath": "projects/Krewella - Alive (Cash Cash x Kalkutta Remix)/Krewella - Alive (Cash Cash x Kalkutta Remix).json"
+    }
   ]
 }

@@ -1,5 +1,5 @@
 import { audioEngine } from './audio.js';
-import { currentPage, currentProject, projectLights, activePageButton, setCurrentPage, setActivePageButton, currentMode, activeModeButton, setCurrentMode, setActiveModeButton } from './app.js';
+import { currentPage, currentProject, projectLights, activePageButton, setCurrentPage, setActivePageButton, activeModeButton, setCurrentMode, setActiveModeButton } from './app.js';
 import { triggerAnimation, releaseAnimation } from './lights.js';
 import { setPhysicalColor, getLpColor, flushPhysicalColors } from './physicalInterface.js';
 
@@ -26,7 +26,7 @@ export function playSound(event, index) {
     }
 
     triggerPad(index);
-    
+
     // For click (legacy), we still keep a short timeout if no release event is used
     if (event.type === 'click') {
         ensurePadCache();
@@ -56,14 +56,14 @@ export function triggerPad(index) {
         const soundIndex = currentPage * 64 + index;
 
         // Play audio
-        audioEngine.playPadSound(soundIndex);
+        const duration = audioEngine.playPadSound(soundIndex);
 
         // Trigger light animation if it exists
         if (projectLights && projectLights[soundIndex]) {
             const animationName = projectLights[soundIndex];
             const x = index % 8;
             const y = Math.floor(index / 8);
-            triggerAnimation(animationName, x, y);
+            triggerAnimation(animationName, x, y, duration);
         }
 
         pad.classList.add('active');
@@ -100,17 +100,15 @@ export function initInteraction() {
     const launchpad = document.getElementById('Launchpad');
     if (!launchpad) return;
 
-    // Initialize pads: remove old onclick and set data-index for delegation
+    // Initialize pads: set data-index for delegation
     const pads = launchpad.querySelectorAll('.grid-item');
     pads.forEach((pad, index) => {
-        pad.removeAttribute('onclick');
         pad.dataset.index = index;
     });
 
-    // Initialize menu buttons: remove old onclick and set data-page for side buttons
+    // Initialize menu buttons: set data-page for side buttons
     const menuButtons = launchpad.querySelectorAll('.grid-item-menu');
     menuButtons.forEach(btn => {
-        btn.removeAttribute('onclick');
         if (btn.id.startsWith('m')) {
             btn.dataset.page = parseInt(btn.id.substring(1), 10) - 1;
         } else if (btn.id.startsWith('a')) {
@@ -151,11 +149,11 @@ export function initInteraction() {
     // Add delegated listeners to the Launchpad container
     launchpad.addEventListener('mousedown', handlePress);
     launchpad.addEventListener('touchstart', handlePress, { passive: false });
-    
+
     launchpad.addEventListener('mouseup', handleRelease);
     launchpad.addEventListener('touchend', handleRelease);
     launchpad.addEventListener('touchcancel', handleRelease);
-    
+
     launchpad.addEventListener('mouseout', handleMouseOut);
 }
 
@@ -201,7 +199,6 @@ export function changeSoundSet(index, updateVisuals = true) {
             updatePhysicalPageLights(index);
         }
     } else {
-        console.warn(`Attempt to access non-existent page: ${index}`);
         const launchpadElement = document.getElementById('Launchpad');
         if (launchpadElement) {
             launchpadElement.classList.add('error-shake');

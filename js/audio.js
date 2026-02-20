@@ -20,7 +20,7 @@ class AudioEngine {
         // The construct `(window.AudioContext || window.webkitAudioContext)` ensures compatibility
         // with older browsers that used a prefixed version.
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        
+
         // 2. ANALYZER CREATION
         // `AnalyserNode` is a component that provides frequency and waveform data
         // of audio passing through it, without modifying it. Essential for the visualizer.
@@ -50,7 +50,12 @@ class AudioEngine {
         // Decoded audio data (`AudioBuffer`) ready for playback.
         this.soundBuffers = [];
 
-        // 5. RESUME CONTEXT ON VISIBILITY CHANGE
+        // 5. ACTIVE SOURCES
+        // Map to keep track of currently playing source nodes by pad index.
+        // Used to stop sounds before restarting them if the pad is pressed again.
+        this.activeSources = new Map();
+
+        // 6. RESUME CONTEXT ON VISIBILITY CHANGE
         // Browsers often suspend AudioContext when the tab is backgrounded.
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible' && this.audioContext.state === 'suspended') {
@@ -90,16 +95,25 @@ class AudioEngine {
     }
 
     /**
-     * Loads an entire array of sound URLs.
+     * Loads an entire array of sound URLs in batches to avoid saturating connections.
      * @param {string[]} soundUrls - An array of URLs to load.
+     * @param {function} onProgress - Optional callback for loading progress.
      */
-    async loadSounds(soundUrls) {
+    async loadSounds(soundUrls, onProgress = null) {
         this.soundBuffers = []; // Clear previous project buffers.
-        // `map` creates an array of promises, where each promise represents loading a sound.
-        const loadPromises = soundUrls.map((url, index) => this.loadSound(url, index));
-        // `Promise.all` waits for all loading promises to complete.
-        // This allows loading all sounds in parallel, speeding up the process.
-        await Promise.all(loadPromises);
+        const total = soundUrls.length;
+        const BATCH_SIZE = 10; // Load 10 sounds at a time
+
+        for (let i = 0; i < total; i += BATCH_SIZE) {
+            const batch = soundUrls.slice(i, i + BATCH_SIZE);
+            const batchPromises = batch.map((url, index) => this.loadSound(url, i + index));
+            await Promise.all(batchPromises);
+            
+            if (onProgress) {
+                const progress = Math.min(((i + BATCH_SIZE) / total) * 100, 100);
+                onProgress(progress);
+            }
+        }
         console.log('All project sounds have been loaded!');
     }
 
@@ -115,9 +129,21 @@ class AudioEngine {
 
         // Check if an audio buffer exists for the specified pad.
         if (!this.soundBuffers[padIndex]) {
-            console.warn(`No sound loaded for pad ${padIndex}`);
-            return;
+            return 0;
         }
+
+        // STOP PREVIOUS SOUND (RESTART LOGIC)
+        // If a sound is already playing for this pad, stop it before starting a new one.
+        if (this.activeSources.has(padIndex)) {
+            try {
+                const oldSource = this.activeSources.get(padIndex);
+                oldSource.stop();
+            } catch (e) {
+                // Ignore errors if the source has already finished or hasn't started
+            }
+            this.activeSources.delete(padIndex);
+        }
+
         // Create a new `AudioBufferSourceNode` for playback.
         // Each call creates a new independent "player".
         const source = this.audioContext.createBufferSource();
@@ -126,8 +152,20 @@ class AudioEngine {
         // Connect the source node to the analyzer and then to the final output (speakers).
         source.connect(this.analyser);
         this.analyser.connect(this.audioContext.destination);
+
+        // Store the source node to manage its lifecycle
+        this.activeSources.set(padIndex, source);
+
+        // Clean up the source from activeSources once it finished naturally
+        source.onended = () => {
+            if (this.activeSources.get(padIndex) === source) {
+                this.activeSources.delete(padIndex);
+            }
+        };
+
         // Start playback immediately.
         source.start();
+        return source.buffer.duration;
     }
 
     /**

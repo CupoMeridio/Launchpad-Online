@@ -11,33 +11,45 @@
   - CUSTOMIZATION: You can change the `font-family` to use a different font,
     or modify `background-color` and `color` to change the color theme (e.g., light theme).
 */
-html, body {
-    height: 100%; /* Ensures HTML and body always occupy 100% of the screen height. */
+html,
+body {
+    height: 100%;
+    /* Ensures HTML and body always occupy 100% of the screen height. */
 }
 
 .midi-status-dot.connected {
-  background-color: #4CAF50; /* Green */
+    background-color: #4CAF50;
+    /* Green */
 }
 
 .midi-status-dot.disconnected {
-  background-color: #f44336; /* Red */
+    background-color: #f44336;
+    /* Red */
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; /* Uses a set of modern and clean system fonts. */
-    background-color: #1a1a1a; /* Main background color, a very dark gray. */
-    color: #f0f0f0; /* Main text color, a very light gray for contrast. */
-    margin: 0; /* Removes default browser margins for complete control over layout. */
-    overflow: hidden; /* Prevents scrolling at body level, useful for full-screen layouts. */
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    /* Uses a set of modern and clean system fonts. */
+    background-color: #1a1a1a;
+    /* Main background color, a very dark gray. */
+    color: #f0f0f0;
+    /* Main text color, a very light gray for contrast. */
+    margin: 0;
+    /* Removes default browser margins for complete control over layout. */
+    overflow: hidden;
+    /* Prevents scrolling at body level, useful for full-screen layouts. */
 }
 
 /*
   HEADING STYLES
   - CUSTOMIZATION: Change the color `#00aaff` to modify the main color of headings.
 */
-h1, h2 {
-    color: #00aaff; /* A bright blue to highlight headings. */
-    margin: 0; /* Removes margins for precise alignment. */
+h1,
+h2 {
+    color: #00aaff;
+    /* A bright blue to highlight headings. */
+    margin: 0;
+    /* Removes margins for precise alignment. */
 }
 
 /*
@@ -45,28 +57,37 @@ h1, h2 {
   - Styles for the side menu header.
 */
 .sidebar-header {
-    display: flex; /* Uses Flexbox to align internal elements (title and spacer). */
-    align-items: center; /* Vertically aligns elements to center. */
+    display: flex;
+    /* Uses Flexbox to align internal elements (title and spacer). */
+    align-items: center;
+    /* Vertically aligns elements to center. */
     margin-bottom: 15px;
     margin-top: 5px;
 }
 
 /* Empty spacer to align the title with content below. */
 .sidebar-spacer {
-    width: 30px; /* Fixed width to match the space of the open/close button. */
+    width: 30px;
+    /* Fixed width to match the space of the open/close button. */
     height: 28px;
-    flex-shrink: 0; /* Prevents shrinking if space is limited. */
+    flex-shrink: 0;
+    /* Prevents shrinking if space is limited. */
 }
 
 .sidebar-header h2 {
     margin: 0;
-    color: #fff; /* White text for menu title. */
+    color: #fff;
+    /* White text for menu title. */
     font-size: 16px;
-    font-weight: normal; /* Lighter font than normal. */
+    font-weight: normal;
+    /* Lighter font than normal. */
     text-align: center;
-    transition: opacity 0.2s ease; /* Smooth transition for opacity. */
-    white-space: nowrap; /* Prevents text from wrapping. */
-    overflow: hidden; /* Hides text if it overflows the container. */
+    transition: opacity 0.2s ease;
+    /* Smooth transition for opacity. */
+    white-space: nowrap;
+    /* Prevents text from wrapping. */
+    overflow: hidden;
+    /* Hides text if it overflows the container. */
 }
 
 /*
@@ -76,8 +97,10 @@ h1, h2 {
 main {
     width: 100%;
     display: flex;
-    justify-content: center; /* Centers content (the Launchpad) horizontally. */
-    align-items: center; /* Centers content vertically. */
+    justify-content: center;
+    /* Centers content (the Launchpad) horizontally. */
+    align-items: center;
+    /* Centers content vertically. */
 }
 
 /*
@@ -89,11 +112,14 @@ main {
 */
 .layout {
     width: 100%;
-    height: 100vh; /* Occupies the entire window height. */
+    height: 100vh;
+    /* Occupies the entire window height. */
     display: grid;
     grid-template-columns: 0 1fr;
-    gap: 8px; /* Space between sidebar and content. */
-    transition: grid-template-columns .3s ease-in-out; /* Smooth animation for column width. */
+    gap: 8px;
+    /* Space between sidebar and content. */
+    transition: grid-template-columns .3s ease-in-out;
+    /* Smooth animation for column width. */
     position: relative;
 }
 
@@ -145,11 +171,16 @@ main {
     width: 100%;
     height: 100%;
     background-color: rgba(18, 18, 18, 0.15);
-    z-index: -1; /* Positioned between video and content. */
-    transition: opacity 0.3s ease, backdrop-filter 0.3s ease; /* Transitions for opacity and blur. */
-    opacity: 0; /* Initially invisible. */
-    pointer-events: none; /* Doesn't intercept mouse clicks. */
-    backdrop-filter: blur(0px); /* No initial blur. */
+    z-index: -1;
+    /* Positioned between video and content. */
+    transition: opacity 0.3s ease, backdrop-filter 0.3s ease;
+    /* Transitions for opacity and blur. */
+    opacity: 0;
+    /* Initially invisible. */
+    pointer-events: none;
+    /* Doesn't intercept mouse clicks. */
+    backdrop-filter: blur(0px);
+    /* No initial blur. */
 }
 
 /* The `.active` class is added via JS to show the overlay. */
@@ -163,11 +194,13 @@ main {
   - The appear/disappear animation is created with `max-height` and `padding`.
 */
 .video-controls {
-    background-color: #252525; /* Slightly different background from menu to distinguish it. */
+    background-color: #252525;
+    /* Slightly different background from menu to distinguish it. */
     border-radius: 4px;
     margin-top: 5px;
     padding: 0 15px;
-    max-height: 0; /* Initially closed (zero height). */
+    max-height: 0;
+    /* Initially closed (zero height). */
     overflow: hidden;
     transition: max-height 0.3s ease-out, padding 0.3s ease-out;
 }
@@ -175,7 +208,8 @@ main {
 /* The `.visible` class is added via JS to show controls. */
 .video-controls.visible {
     padding: 15px;
-    max-height: 500px; /* Height sufficient to contain everything. */
+    max-height: 500px;
+    /* Height sufficient to contain everything. */
     transition: max-height 0.4s ease-in, padding 0.4s ease-in;
 }
 
@@ -204,15 +238,19 @@ main {
     font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis; /* Adds ... if text is too long */
-    max-width: 100%; /* Limits maximum width */
-    box-sizing: border-box; /* Includes padding in width calculation */
+    text-overflow: ellipsis;
+    /* Adds ... if text is too long */
+    max-width: 100%;
+    /* Limits maximum width */
+    box-sizing: border-box;
+    /* Includes padding in width calculation */
 }
 
 .input-group {
     display: flex;
     align-items: center;
-    gap: 8px; /* Increased gap for better spacing */
+    gap: 8px;
+    /* Increased gap for better spacing */
     margin-bottom: 4px;
     flex-wrap: nowrap;
     justify-content: space-between;
@@ -244,10 +282,12 @@ main {
 .control-group input[type="range"] {
     width: calc(100% - 85px);
     height: 4px;
-    background: #333; /* Slider bar color. */
+    background: #333;
+    /* Slider bar color. */
     border-radius: 2px;
     outline: none;
-    -webkit-appearance: none; /* Removes browser default styles. */
+    -webkit-appearance: none;
+    /* Removes browser default styles. */
     appearance: none;
     margin: 0;
     flex-shrink: 1;
@@ -266,8 +306,10 @@ main {
     padding: 0;
     margin: 0;
     outline: none;
-    -moz-appearance: textfield; /* Removes arrows in Firefox */
-    appearance: textfield;      /* Standard property for compatibility */
+    -moz-appearance: textfield;
+    /* Removes arrows in Firefox */
+    appearance: textfield;
+    /* Standard property for compatibility */
 }
 
 /* Removes arrows in Chrome, Safari, Edge, Opera */
@@ -292,8 +334,10 @@ main {
     -webkit-appearance: none;
     width: 14px;
     height: 14px;
-    background: #00ff88; /* Thumb color (neon green). */
-    border-radius: 50%; /* Makes it round. */
+    background: #00ff88;
+    /* Thumb color (neon green). */
+    border-radius: 50%;
+    /* Makes it round. */
     cursor: pointer;
 }
 
@@ -311,9 +355,11 @@ main {
 .control-group input[type="color"] {
     -webkit-appearance: none;
     appearance: none;
-    width: 40px; /* Width similar to numeric input */
+    width: 40px;
+    /* Width similar to numeric input */
     height: 20px;
-    background-color: transparent; /* Removes default background */
+    background-color: transparent;
+    /* Removes default background */
     border: 1px solid #555;
     border-radius: 4px;
     cursor: pointer;
@@ -321,7 +367,8 @@ main {
 }
 
 .control-group input[type="color"]::-webkit-color-swatch-wrapper {
-    padding: 2px; /* Internal space for color sample */
+    padding: 2px;
+    /* Internal space for color sample */
     border-radius: 3px;
 }
 
@@ -338,7 +385,8 @@ main {
     border-radius: 4px;
     padding: 4px 8px;
     font-size: 12px;
-    width: 100%; /* Occupies all available width */
+    width: 100%;
+    /* Occupies all available width */
     box-sizing: border-box;
 }
 
@@ -353,7 +401,8 @@ main {
 */
 .body {
     position: relative;
-    z-index: 2; /* Positioned above visualizer and background. */
+    z-index: 2;
+    /* Positioned above visualizer and background. */
 }
 
 /*
@@ -371,9 +420,11 @@ main {
   - Initially hidden (`opacity: 0`, `visibility: hidden`).
 */
 .sidebar {
-    grid-column: 1; /* Occupies the first column of the grid. */
+    grid-column: 1;
+    /* Occupies the first column of the grid. */
     background-color: #2a2a2a;
-    padding: 0px 16px 50px 16px; /* Increased bottom padding from 16px to 50px to accommodate MIDI indicator */
+    padding: 0px 16px 50px 16px;
+    /* Increased bottom padding from 16px to 50px to accommodate MIDI indicator */
     height: 100%;
     position: relative;
     z-index: 1;
@@ -381,7 +432,8 @@ main {
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease, visibility 0.3s ease;
-    box-sizing: border-box; /* Ensures padding is included in height calculation */
+    box-sizing: border-box;
+    /* Ensures padding is included in height calculation */
 }
 
 /* The `.sidebar-open` class on layout makes the sidebar visible. */
@@ -393,7 +445,8 @@ main {
 .sidebar-content {
     display: flex;
     flex-direction: column;
-    gap: 10px; /* Space between various menus (Project, Background, etc.). */
+    gap: 10px;
+    /* Space between various menus (Project, Background, etc.). */
 }
 
 .menu-item {
@@ -418,13 +471,17 @@ main {
     transition: background-color 0.2s ease;
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis; /* Adds ... if text is too long */
-    width: 100%; /* Ensures button occupies all available width */
-    box-sizing: border-box; /* Includes padding in width calculation */
+    text-overflow: ellipsis;
+    /* Adds ... if text is too long */
+    width: 100%;
+    /* Ensures button occupies all available width */
+    box-sizing: border-box;
+    /* Includes padding in width calculation */
 }
 
 .menu-toggle:hover {
-    background: #3a3a3a; /* Lighter color on mouse hover. */
+    background: #3a3a3a;
+    /* Lighter color on mouse hover. */
 }
 
 .menu-toggle.active {
@@ -438,20 +495,25 @@ main {
   - Animation is managed through `max-height`, going from 0 to a value sufficient to show content.
 */
 .menu-dropdown {
-    max-height: 0; /* Initially closed. */
+    max-height: 0;
+    /* Initially closed. */
     overflow: hidden;
     transition: max-height 0.3s ease;
     background: #252525;
     border-radius: 4px;
     margin-top: 5px;
-    max-width: 100%; /* Limits maximum width to parent container */
-    box-sizing: border-box; /* Includes padding in width calculation */
+    max-width: 100%;
+    /* Limits maximum width to parent container */
+    box-sizing: border-box;
+    /* Includes padding in width calculation */
 }
 
 /* The `.open` class is added via JS to open the dropdown. */
 .menu-dropdown.open {
-    max-height: 200px; /* Maximum height. Increase if content is not visible. */
-    overflow-y: auto; /* Shows scrollbar if content exceeds maximum height. */
+    max-height: 200px;
+    /* Maximum height. Increase if content is not visible. */
+    overflow-y: auto;
+    /* Shows scrollbar if content exceeds maximum height. */
 }
 
 /*
@@ -472,8 +534,10 @@ main {
     transition: background-color 0.2s ease, color 0.2s ease;
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis; /* Adds ... if text is too long */
-    box-sizing: border-box; /* Includes padding in width calculation */
+    text-overflow: ellipsis;
+    /* Adds ... if text is too long */
+    box-sizing: border-box;
+    /* Includes padding in width calculation */
 }
 
 .menu-dropdown button:hover,
@@ -497,12 +561,14 @@ main {
 }
 
 .menu-dropdown::-webkit-scrollbar-thumb {
-    background: #00aaff; /* Scrollbar color (blue). */
+    background: #00aaff;
+    /* Scrollbar color (blue). */
     border-radius: 10px;
 }
 
 .menu-dropdown::-webkit-scrollbar-thumb:hover {
-    background: #0088cc; /* Color on mouse hover. */
+    background: #0088cc;
+    /* Color on mouse hover. */
 }
 
 /*
@@ -513,13 +579,15 @@ main {
     position: fixed;
     top: 0;
     left: 0;
-    background-color: #00aaff; /* Blue color. */
+    background-color: #00aaff;
+    /* Blue color. */
     border: none;
     color: white;
     padding: 10px 10px;
     border-radius: 3px;
     cursor: pointer;
-    z-index: 3; /* Positioned above almost everything. */
+    z-index: 3;
+    /* Positioned above almost everything. */
     transition: background-color 0.3s ease;
     font-size: 18px;
     line-height: 1;
@@ -533,7 +601,8 @@ main {
 /* Icon inside button (three lines). */
 #openSidebar .icon {
     display: inline-block;
-    transition: transform 0.3s ease; /* Animates rotation. */
+    transition: transform 0.3s ease;
+    /* Animates rotation. */
     font-size: 20px;
     line-height: 1;
     margin: 0;
@@ -568,18 +637,28 @@ main {
     position: fixed;
     left: 0;
     width: 100%;
-    height: 25%; /* Visualizer height. You can change it to make it larger or smaller. */
-    z-index: 1; /* Positioned below main content but above background. */
+    height: 25%;
+    /* Visualizer height. You can change it to make it larger or smaller. */
+    z-index: 1;
+    /* Positioned below main content but above background. */
     pointer-events: none;
     transition: left 0.3s ease-in-out, width 0.3s ease-in-out;
 }
-#visualizer-canvas-top { top: 0; }
-#visualizer-canvas-bottom { bottom: 0; }
+
+#visualizer-canvas-top {
+    top: 0;
+}
+
+#visualizer-canvas-bottom {
+    bottom: 0;
+}
 
 /* Adapts visualizer position and width when sidebar is open. */
 .layout.sidebar-open .visualizer-canvas {
-    left: 260px; /* Moves canvas start to the right of sidebar. */
-    width: calc(100% - 260px); /* Reduces width to avoid overlapping sidebar. */
+    left: 260px;
+    /* Moves canvas start to the right of sidebar. */
+    width: calc(100% - 260px);
+    /* Reduces width to avoid overlapping sidebar. */
 }
 
 /*
@@ -588,14 +667,31 @@ main {
     when trying to use an unavailable function (like MIDI).
 */
 @keyframes shake {
-  10%, 90% { transform: translate3d(-1px, 0, 0); }
-  20%, 80% { transform: translate3d(2px, 0, 0); }
-  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-  40%, 60% { transform: translate3d(4px, 0, 0); }
+
+    10%,
+    90% {
+        transform: translate3d(-1px, 0, 0);
+    }
+
+    20%,
+    80% {
+        transform: translate3d(2px, 0, 0);
+    }
+
+    30%,
+    50%,
+    70% {
+        transform: translate3d(-4px, 0, 0);
+    }
+
+    40%,
+    60% {
+        transform: translate3d(4px, 0, 0);
+    }
 }
 
 .error-shake {
-  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+    animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
 }
 
 /*
@@ -638,32 +734,43 @@ main {
 }
 
 .midi-status-fixed {
-  position: absolute;
-  bottom: 10px;
-  left: 16px; /* Aligned with sidebar padding */
-  right: 16px; /* Limits maximum width */
-  display: flex;
-  align-items: center;
-  color: #fff;
-  font-size: 0.85em; /* Slightly reduced to fit better */
-  background-color: rgba(0, 0, 0, 0.3); /* Semi-transparent background to improve readability */
-  padding: 8px 12px;
-  border-radius: 4px;
-  box-sizing: border-box; /* Includes padding in width calculation */
+    position: absolute;
+    bottom: 10px;
+    left: 16px;
+    /* Aligned with sidebar padding */
+    right: 16px;
+    /* Limits maximum width */
+    display: flex;
+    align-items: center;
+    color: #fff;
+    font-size: 0.85em;
+    /* Slightly reduced to fit better */
+    background-color: rgba(0, 0, 0, 0.3);
+    /* Semi-transparent background to improve readability */
+    padding: 8px 12px;
+    border-radius: 4px;
+    box-sizing: border-box;
+    /* Includes padding in width calculation */
 }
 
 .midi-status-dot {
-  width: 8px; /* Slightly reduced */
-  height: 8px;
-  border-radius: 50%;
-  margin-right: 8px;
-  flex-shrink: 0; /* Never shrinks */
+    width: 8px;
+    /* Slightly reduced */
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+    flex-shrink: 0;
+    /* Never shrinks */
 }
 
 #midi-status-text {
-  overflow: hidden;
-  text-overflow: ellipsis; /* Adds ... if text is too long */
-  white-space: nowrap; /* Prevents text from wrapping */
-  flex-grow: 1; /* Occupies remaining space */
-  min-width: 0; /* Allows flex item to shrink */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* Adds ... if text is too long */
+    white-space: nowrap;
+    /* Prevents text from wrapping */
+    flex-grow: 1;
+    /* Occupies remaining space */
+    min-width: 0;
+    /* Allows flex item to shrink */
 }

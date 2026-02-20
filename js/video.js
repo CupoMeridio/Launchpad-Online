@@ -1,7 +1,5 @@
 /**
- * =============================================================================
  * VIDEO BACKGROUND MODULE (video.js)
- * =============================================================================
  * Manages background video selection, effect controls visibility, and
  * applies visual effects (overlay opacity, blur, brightness).
  */
@@ -41,21 +39,26 @@ export function setBackgroundVideo(videoFile) {
         const active = backgroundMenu.querySelector(selector);
         if (active) active.classList.add('selected');
     }
-    
+
     removeExistingBackground();
-    
+
     if (videoFile) {
         const video = document.createElement('video');
         video.className = 'background-media';
-        video.src = `assets/videos/${videoFile}?t=${new Date().getTime()}`;
+        
+        // If the videoFile path contains a slash, assume it's a full path,
+        // otherwise assume it's a file in the default assets/videos/ directory.
+        const videoSrc = videoFile.includes('/') ? videoFile : `assets/videos/${videoFile}`;
+        video.src = `${videoSrc}?t=${new Date().getTime()}`;
+        
         video.autoplay = true;
         video.loop = true;
         video.muted = true;
-        
+
         document.body.appendChild(video);
         overlay.classList.add('active');
         currentBackgroundEl = video;
-        
+
         applyVideoEffects();
     } else {
         overlay.classList.remove('active');
@@ -73,18 +76,18 @@ function resetVideoControls() {
     const opacityInput = document.getElementById('opacity-input');
     const blurInput = document.getElementById('blur-input');
     const brightnessInput = document.getElementById('brightness-input');
-    
+
     if (opacitySlider && blurSlider && brightnessSlider) {
         opacitySlider.value = VIDEO_EFFECT_DEFAULTS.opacity;
         blurSlider.value = VIDEO_EFFECT_DEFAULTS.blur;
         brightnessSlider.value = VIDEO_EFFECT_DEFAULTS.brightness;
-        
+
         if (opacityInput && blurInput && brightnessInput) {
             opacityInput.value = VIDEO_EFFECT_DEFAULTS.opacity;
             blurInput.value = VIDEO_EFFECT_DEFAULTS.blur;
             brightnessInput.value = VIDEO_EFFECT_DEFAULTS.brightness;
         }
-        
+
         applyVideoEffects();
     }
 }
@@ -94,11 +97,11 @@ function applyVideoEffects() {
     const opacityInput = document.getElementById('opacity-input');
     const blurInput = document.getElementById('blur-input');
     const brightnessInput = document.getElementById('brightness-input');
-    
+
     if (overlay && opacityInput && blurInput && brightnessInput) {
         const opacity = opacityInput.value / 100;
         overlay.style.backgroundColor = `rgba(18, 18, 18, ${opacity})`;
-        
+
         if (currentBackgroundEl) {
             // Convert percentage (0-100) to pixels (0-20px) for blur
             const blurPx = (blurInput.value / 100) * 20;
@@ -118,7 +121,7 @@ export function initializeVideoControls() {
     const opacityInput = document.getElementById('opacity-input');
     const blurInput = document.getElementById('blur-input');
     const brightnessInput = document.getElementById('brightness-input');
-    
+
     if (opacitySlider && blurSlider && brightnessSlider) {
         opacitySlider.value = VIDEO_EFFECT_DEFAULTS.opacity;
         opacityInput.value = VIDEO_EFFECT_DEFAULTS.opacity;
@@ -135,12 +138,12 @@ export function initializeVideoControls() {
     const fileInput = document.getElementById('background-file-input');
     const fileTrigger = document.getElementById('background-file-trigger');
     if (fileTrigger && fileInput) {
-        fileTrigger.addEventListener('click', function() {
+        fileTrigger.addEventListener('click', function () {
             fileInput.click();
         });
     }
     if (fileInput) {
-        fileInput.addEventListener('change', function() {
+        fileInput.addEventListener('change', function () {
             const file = this.files && this.files[0];
             if (!file) return;
             setBackgroundFile(file);

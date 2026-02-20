@@ -1,0 +1,107 @@
+{
+  "id": "virtual-riot-idols",
+  "name": "Virtual Riot - Idols",
+  "coverImage": "",
+  "backgroundVideo": "assets/videos/Neon Tunnel.webm",
+  "pages": [
+    {
+      "name": "Page 1",
+      "sounds": [
+        "samples/pagina1/intro1.wav", "samples/pagina1/fin.wav", "", "", "", "", "", "samples/pagina1/intro30.wav",
+        "", "", "", "", "", "", "", "",
+        "samples/pagina1/intro14.wav", "", "", "", "", "", "", "samples/pagina1/intro22.wav",
+        "samples/pagina1/intro15.wav", "", "", "", "", "", "", "samples/pagina1/intro23.wav",
+        "samples/pagina1/intro16.wav", "", "", "samples/pagina1/intro21.wav", "samples/pagina1/intro29.wav", "", "", "samples/pagina1/intro24.wav",
+        "samples/pagina1/intro17.wav", "samples/pagina1/intro18.wav", "samples/pagina1/intro19.wav", "samples/pagina1/intro20.wav", "samples/pagina1/intro28.wav", "samples/pagina1/intro27.wav", "samples/pagina1/intro26.wav", "samples/pagina1/intro25.wav",
+        "samples/pagina1/intro8.wav", "samples/pagina1/intro9.wav", "", "samples/pagina1/intro10.wav", "samples/pagina1/intro13.wav", "", "samples/pagina1/intro12.wav", "samples/pagina1/intro11.wav",
+        "samples/pagina1/intro2.wav", "samples/pagina1/intro3.wav", "", "samples/pagina1/intro4.wav", "samples/pagina1/intro7.wav", "", "samples/pagina1/intro6.wav", "samples/pagina1/intro5.wav"
+      ],
+      "lights": [
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "rain_right_red", "", "", "", "", "", "", "rain_left_red",
+        "rain_right_amber", "", "", "", "", "", "", "rain_left_amber",
+        "rain_right_yellow", "", "", "explode_red", "explode_green", "", "", "rain_left_yellow",
+        "rain_right_green", "rain_up_red", "rain_up_amber", "rain_up_green", "rain_up_green", "rain_up_amber", "rain_up_red", "rain_left_green",
+        "scanline_v_yellow", "scanline_v_reverse_yellow", "", "scanline_v_bounce_yellow", "scanline_v_bounce_reverse_green", "", "scanline_v_green", "scanline_v_reverse_green",
+        "scanline_v_red", "scanline_v_reverse_red", "", "scanline_v_bounce_red", "scanline_v_bounce_reverse_amber", "", "scanline_v_amber", "scanline_v_reverse_amber"
+      ]
+    },
+    {
+      "name": "Page 2",
+      "sounds": [
+        "samples/pagina2/drop31.wav", "samples/pagina2/alt-drop4.wav", "", "samples/pagina2/Lazors.wav", "", "", "", "samples/pagina2/drop6.wav",
+        "samples/pagina2/drop30.wav", "samples/pagina2/drop32.wav", "samples/pagina2/drop29.wav", "samples/pagina2/MEANWHILE.wav", "samples/pagina2/alt-drop2.wav", "", "samples/pagina2/drop9.wav", "samples/pagina2/alt-drop7.wav",
+        "samples/pagina2/drop27.wav", "samples/pagina2/drop28.wav", "samples/pagina2/drop33.wav", "samples/pagina2/drop26.wav", "samples/pagina2/alt-drop1.wav", "samples/pagina2/drop8.wav", "samples/pagina2/alt-drop5.wav", "samples/pagina2/alt-drop6.wav",
+        "samples/pagina2/drop10.wav", "samples/pagina2/drop12.wav", "samples/pagina2/drop25.wav", "samples/pagina2/drop34.wav", "samples/pagina2/drop7.wav", "samples/pagina2/drop15.wav", "", "",
+        "samples/pagina2/drop11.wav", "", "samples/pagina2/drop3.wav", "samples/pagina2/drop5.wav", "samples/pagina2/drop22.wav", "samples/pagina2/drop16.wav", "", "",
+        "", "", "samples/pagina2/drop2.wav", "samples/pagina2/drop4.wav", "", "samples/pagina2/drop21.wav", "", "",
+        "", "", "", "", "", "", "samples/pagina2/drop19.wav", "samples/pagina2/drop20.wav",
+        "samples/pagina2/drop1.wav", "", "", "", "", "", "samples/pagina2/alt-drop3.wav", "samples/pagina2/drop18.wav"
+      ],
+      "lights": [
+        "number_bold_4_green", "", "", "", "", "", "", "",
+        "", "number_bold_3_yellow", "", "", "", "", "", "",
+        "", "", "number_bold_2_amber", "", "", "", "", "",
+        "", "", "", "number_bold_1_red", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", ""
+      ]
+    },
+    {
+      "name": "Page 3",
+      "sounds": [
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "samples/pagina3/drugs1.wav", "samples/pagina3/drugs5.wav", "samples/pagina3/drugs6.wav", "", "",
+        "", "", "", "", "", "samples/pagina3/drugs4.wav", "", "",
+        "", "", "", "", "", "", "samples/pagina3/drugs3.wav", "",
+        "", "", "", "", "samples/pagina3/drugs7.wav", "", "", "samples/pagina3/drugs2.wav" 
+      ]
+    },
+    {
+      "name": "Page 4",
+      "sounds": [
+        "samples/pagina4/extensive2.wav", "samples/pagina4/extensive10.wav", "", "", "", "", "samples/pagina4/extensive26.wav", "samples/pagina4/extensive18.wav",
+        "samples/pagina4/extensive4.wav", "samples/pagina4/extensive12.wav", "", "", "", "", "samples/pagina4/extensive28.wav", "samples/pagina4/extensive20.wav",
+        "samples/pagina4/extensive6.wav", "samples/pagina4/extensive14.wav", "", "", "", "samples/pagina4/altextensive1.wav", "samples/pagina4/extensive30.wav", "samples/pagina4/extensive22.wav",
+        "samples/pagina4/extensive8.wav", "samples/pagina4/extensive16.wav", "", "", "", "samples/pagina4/altextensive2.wav", "samples/pagina4/extensive32.wav", "samples/pagina4/extensive24.wav",
+        "samples/pagina4/extensive7.wav", "samples/pagina4/extensive15.wav", "", "samples/pagina4/extensive33.wav", "samples/pagina4/extensive34.wav", "samples/pagina4/altextensive3.wav", "samples/pagina4/extensive31.wav", "samples/pagina4/extensive23.wav",
+        "samples/pagina4/extensive5.wav", "samples/pagina4/extensive13.wav", "", "", "", "", "samples/pagina4/extensive29.wav", "samples/pagina4/extensive21.wav",
+        "samples/pagina4/extensive3.wav", "samples/pagina4/extensive11.wav", "", "", "", "", "samples/pagina4/extensive27.wav", "samples/pagina4/extensive19.wav",
+        "samples/pagina4/extensive1.wav", "samples/pagina4/extensive9.wav","", "", "", "", "samples/pagina4/extensive25.wav", "samples/pagina4/extensive17.wav"
+      ]
+    },
+    {
+      "name": "Page 5",
+      "sounds": [
+        "samples/pagina5/vocals15.wav", "", "", "", "", "", "", "",
+        "samples/pagina5/vocals16.wav", "samples/pagina5/vocals14.wav", "", "", "", "", "", "",
+        "samples/pagina5/vocals17.wav", "", "samples/pagina5/vocals8.wav", "", "", "samples/pagina5/vocals5.wav", "", "",
+        "samples/pagina5/vocals18.wav", "", "", "samples/pagina5/vocals7.wav", "samples/pagina5/vocals4.wav", "", "", "",
+        "samples/pagina5/vocals19.wav", "", "", "samples/pagina5/vocals2.wav", "samples/pagina5/vocals6.wav", "", "", "",
+        "", "", "samples/pagina5/vocals3.wav", "samples/pagina5/vocals22.wav", "", "samples/pagina5/vocals9.wav", "", "",
+        "", "samples/pagina5/vocals20.wav", "", "", "", "", "samples/pagina5/vocals10.wav", "",
+        "samples/pagina5/vocals21.wav", "", "", "", "", "samples/pagina5/vocals13.wav", "samples/pagina5/vocals12.wav", "samples/pagina5/vocals11.wav" 
+      ]
+    },
+    {
+      "name": "Page 6",
+      "sounds": [
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "samples/pagina6/youanmahfriends3.wav", "", "", "samples/pagina6/youanmahfriends5.wav", "samples/pagina6/youanmahfriends6.wav", "", "", "samples/pagina6/youanmahfriends4.wav",
+        "samples/pagina6/youanmahfriends1.wav", "", "", "", "", "", "", "samples/pagina6/youanmahfriends2.wav",
+        "samples/pagina6/build2-18.wav", "samples/pagina6/build2-19.wav", "", "samples/pagina6/build2-20.wav", "samples/pagina6/LETSGO.wav", "", "", "",
+        "samples/pagina6/build2-12.wav", "samples/pagina6/build2-13.wav", "", "samples/pagina6/build2-14.wav", "samples/pagina6/build2-17.wav", "samples/pagina6/BWOW3.wav", "samples/pagina6/build2-16.wav", "samples/pagina6/build2-15.wav",
+        "samples/pagina6/build2-6.wav", "samples/pagina6/build2-7.wav", "", "samples/pagina6/build2-8.wav", "samples/pagina6/build2-11.wav", "samples/pagina6/BWOW2.wav", "samples/pagina6/build2-10.wav", "samples/pagina6/build2-9.wav",
+        "samples/pagina6/build2-1.wav", "samples/pagina6/build2-2.wav", "", "samples/pagina6/build2-3.wav", "samples/pagina6/build2-awkward2.wav", "samples/pagina6/BWOW1.wav", "samples/pagina6/build2-awkward1.wav", "samples/pagina6/build2-4.wav" 
+      ]
+    }
+
+  ]
+}

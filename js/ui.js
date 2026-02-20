@@ -1,279 +1,27 @@
 import { updateVideoControlsVisibility } from './video.js';
-const translations = {
-    it: {
-        'sidebar.title': 'Menu',
-        'menu.language.toggle': 'Lingua interfaccia',
-        'menu.language.label': 'Seleziona lingua',
-        'menu.language.option.it': 'Italiano',
-        'menu.language.option.en': 'English',
-        'menu.language.option.es': 'Español',
-        'menu.language.option.de': 'Deutsch',
-        'menu.language.option.fr': 'Français',
-        'menu.project.toggle': 'Seleziona progetto',
-        'menu.background.toggle': 'Sfondo',
-        'menu.visualizer.toggle': 'Visualizzatore',
-        'menu.launchpad.toggle': 'Personalizza Launchpad',
-        'background.none': 'Nessuno sfondo',
-        'background.opacity': 'Opacità',
-        'background.blur': 'Sfocatura',
-        'background.brightness': 'Luminosità',
-        'background.upload': 'Carica file',
-        'visualizer.mode.both': 'Entrambi i pannelli',
-        'visualizer.mode.both-mirror': 'Entrambi (specchiato)',
-        'visualizer.mode.top': 'Solo superiore',
-        'visualizer.mode.top-mirror': 'Superiore (specchiato)',
-        'visualizer.mode.bottom': 'Solo inferiore',
-        'visualizer.mode.bottom-mirror': 'Inferiore (specchiato)',
-        'visualizer.mode.off': 'Disattivato',
-        'visualizer.symmetric': 'Simmetrico',
-        'visualizer.smoothing': 'Fluidità animazione',
-        'visualizer.color1': 'Colore iniziale',
-        'visualizer.color2': 'Colore finale',
-        'visualizer.gradient.enable': 'Abilita gradiente di colore',
-        'visualizer.gradient.direction': 'Direzione del gradiente',
-        'visualizer.gradient.vertical': 'Verticale',
-        'visualizer.gradient.horizontal': 'Orizzontale',
-        'visualizer.gradient.verticalReverse': 'Verticale (inverso)',
-        'visualizer.gradient.horizontalReverse': 'Orizzontale (inverso)',
-        'visualizer.alpha': 'Trasparenza',
-        'visualizer.symmetricReverse': 'Inverti riflessione',
-        'launchpad.stickers.show': 'Mostra adesivi sul Launchpad',
-        'launchpad.default': 'Predefinito',
-        'overlay.clickToStart': 'Clicca per avviare',
-        'midi.status.connected': 'Launchpad collegato',
-        'midi.status.disconnected': 'Launchpad scollegato',
-        'midi.notSupported': 'MIDI non supportato',
-        'launchpad.rotation': 'Rotazione Launchpad',
-        'launchpad.icon.label': 'Icona in alto a destra',
-        'launchpad.icon.upload': 'Carica icona/video',
-        'launchpad.icon.reset': 'Ripristina icona',
-        'visualizer.symmetricMode': 'Modalità',
-        'visualizer.symmetric.normal': 'Normale',
-        'visualizer.symmetric.reverse': 'Inversa',
-        'launchpad.skins.title': 'Sfondi Launchpad',
-        'launchpad.size': 'Dimensione Launchpad',
-        'visualizer.bassPulse.enable': 'Effetto Pulsante Bassi',
-        'visualizer.bassPulse.threshold': 'Soglia Bassi'
-    },
-    en: {
-        'sidebar.title': 'Menu',
-        'menu.language.toggle': 'Interface Language',
-        'menu.language.label': 'Select language',
-        'menu.language.option.it': 'Italian',
-        'menu.language.option.en': 'English',
-        'menu.language.option.es': 'Spanish',
-        'menu.language.option.de': 'German',
-        'menu.language.option.fr': 'French',
-        'menu.project.toggle': 'Select Project',
-        'menu.background.toggle': 'Background',
-        'menu.visualizer.toggle': 'Visualizer',
-        'menu.launchpad.toggle': 'Personalize Launchpad',
-        'background.none': 'No Background',
-        'background.opacity': 'Opacity',
-        'background.blur': 'Blur',
-        'background.brightness': 'Brightness',
-        'background.upload': 'Upload file',
-        'visualizer.mode.both': 'Both Panels',
-        'visualizer.mode.both-mirror': 'Both (mirrored)',
-        'visualizer.mode.top': 'Top Only',
-        'visualizer.mode.top-mirror': 'Top (mirrored)',
-        'visualizer.mode.bottom': 'Bottom Only',
-        'visualizer.mode.bottom-mirror': 'Bottom (mirrored)',
-        'visualizer.mode.off': 'Off',
-        'visualizer.symmetric': 'Symmetric',
-        'visualizer.smoothing': 'Animation smoothness',
-        'visualizer.color1': 'Start color',
-        'visualizer.color2': 'End color',
-        'visualizer.gradient.enable': 'Enable color gradient',
-        'visualizer.gradient.direction': 'Gradient direction',
-        'visualizer.gradient.vertical': 'Vertical',
-        'visualizer.gradient.horizontal': 'Horizontal',
-        'visualizer.gradient.verticalReverse': 'Vertical (reverse)',
-        'visualizer.gradient.horizontalReverse': 'Horizontal (reverse)',
-        'visualizer.alpha': 'Transparency',
-        'visualizer.symmetricReverse': 'Reverse reflection',
-        'launchpad.stickers.show': 'Show stickers on Launchpad',
-        'launchpad.default': 'Default',
-        'overlay.clickToStart': 'Click to start',
-        'midi.status.connected': 'Launchpad Connected',
-        'midi.status.disconnected': 'Launchpad Disconnected',
-        'midi.notSupported': 'MIDI Not Supported',
-        'launchpad.rotation': 'Launchpad rotation',
-        'launchpad.icon.label': 'Top-right icon',
-        'launchpad.icon.upload': 'Upload icon/video',
-        'launchpad.icon.reset': 'Reset icon',
-        'visualizer.symmetricMode': 'Mode',
-        'visualizer.symmetric.normal': 'Normal',
-        'visualizer.symmetric.reverse': 'Reverse',
-        'launchpad.skins.title': 'Launchpad Backgrounds',
-        'launchpad.size': 'Launchpad size',
-        'visualizer.bassPulse.enable': 'Bass Pulse Effect',
-        'visualizer.bassPulse.threshold': 'Bass Threshold'
-    },
-    es: {
-        'sidebar.title': 'Menú',
-        'menu.language.toggle': 'Idioma de la interfaz',
-        'menu.language.label': 'Seleccionar idioma',
-        'menu.language.option.it': 'Italiano',
-        'menu.language.option.en': 'English',
-        'menu.language.option.es': 'Español',
-        'menu.language.option.de': 'Deutsch',
-        'menu.language.option.fr': 'Français',
-        'menu.project.toggle': 'Seleccionar proyecto',
-        'menu.background.toggle': 'Fondo',
-        'menu.visualizer.toggle': 'Visualizador',
-        'menu.launchpad.toggle': 'Personalizar Launchpad',
-        'background.none': 'Sin fondo',
-        'background.opacity': 'Opacidad',
-        'background.blur': 'Desenfoque',
-        'background.brightness': 'Brillo',
-        'background.upload': 'Subir archivo',
-        'visualizer.mode.both': 'Ambos paneles',
-        'visualizer.mode.top': 'Solo superior',
-        'visualizer.mode.bottom': 'Solo inferior',
-        'visualizer.mode.off': 'Desactivado',
-        'visualizer.symmetric': 'Simétrico',
-        'visualizer.smoothing': 'Suavizado de animación',
-        'visualizer.color1': 'Color inicial',
-        'visualizer.color2': 'Color final',
-        'visualizer.gradient.enable': 'Habilitar degradado',
-        'visualizer.gradient.direction': 'Dirección del degradado',
-        'visualizer.gradient.vertical': 'Vertical',
-        'visualizer.gradient.horizontal': 'Horizontal',
-        'visualizer.gradient.verticalReverse': 'Vertical (invertido)',
-        'visualizer.gradient.horizontalReverse': 'Horizontal (invertido)',
-        'visualizer.alpha': 'Transparencia',
-        'visualizer.symmetricReverse': 'Reflexión inversa',
-        'launchpad.stickers.show': 'Mostrar pegatinas en el Launchpad',
-        'launchpad.default': 'Predeterminado',
-        'overlay.clickToStart': 'Haz clic para iniciar',
-        'midi.status.connected': 'Launchpad conectado',
-        'midi.status.disconnected': 'Launchpad desconectado',
-        'midi.notSupported': 'MIDI no soportado',
-        'launchpad.rotation': 'Rotación del Launchpad',
-        'launchpad.icon.label': 'Ícono arriba a la derecha',
-        'launchpad.icon.upload': 'Subir ícono/video',
-        'launchpad.icon.reset': 'Restablecer ícono',
-        'visualizer.symmetricMode': 'Modo',
-        'visualizer.symmetric.normal': 'Normal',
-        'visualizer.symmetric.reverse': 'Inversa',
-        'launchpad.skins.title': 'Fondos de Launchpad',
-        'launchpad.size': 'Tamaño del Launchpad',
-        'visualizer.bassPulse.enable': 'Efecto de Pulso de Bajos',
-        'visualizer.bassPulse.threshold': 'Umbral de Bajos'
-    },
-    de: {
-        'sidebar.title': 'Menü',
-        'menu.language.toggle': 'Interface-Sprache',
-        'menu.language.label': 'Sprache auswählen',
-        'menu.language.option.it': 'Italienisch',
-        'menu.language.option.en': 'Englisch',
-        'menu.language.option.es': 'Spanisch',
-        'menu.language.option.de': 'Deutsch',
-        'menu.language.option.fr': 'Französisch',
-        'menu.project.toggle': 'Projekt auswählen',
-        'menu.background.toggle': 'Hintergrund',
-        'menu.visualizer.toggle': 'Visualizer',
-        'menu.launchpad.toggle': 'Launchpad anpassen',
-        'background.none': 'Kein Hintergrund',
-        'background.opacity': 'Deckkraft',
-        'background.blur': 'Unschärfe',
-        'background.brightness': 'Helligkeit',
-        'background.upload': 'Datei hochladen',
-        'visualizer.mode.both': 'Beide Panels',
-        'visualizer.mode.top': 'Nur oben',
-        'visualizer.mode.bottom': 'Nur unten',
-        'visualizer.mode.off': 'Aus',
-        'visualizer.symmetric': 'Symmetrisch',
-        'visualizer.smoothing': 'Animationsglättung',
-        'visualizer.color1': 'Startfarbe',
-        'visualizer.color2': 'Endfarbe',
-        'visualizer.gradient.enable': 'Farbverlauf aktivieren',
-        'visualizer.gradient.direction': 'Verlaufsrichtung',
-        'visualizer.gradient.vertical': 'Vertikal',
-        'visualizer.gradient.horizontal': 'Horizontal',
-        'visualizer.gradient.verticalReverse': 'Vertikal (invertiert)',
-        'visualizer.gradient.horizontalReverse': 'Horizontal (invertiert)',
-        'visualizer.alpha': 'Transparenz',
-        'visualizer.symmetricReverse': 'Spiegelung invertieren',
-        'launchpad.stickers.show': 'Sticker auf Launchpad anzeigen',
-        'launchpad.default': 'Standard',
-        'overlay.clickToStart': 'Klicken zum Starten',
-        'midi.status.connected': 'Launchpad verbunden',
-        'midi.status.disconnected': 'Launchpad getrennt',
-        'midi.notSupported': 'MIDI nicht unterstützt',
-        'launchpad.rotation': 'Launchpad-Drehung',
-        'launchpad.icon.label': 'Icon oben rechts',
-        'launchpad.icon.upload': 'Icon/Video hochladen',
-        'launchpad.icon.reset': 'Icon zurücksetzen',
-        'visualizer.symmetricMode': 'Modus',
-        'visualizer.symmetric.normal': 'Normal',
-        'visualizer.symmetric.reverse': 'Invertiert',
-        'launchpad.skins.title': 'Launchpad-Hintergründe',
-        'launchpad.size': 'Launchpad-Größe',
-        'visualizer.bassPulse.enable': 'Bass-Puls-Effekt',
-        'visualizer.bassPulse.threshold': 'Bass-Schwellenwert'
-    },
-    fr: {
-        'sidebar.title': 'Menu',
-        'menu.language.toggle': 'Langue de l’interface',
-        'menu.language.label': 'Sélectionner la langue',
-        'menu.language.option.it': 'Italien',
-        'menu.language.option.en': 'Anglais',
-        'menu.language.option.es': 'Espagnol',
-        'menu.language.option.de': 'Allemand',
-        'menu.language.option.fr': 'Français',
-        'menu.project.toggle': 'Sélectionner le projet',
-        'menu.background.toggle': 'Arrière-plan',
-        'menu.visualizer.toggle': 'Visualiseur',
-        'menu.launchpad.toggle': 'Personnaliser le Launchpad',
-        'background.none': 'Aucun fond',
-        'background.opacity': 'Opacité',
-        'background.blur': 'Flou',
-        'background.brightness': 'Luminosité',
-        'background.upload': 'Téléverser un fichier',
-        'visualizer.mode.both': 'Deux panneaux',
-        'visualizer.mode.top': 'Seulement supérieur',
-        'visualizer.mode.bottom': 'Seulement inférieur',
-        'visualizer.mode.off': 'Désactivé',
-        'visualizer.symmetric': 'Symétrique',
-        'visualizer.smoothing': 'Fluidité de l’animation',
-        'visualizer.color1': 'Couleur de départ',
-        'visualizer.color2': 'Couleur d’arrivée',
-        'visualizer.gradient.enable': 'Activer le dégradé',
-        'visualizer.gradient.direction': 'Direction du dégradé',
-        'visualizer.gradient.vertical': 'Vertical',
-        'visualizer.gradient.horizontal': 'Horizontal',
-        'visualizer.gradient.verticalReverse': 'Vertical (inversé)',
-        'visualizer.gradient.horizontalReverse': 'Horizontal (inversé)',
-        'visualizer.alpha': 'Transparence',
-        'visualizer.symmetricReverse': 'Inverser la réflexion',
-        'launchpad.stickers.show': 'Afficher les autocollants sur le Launchpad',
-        'launchpad.default': 'Par défaut',
-        'overlay.clickToStart': 'Cliquez pour démarrer',
-        'midi.status.connected': 'Launchpad connecté',
-        'midi.status.disconnected': 'Launchpad déconnecté',
-        'midi.notSupported': 'MIDI non pris en charge',
-        'launchpad.rotation': 'Rotation du Launchpad',
-        'launchpad.icon.label': 'Icône en haut à droite',
-        'launchpad.icon.upload': 'Téléverser icône/vidéo',
-        'launchpad.icon.reset': 'Réinitialiser l’icône',
-        'visualizer.symmetricMode': 'Mode',
-        'visualizer.symmetric.normal': 'Normal',
-        'visualizer.symmetric.reverse': 'Inversée',
-        'launchpad.skins.title': 'Arrière-plans Launchpad',
-        'launchpad.size': 'Taille du Launchpad',
-        'visualizer.bassPulse.enable': 'Effet Pulsation Basses',
-        'visualizer.bassPulse.threshold': 'Seuil des Basses'
-    }
-};
+let translations = {};
 let currentLanguage = 'it';
 
+async function loadTranslations(lang) {
+    try {
+        const response = await fetch(`locales/${lang}.json`);
+        if (!response.ok) throw new Error(`Could not load translations for ${lang}`);
+        translations = await response.json();
+        currentLanguage = lang;
+        applyTranslations();
+    } catch (error) {
+        console.error("Translation error:", error);
+        // Fallback to Italian if not already Italian
+        if (lang !== 'it') {
+            await loadTranslations('it');
+        }
+    }
+}
+
 function applyTranslations() {
-    const t = translations[currentLanguage] || translations.it;
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
-        const text = t[key];
+        const text = translations[key];
         if (typeof text === 'string') {
             el.textContent = text;
         }
@@ -281,23 +29,24 @@ function applyTranslations() {
 }
 
 export function getTranslation(key) {
-    const t = translations[currentLanguage] || translations.it;
-    return t[key] || key;
+    return translations[key] || key;
 }
 
-export function initializeLanguageControls() {
+export async function initializeLanguageControls() {
     const select = document.getElementById('language-select');
     const saved = localStorage.getItem('ui.language');
-    currentLanguage = saved || 'it';
+    const initialLang = saved || 'it';
+
     if (select) {
-        select.value = currentLanguage;
-        select.addEventListener('change', function() {
-            currentLanguage = this.value;
-            localStorage.setItem('ui.language', currentLanguage);
-            applyTranslations();
+        select.value = initialLang;
+        select.addEventListener('change', async function () {
+            const newLang = this.value;
+            localStorage.setItem('ui.language', newLang);
+            await loadTranslations(newLang);
         });
     }
-    applyTranslations();
+
+    await loadTranslations(initialLang);
 }
 
 /**
@@ -357,7 +106,10 @@ export function setLaunchpadBackground(imageFile) {
         if (active) active.classList.add('selected');
     }
     if (imageFile) {
-        launchpad.style.backgroundImage = `url('/assets/images/launchpad covers/${imageFile}?t=${new Date().getTime()}')`;
+        // If the imageFile path contains a slash, assume it's a full path,
+        // otherwise assume it's a file in the default assets/images/launchpad covers/ directory.
+        const imageSrc = imageFile.includes('/') ? imageFile : `assets/images/launchpad covers/${imageFile}`;
+        launchpad.style.backgroundImage = `url('${imageSrc}?t=${new Date().getTime()}')`;
     } else {
         launchpad.style.backgroundImage = 'none';
     }
@@ -388,17 +140,17 @@ export function toggleLaunchpadStickers(isActive) {
 export function syncInputSlider(sliderId, inputId, callback, min, max, isFloat = false) {
     const slider = document.getElementById(sliderId);
     const input = document.getElementById(inputId);
-    
+
     if (!slider || !input) return;
 
     const updateValue = (val, source) => {
         let value = isFloat ? parseFloat(val) : parseInt(val, 10);
-        
+
         if (isNaN(value)) return;
 
         // Only clamp if it's not a partial manual input
         const clampedValue = Math.max(min, Math.min(max, value));
-        
+
         if (source === 'slider') {
             input.value = String(clampedValue);
             callback(clampedValue);
@@ -412,16 +164,16 @@ export function syncInputSlider(sliderId, inputId, callback, min, max, isFloat =
         }
     };
 
-    slider.addEventListener('input', function() {
+    slider.addEventListener('input', function () {
         updateValue(this.value, 'slider');
     });
 
-    input.addEventListener('input', function() {
+    input.addEventListener('input', function () {
         updateValue(this.value, 'input');
     });
 
     // Final clamp and sync on blur (when user finishes typing)
-    input.addEventListener('blur', function() {
+    input.addEventListener('blur', function () {
         let value = isFloat ? parseFloat(this.value) : parseInt(this.value, 10);
         if (isNaN(value)) value = min;
         const clampedValue = Math.max(min, Math.min(max, value));
@@ -437,7 +189,7 @@ export function syncInputSlider(sliderId, inputId, callback, min, max, isFloat =
  */
 export function initializePersonalizeLaunchpadMenu(imageFiles) {
     const menu = document.getElementById('personalize-launchpad-menu');
-    
+
     imageFiles.forEach(imageFile => {
         const button = document.createElement('button');
         button.className = 'menu-option';
@@ -451,7 +203,7 @@ export function initializePersonalizeLaunchpadMenu(imageFiles) {
     const rotationSlider = document.getElementById('rotation-slider');
     const rotationInput = document.getElementById('rotation-input');
     const savedRotation = localStorage.getItem('launchpad.rotation');
-    
+
     if (savedRotation !== null) {
         currentRotation = parseInt(savedRotation, 10);
         if (rotationSlider) rotationSlider.value = savedRotation;
@@ -480,11 +232,11 @@ export function initializePersonalizeLaunchpadMenu(imageFiles) {
     const logoInput = document.getElementById('logo-file-input');
     const logoTrigger = document.getElementById('logo-file-trigger');
     if (logoTrigger && logoInput) {
-        logoTrigger.addEventListener('click', function() {
+        logoTrigger.addEventListener('click', function () {
             logoInput.value = '';
             logoInput.click();
         });
-        logoInput.addEventListener('change', function() {
+        logoInput.addEventListener('change', function () {
             const file = this.files && this.files[0];
             if (!file) return;
             setTopRightIconFile(file);

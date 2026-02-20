@@ -17,7 +17,7 @@
 // CUSTOMIZATION: When you make significant changes to App Shell files (e.g., update CSS or JS),
 // increment the version in the name (e.g., from 'v1' to 'v2'). This will invalidate the old cache and force
 // the Service Worker to download new files during the 'install' event.
-const CACHE_NAME = 'launchpad-pwa-cache-v1';
+const CACHE_NAME = 'launchpad-pwa-cache-v2';
 
 // APP SHELL: The fundamental files for the application interface.
 // These files are saved in cache during installation to ensure the app
@@ -29,15 +29,20 @@ const APP_SHELL_FILES = [
     '/css/launchpad.css',
     '/js/app.js',
     '/js/audio.js',
+    '/js/interaction.js',
+    '/js/lights.js',
     '/js/midi.js',
+    '/js/physicalInterface.js',
+    '/js/project.js',
+    '/js/ui.js',
+    '/js/video.js',
     '/js/visualizer.js',
-    '/js/storage.js',
-    '/js/ui/editor-ui.js',
-    '/js/ui/library-ui.js',
+    '/js/visualizer-controls.js',
+    '/js/webInterface.js',
+    '/js/vendor/launchpad-webmidi.js',
     '/js/static-data.json',
-    '/projects/Virtual Riot - Idols.json', // Include the default project
     '/manifest.json',
-    // It's good practice to include main icons
+    // Main icons
     '/assets/icons/android-chrome-192x192.png',
     '/assets/icons/android-chrome-512x512.png',
     '/assets/icons/apple-touch-icon.png',
@@ -86,47 +91,49 @@ self.addEventListener('activate', event => {
 // 3. 'FETCH' EVENT: Intercepting network requests
 self.addEventListener('fetch', event => {
     const { request } = event;
+    const url = new URL(request.url);
 
-    // Example API strategy: Stale-While-Revalidate.
-    // Responds immediately with cache (if available), but meanwhile requests the updated
-    // version from the network for next time. Great for frequently changing data.
-    if (request.url.includes('/api/')) { // Currently not used, but it's a good pattern.
+    // STRATEGY 1: NETWORK-FIRST for configuration files (.json)
+    // We want the latest project configuration if online, but work offline if not.
+    if (url.pathname.endsWith('.json')) {
         event.respondWith(
-            caches.open(CACHE_NAME).then(cache => {
-                return cache.match(request).then(cachedResponse => {
-                    const networkFetch = fetch(request).then(networkResponse => {
+            fetch(request)
+                .then(networkResponse => {
+                    return caches.open(CACHE_NAME).then(cache => {
                         cache.put(request, networkResponse.clone());
                         return networkResponse;
                     });
-                    return cachedResponse || networkFetch;
+                })
+                .catch(() => caches.match(request))
+        );
+        return;
+    }
+
+    // STRATEGY 2: CACHE-FIRST for media and project assets (.wav, .mp4, images)
+    // These files are large and don't change often.
+    if (url.pathname.includes('/projects/') || url.pathname.includes('/assets/')) {
+        event.respondWith(
+            caches.match(request).then(cachedResponse => {
+                if (cachedResponse) {
+                    return cachedResponse;
+                }
+                return fetch(request).then(networkResponse => {
+                    return caches.open(CACHE_NAME).then(cache => {
+                        cache.put(request, networkResponse.clone());
+                        return networkResponse;
+                    });
                 });
             })
         );
         return;
     }
 
-    // DEFAULT STRATEGY: CACHE-FIRST, THEN NETWORK
-    // This strategy is ideal for App Shell static resources and media.
+    // DEFAULT STRATEGY: CACHE-FIRST for App Shell and other resources
     event.respondWith(
         caches.match(request).then(cachedResponse => {
-            // 1. CHECK THE CACHE
-            // If a response matching the request is found in cache...
-            if (cachedResponse) {
-                // ...return it immediately. The app is fast and works offline.
-                // console.log('Service Worker: Resource found in cache', request.url);
-                return cachedResponse;
-            }
-
-            // 2. GO TO NETWORK (if not in cache)
-            // Otherwise, execute the original network request.
-            // console.log('Service Worker: Resource not in cache, fetching from network', request.url);
-            return fetch(request).then(networkResponse => {
-                // 3. CACHE THE NEW RESOURCE
-                // Once we get the response from the network, we cache it for next time.
+            return cachedResponse || fetch(request).then(networkResponse => {
                 return caches.open(CACHE_NAME).then(cache => {
-                    // `networkResponse` can only be read once, so we clone it.
                     cache.put(request, networkResponse.clone());
-                    // And return the original response to the browser.
                     return networkResponse;
                 });
             });

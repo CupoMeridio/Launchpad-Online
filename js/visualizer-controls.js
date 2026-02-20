@@ -39,7 +39,7 @@ export function initializeVisualizerControls() {
 
         color1Picker.addEventListener('input', updateColors);
         color2Picker.addEventListener('input', updateColors);
-        
+
         // Set initial state
         gradientControls.style.display = enableGradientCheckbox.checked ? 'block' : 'none';
         updateColors();
@@ -48,7 +48,7 @@ export function initializeVisualizerControls() {
     // Gradient direction control
     const gradientDirection = document.getElementById('gradient-direction');
     if (gradientDirection) {
-        gradientDirection.addEventListener('change', function() {
+        gradientDirection.addEventListener('change', function () {
             if (window.visualizer) {
                 window.visualizer.setGradientDirection(this.value);
             }
@@ -105,7 +105,7 @@ export function initializeVisualizerControls() {
         };
 
         bassPulseToggle.addEventListener('change', applyBassPulse);
-        
+
         syncInputSlider('bass-threshold-slider', 'bass-threshold-input', (value) => {
             if (window.visualizer) window.visualizer.setBassThreshold(value);
         }, 0, 255, false);
@@ -145,7 +145,7 @@ export function initializeVisualizerControls() {
         }
     });
 
-    const initialMode = window.visualizer ? window.visualizer.mode : 'both';
+    const initialMode = window.visualizer ? window.visualizer.mode : 'off';
     updateControlsVisibility(initialMode);
     const menu = document.getElementById('visualizer-menu');
     if (menu) {

@@ -16,10 +16,10 @@ export class Visualizer {
      */
     constructor(analyser, canvasTop, canvasBottom) {
         this.analyser = analyser;
-        
+
         this.canvasTop = canvasTop;
         this.ctxTop = this.canvasTop.getContext('2d');
-        
+
         this.canvasBottom = canvasBottom;
         this.ctxBottom = this.canvasBottom.getContext('2d');
 
@@ -30,17 +30,17 @@ export class Visualizer {
         // `frequencyBinCount` is half of the analyser's `fftSize`.
         // It represents the number of frequency data "bins" available.
         this.bufferLength = this.analyser.frequencyBinCount;
-        
+
         // Display a portion of the bins (the "musical range")
         // to avoid the silent high-frequency area at the end.
-        this.displayPercentage = 0.70; 
+        this.displayPercentage = 0.70;
         this.displayLength = Math.floor(this.bufferLength * this.displayPercentage);
 
         // Create an 8-bit integer array (values 0–255) to hold frequency data.
         this.dataArray = new Uint8Array(this.bufferLength);
 
         // Set an initial display mode.
-        this.mode = 'both'; 
+        this.mode = 'off';
         this.isSymmetric = false;
         this.symmetryReverse = false;
 
@@ -49,7 +49,7 @@ export class Visualizer {
         this.color2 = '#00aaff';
         this.gradientDirection = 'vertical';
         this.alpha = 0.6;
-        
+
         // Pre-calculated gradients
         this.gradientTop = null;
         this.gradientBottom = null;
@@ -58,6 +58,9 @@ export class Visualizer {
         // Bass pulse settings
         this.bassPulseEnabled = false;
         this.bassThreshold = 150;
+
+        // Animation frame reference
+        this.animationId = null;
     }
 
     /**
@@ -82,7 +85,7 @@ export class Visualizer {
 
         this.canvasTop.width = rectTop.width;
         this.canvasTop.height = rectTop.height;
-        
+
         this.canvasBottom.width = rectBottom.width;
         this.canvasBottom.height = rectBottom.height;
 
@@ -94,10 +97,20 @@ export class Visualizer {
      * @param {string} mode - Mode to set ('off', 'top', 'bottom', 'both').
      */
     setMode(mode) {
+        const wasOff = this.mode === 'off';
         this.mode = mode;
+
         this.ctxTop.clearRect(0, 0, this.canvasTop.width, this.canvasTop.height);
         this.ctxBottom.clearRect(0, 0, this.canvasBottom.width, this.canvasBottom.height);
         window.dispatchEvent(new CustomEvent('visualizer:mode', { detail: { mode } }));
+
+        // Manage animation loop
+        if (wasOff && mode !== 'off') {
+            this.draw();
+        } else if (mode === 'off' && this.animationId) {
+            cancelAnimationFrame(this.animationId);
+            this.animationId = null;
+        }
     }
 
     setSymmetric(enabled) {
@@ -160,6 +173,11 @@ export class Visualizer {
             let grad;
             const w = canvas.width;
             const h = canvas.height;
+            // The visualizer bars are scaled by 0.7 and the max data value is 255.
+            // Using a factor of 0.35 - 0.4 ensures the color transition (midpoint) 
+            // happens at about half the height of an average bar, 
+            // making both colors clearly visible even at medium volumes.
+            const maxBarHeight = Math.min(h, 255 * 0.35);
 
             switch (this.gradientDirection) {
                 case 'horizontal':
@@ -170,20 +188,20 @@ export class Visualizer {
                     break;
                 case 'vertical-reverse':
                     if (isTop) {
-                        // Top visualizer grows from 0 to h. Reverse: color1 at tip (h), color2 at base (0)
-                        grad = ctx.createLinearGradient(0, h, 0, 0);
+                        // Top visualizer grows from 0 down. Reverse: color1 at tip, color2 at base (0)
+                        grad = ctx.createLinearGradient(0, maxBarHeight, 0, 0);
                     } else {
-                        // Bottom visualizer grows from h to 0. Reverse: color1 at tip (0), color2 at base (h)
-                        grad = ctx.createLinearGradient(0, 0, 0, h);
+                        // Bottom visualizer grows from h up. Reverse: color1 at tip, color2 at base (h)
+                        grad = ctx.createLinearGradient(0, h - maxBarHeight, 0, h);
                     }
                     break;
                 default: // vertical
                     if (isTop) {
-                        // Top visualizer grows from 0 to h. Vertical: color1 at base (0), color2 at tip (h)
-                        grad = ctx.createLinearGradient(0, 0, 0, h);
+                        // Top visualizer grows from 0 down. Vertical: color1 at base (0), color2 at tip
+                        grad = ctx.createLinearGradient(0, 0, 0, maxBarHeight);
                     } else {
-                        // Bottom visualizer grows from h to 0. Vertical: color1 at base (h), color2 at tip (0)
-                        grad = ctx.createLinearGradient(0, h, 0, 0);
+                        // Bottom visualizer grows from h up. Vertical: color1 at base (h), color2 at tip
+                        grad = ctx.createLinearGradient(0, h, 0, h - maxBarHeight);
                     }
                     break;
             }
@@ -201,9 +219,12 @@ export class Visualizer {
      * Main drawing loop (animation).
      */
     draw() {
-        requestAnimationFrame(() => this.draw());
+        if (this.mode === 'off') {
+            this.animationId = null;
+            return;
+        }
 
-        if (this.mode === 'off') return;
+        this.animationId = requestAnimationFrame(() => this.draw());
 
         this.updateGradients();
 
@@ -220,7 +241,7 @@ export class Visualizer {
                 bassSum += this.dataArray[i];
             }
             const avgBass = bassSum / bassBins;
-            
+
             const bg = document.querySelector('.background-media');
             if (bg) {
                 if (avgBass > this.bassThreshold) {
@@ -261,7 +282,7 @@ export class Visualizer {
                     barHeight = this.dataArray[sourceIndex] * 0.7;
                     const xLeft = center - (i + 1) * (barW + spacing);
                     const xRight = center + i * (barW + spacing);
-                    
+
                     // Standard vertical growth: bottom canvas grows from bottom up
                     this.ctxBottom.fillRect(xLeft, this.canvasBottom.height - barHeight, barW, barHeight);
                     this.ctxBottom.fillRect(xRight, this.canvasBottom.height - barHeight, barW, barHeight);
@@ -280,7 +301,7 @@ export class Visualizer {
                     barHeight = this.dataArray[sourceIndex] * 0.7;
                     const xLeft = center - (i + 1) * (barW + spacing);
                     const xRight = center + i * (barW + spacing);
-                    
+
                     // Standard vertical growth: top canvas grows from top down
                     this.ctxTop.fillRect(xLeft, 0, barW, barHeight);
                     this.ctxTop.fillRect(xRight, 0, barW, barHeight);

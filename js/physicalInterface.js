@@ -40,7 +40,7 @@ export function setPhysicalColor(colorObj, p, immediate = false) {
 
     const x = p[0];
     const y = p[1];
-    
+
     // Calculate MIDI command and key (matches launchpad-webmidi logic)
     const cmd = y >= 8 ? 0xb0 : 0x90;
     const key = y >= 8 ? 0x68 + x : 0x10 * y + x;
@@ -64,13 +64,13 @@ export function flushPhysicalColors() {
         pendingUpdates.forEach((val, key) => {
             batch.push(val.cmd, key, val.vel);
         });
-        
+
         try {
             launchpad.midiOut.send(new Uint8Array(batch));
         } catch (e) {
             console.warn("[PHYSICAL] Failed to send MIDI batch:", e);
         }
-        
+
         pendingUpdates.clear();
     }
 }
@@ -83,7 +83,7 @@ export function flushPhysicalColors() {
  */
 export function getLpColor(colorName, level = null) {
     if (!launchpad) return null;
-    
+
     const cacheKey = `${colorName}_${level || 'default'}`;
     if (colorCache.has(cacheKey)) {
         return colorCache.get(cacheKey);
@@ -92,6 +92,10 @@ export function getLpColor(colorName, level = null) {
     let color;
     if (colorName === 'off') {
         color = launchpad.off;
+    } else if (colorName === 'yellow') {
+        // Custom yellow fading to bypass library limitation (always full)
+        // Full: R=2, G=3 (50), Medium: R=1, G=2 (33), Low: R=1, G=1 (17)
+        color = { code: 50, full: { code: 50 }, medium: { code: 33 }, low: { code: 17 } };
     } else if (colorName === 'orange') {
         // Custom orange for Launchpad S/Mini/Classic (r=3, g=1 or 2)
         // Code 35 is a good orange (r=3, g=2)

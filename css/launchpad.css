@@ -19,23 +19,26 @@
     - `background-image`: Via JavaScript, this is where the custom background image is set.
 */
 .Launchpad {
-    position: relative; /* Necessary to position child elements absolutely (e.g., the overlay). */
-    display: grid;
-    grid-template-columns: repeat(10, 1fr);
-    grid-template-rows: repeat(10, 1fr);
-    gap: 10px;
-    max-width: 550px;
-    aspect-ratio: 1 / 1;
-    padding: 15px;
-    background-color: #111;
-    border-radius: 10px;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5); /* Shadow to give a depth effect. */
-    margin: 0 auto; /* Centers the Launchpad horizontally in its container. */
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    justify-items: stretch;
-    align-items: stretch;
+  position: relative;
+  /* Necessary to position child elements absolutely (e.g., the overlay). */
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  grid-template-rows: repeat(10, 1fr);
+  gap: 10px;
+  max-width: 550px;
+  aspect-ratio: 1 / 1;
+  padding: 15px;
+  background-color: #111;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  /* Shadow to give a depth effect. */
+  margin: 0 auto;
+  /* Centers the Launchpad horizontally in its container. */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  justify-items: stretch;
+  align-items: stretch;
 }
 
 /*
@@ -47,23 +50,29 @@
     - `box-shadow`: Inner shadow to give an "inset" effect.
 */
 .grid-item {
-    width: 100%;
-    height: 100%;
-    min-width: 0;
-    min-height: 0;
-    aspect-ratio: 1 / 1; /* Keeps pads square to avoid distortion. */
-    background-color: #d3d3d3; /* Light gray by default. */
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.1s ease; /* Quick transition for color change. */
-    box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
-    border: none; /* Removes default button border. */
-    position: relative; /* Necessary to position the 'sticker' pseudo-element. */
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  aspect-ratio: 1 / 1;
+  /* Keeps pads square to avoid distortion. */
+  background-color: #d3d3d3;
+  /* Light gray by default. */
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+  /* Quick transition for color change. */
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
+  border: none;
+  /* Removes default button border. */
+  position: relative;
+  /* Necessary to position the 'sticker' pseudo-element. */
 }
 
 /* Pad style on mouse hover. */
 .grid-item:hover {
-    background-color: #bfbfbf; /* A slightly darker gray. */
+  background-color: #bfbfbf;
+  /* A slightly darker gray. */
 }
 
 /*
@@ -74,8 +83,8 @@
     - `box-shadow`: Adds a glow of the same color for a neon effect.
 */
 .grid-item.active {
-    background-color: #00aaff;
-    box-shadow: 0 0 10px #00aaff;
+  background-color: #00aaff;
+  box-shadow: 0 0 10px #00aaff;
 }
 
 /*
@@ -87,26 +96,31 @@
       Change `background-color` and `box-shadow` to customize the effect.
 */
 .grid-item-menu {
-    width: 100%;
-    height: 100%;
-    min-width: 0;
-    min-height: 0;
-    aspect-ratio: 1 / 1; /* Keeps pads square for perfect circles. */
-    background-color: #d3d3d3;
-    border-radius: 50%; /* Makes them perfectly round. */
-    cursor: pointer;
-    transition: background-color 0.1s ease;
-    border: none;
-    position: relative; /* Necessary to position the 'sticker' pseudo-element. */
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  aspect-ratio: 1 / 1;
+  /* Keeps pads square for perfect circles. */
+  background-color: #d3d3d3;
+  border-radius: 50%;
+  /* Makes them perfectly round. */
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+  border: none;
+  position: relative;
+  /* Necessary to position the 'sticker' pseudo-element. */
 }
 
 .grid-item-menu:hover {
-    background-color: #bfbfbf;
+  background-color: #bfbfbf;
 }
 
 .grid-item-menu.selected {
-    background-color: #ff9900; /* Arancione per la pagina selezionata */
-    box-shadow: 0 0 10px #ff9900; /* Bagliore arancione */
+  background-color: #ff9900;
+  /* Arancione per la pagina selezionata */
+  box-shadow: 0 0 10px #ff9900;
+  /* Bagliore arancione */
 }
 
 /*
@@ -119,31 +133,35 @@
     - `width` and `height`: Control the sticker size. A lower value (e.g., 80%) will make the colored border thicker.
 */
 .Launchpad.has-stickers .grid-item::before {
-    content: '';
-    display: block;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%); /* Centers the sticker in the pad. */
-    width: 85%;
-    height: 85%;
-    background-color: black;
-    border-radius: 5px; /* Same rounding as the pad. */
-    pointer-events: none; /* Allows clicks to pass through the sticker and reach the button. */
+  content: '';
+  display: block;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  /* Centers the sticker in the pad. */
+  width: 85%;
+  height: 85%;
+  background-color: black;
+  border-radius: 5px;
+  /* Same rounding as the pad. */
+  pointer-events: none;
+  /* Allows clicks to pass through the sticker and reach the button. */
 }
 
 .Launchpad.has-stickers .grid-item-menu::before {
-    content: '';
-    display: block;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 85%;
-    height: 85%;
-    background-color: black;
-    border-radius: 50%; /* Rounding for menu buttons. */
-    pointer-events: none;
+  content: '';
+  display: block;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 85%;
+  height: 85%;
+  background-color: black;
+  border-radius: 50%;
+  /* Rounding for menu buttons. */
+  pointer-events: none;
 }
 
 /*
@@ -151,51 +169,53 @@
   - These elements are positioned in the grid for purely aesthetic purposes.
 */
 .grid-item-triangle {
-    width: 100%;
-    height: 100%;
-    min-width: 0;
-    min-height: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .triangolo {
-    width: 50%;
-    height: 50%;
+  width: 50%;
+  height: 50%;
 }
 
 .testo_su_launchpad {
-    width: 100%;
-    height: 100%;
-    min-width: 0;
-    min-height: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: #eee;
-    font-size: 0.8em;
-    text-align: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #eee;
+  font-size: 0.8em;
+  text-align: center;
 }
 
 /* Logo positioning in the top right corner. */
 #image-container {
-    grid-column: 9 / span 2; /* Occupies the last two columns. */
-    grid-row: 1 / span 2;    /* Occupies the first two rows. */
-    width: 100%;
-    height: 100%;
-    min-width: 0;
-    min-height: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  grid-column: 9 / span 2;
+  /* Occupies the last two columns. */
+  grid-row: 1 / span 2;
+  /* Occupies the first two rows. */
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .square-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 5px;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 5px;
 }
 
 /*
@@ -207,25 +227,27 @@
     - `color`, `font-size`, `font-weight`: Style of the "Click to start" text.
 */
 .launchpad-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(18, 18, 18, 0.85);
-    color: white;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 1.5em;
-    font-weight: bold;
-    z-index: 10; /* Positioned above everything else inside the Launchpad. */
-    cursor: pointer;
-    border-radius: 10px; /* Same rounding as the Launchpad. */
-    text-align: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(18, 18, 18, 0.85);
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.5em;
+  font-weight: bold;
+  z-index: 10;
+  /* Positioned above everything else inside the Launchpad. */
+  cursor: pointer;
+  border-radius: 10px;
+  /* Same rounding as the Launchpad. */
+  text-align: center;
 }
 
 /* The `.hidden` class is added via JS to hide the overlay after the first click. */
 .launchpad-overlay.hidden {
-    display: none;
+  display: none;
 }
