@@ -13,7 +13,7 @@ import { initMidi, isMidiConnected } from './midi.js';
 import { initializeVisualizerControls } from './visualizer-controls.js';
 import { initializeVideoControls } from './video.js';
 import { loadProject, initializeProjectMenu, initializeBackgroundMenu } from './project.js';
-import { initializePersonalizeLaunchpadMenu, initializeLanguageControls, getTranslation } from './ui.js';
+import { initializePersonalizeLaunchpadMenu, initializeLanguageControls, getTranslation, bindStaticUIEvents } from './ui.js';
 import { initInteraction, changeSoundSet, changeMode } from './interaction.js';
 
 // ----------------------------------------------------------------------------
@@ -50,8 +50,9 @@ document.addEventListener('DOMContentLoaded', async function () {
     const unlockOverlay = document.getElementById('audio-unlock-overlay');
     let audioUnlocked = false; // Flag to avoid double execution
 
-    // Initialize UI interactions
+    // --- 1. Interaction Setup ---
     initInteraction();
+    bindStaticUIEvents();  // Bind all sidebar/menu listeners (replaces onclick HTML attributes)
 
     let projectsData = null;
 
@@ -102,7 +103,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (projectsData && projectsData.length > 0) {
             console.log("Loading initial project after interaction...");
             const firstProjectButton = document.querySelector('#project-menu .menu-option');
-            
+
             // loadProject ora gestisce autonomamente l'overlay e la percentuale
             await loadProject(projectsData[0].configPath, firstProjectButton);
             console.log("Initial project loaded.");
@@ -138,7 +139,6 @@ document.addEventListener('DOMContentLoaded', async function () {
     // --- 2. UI Controls Initialization ---
     initializeVideoControls();
     await initializeLanguageControls();
-    initializeVisualizerControls();
 
     document.querySelectorAll('.menu-dropdown.open').forEach(dropdown => {
         const menuItem = dropdown.closest('.menu-item');
@@ -158,6 +158,8 @@ document.addEventListener('DOMContentLoaded', async function () {
         // The visualizer object must be global as it's used by onclick attributes in HTML
         window.visualizer = visualizer;
 
+        initializeVisualizerControls();
+
     } catch (error) {
         console.error("Unable to initialize visualizer:", error);
     }
@@ -165,7 +167,8 @@ document.addEventListener('DOMContentLoaded', async function () {
     // --- 7. Service Worker Registration ---
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/service-worker.js')
+            // Use a relative path so the SW works regardless of the deployment subdirectory
+            navigator.serviceWorker.register('./service-worker.js')
                 .then(registration => console.log('Service Worker registered: ', registration))
                 .catch(registrationError => console.log('Service Worker registration failed: ', registrationError));
         });

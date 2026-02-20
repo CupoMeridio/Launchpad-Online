@@ -195,7 +195,10 @@ export function initializePersonalizeLaunchpadMenu(imageFiles) {
         button.className = 'menu-option';
         button.setAttribute('data-skin', imageFile);
         button.textContent = imageFile.split('.')[0].replace(/_/g, ' ');
-        button.onclick = () => setLaunchpadBackground(imageFile);
+        button.onclick = () => {
+            if (button.classList.contains('selected')) return;
+            setLaunchpadBackground(imageFile);
+        };
         menu.appendChild(button);
     });
 
@@ -270,15 +273,58 @@ export function showNotification(message, type = 'info', duration = 3000) {
     }, duration);
 }
 
-// Global exposure for usage in HTML
-window.showNotification = showNotification;
-window.toggleSidebar = toggleSidebar;
-window.toggleMenu = toggleMenu;
-window.setLaunchpadBackground = setLaunchpadBackground;
-window.toggleLaunchpadStickers = toggleLaunchpadStickers;
-window.initializeLanguageControls = initializeLanguageControls;
 let currentRotation = 0;
 let currentScale = 1;
+
+/**
+ * Binds all static UI event listeners that previously relied on inline
+ * onclick/onchange attributes in HTML or window.* globals.
+ * Called once from app.js after DOMContentLoaded.
+ */
+export function bindStaticUIEvents() {
+    // Sidebar open/close
+    const openSidebarBtn = document.getElementById('openSidebar');
+    if (openSidebarBtn) {
+        openSidebarBtn.addEventListener('click', toggleSidebar);
+    }
+
+    // Menu toggle buttons — each carries data-menu="<menuId>" set in index.html
+    document.querySelectorAll('.menu-toggle[data-menu]').forEach(btn => {
+        btn.addEventListener('click', () => toggleMenu(btn.dataset.menu));
+    });
+
+    // "Show Stickers" checkbox
+    const stickersCheckbox = document.getElementById('toggle-stickers');
+    if (stickersCheckbox) {
+        stickersCheckbox.addEventListener('change', function () {
+            toggleLaunchpadStickers(this.checked);
+        });
+    }
+
+    // "Reset top-right icon" button
+    const resetIconBtn = document.querySelector('[data-action="resetTopRightIcon"]');
+    if (resetIconBtn) {
+        resetIconBtn.addEventListener('click', resetTopRightIcon);
+    }
+
+    // "Clear background" button (data-video="none")
+    const clearBgBtn = document.querySelector('.menu-option[data-video="none"]');
+    if (clearBgBtn) {
+        clearBgBtn.addEventListener('click', () => {
+            if (clearBgBtn.classList.contains('selected')) return;
+            import('./video.js').then(m => m.clearBackground());
+        });
+    }
+
+    // "Default skin" button (data-skin="none")
+    const defaultSkinBtn = document.querySelector('.menu-option[data-skin="none"]');
+    if (defaultSkinBtn) {
+        defaultSkinBtn.addEventListener('click', () => {
+            if (defaultSkinBtn.classList.contains('selected')) return;
+            setLaunchpadBackground(null);
+        });
+    }
+}
 
 /**
  * Applies both rotation and scale to the Launchpad element.
@@ -295,14 +341,12 @@ export function setLaunchpadRotation(angle) {
     localStorage.setItem('launchpad.rotation', angle);
     applyLaunchpadTransform();
 }
-window.setLaunchpadRotation = setLaunchpadRotation;
 
 export function setLaunchpadSize(size) {
     currentScale = size / 100;
     localStorage.setItem('launchpad.size', size);
     applyLaunchpadTransform();
 }
-window.setLaunchpadSize = setLaunchpadSize;
 
 let currentIconUrl = null;
 export function setTopRightIconFile(file) {
@@ -347,6 +391,3 @@ export function resetTopRightIcon() {
     container.innerHTML = '';
     container.appendChild(img);
 }
-
-window.setTopRightIconFile = setTopRightIconFile;
-window.resetTopRightIcon = resetTopRightIcon;

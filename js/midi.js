@@ -19,7 +19,7 @@
 import Launchpad from './vendor/launchpad-webmidi.js';
 import { getTranslation, showNotification } from './ui.js';
 import { setLaunchpadInstance } from './physicalInterface.js';
-import { triggerPad, releasePad, changeSoundSet } from './interaction.js';
+import { triggerPad, releasePad, changeSoundSet, changeMode } from './interaction.js';
 import { currentPage, currentMode } from './app.js';
 
 // Launchpad instance
@@ -65,7 +65,7 @@ function updateMidiStatus(isConnected) {
  */
 function setupLaunchpadEvents() {
     if (!launchpad || launchpadEventsRegistered) return;
-    
+
     launchpadEventsRegistered = true;
 
     // Handler for key events (press and release)
@@ -77,7 +77,7 @@ function setupLaunchpadEvents() {
             // Page change - only on press
             if (pressed) {
                 const pageIndex = y;
-                window.changeSoundSet(pageIndex);
+                changeSoundSet(pageIndex);
             }
         } else if (x < 8 && y < 8) {
             // 8x8 grid pads (excluding Automap buttons which have y=8)
@@ -96,7 +96,7 @@ function setupLaunchpadEvents() {
             // Mode change - only on press
             if (pressed) {
                 const modeIndex = x;
-                window.changeMode(modeIndex);
+                changeMode(modeIndex);
             }
         }
     });
@@ -251,4 +251,3 @@ export async function disposeMidi({ releaseAccess = false } = {}) {
 }
 
 window.addEventListener('beforeunload', () => { disposeMidi({ releaseAccess: true }); });
-window.disconnectMidi = disposeMidi;

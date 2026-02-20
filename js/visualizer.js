@@ -61,6 +61,12 @@ export class Visualizer {
 
         // Animation frame reference
         this.animationId = null;
+
+        // Listen for external mode-change requests (e.g. from project.js on project load)
+        // This avoids exposing window.visualizer as a global dependency.
+        window.addEventListener('visualizer:setMode', (e) => {
+            if (e.detail?.mode) this.setMode(e.detail.mode);
+        });
     }
 
     /**

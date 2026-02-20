@@ -150,6 +150,17 @@ export function initializeVisualizerControls() {
     const menu = document.getElementById('visualizer-menu');
     if (menu) {
         const buttons = menu.querySelectorAll('.menu-option[data-mode]');
+
+        // Add click listeners to change mode
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (btn.classList.contains('selected')) return;
+                if (window.visualizer) {
+                    window.visualizer.setMode(btn.dataset.mode);
+                }
+            });
+        });
+
         buttons.forEach(b => b.classList.remove('selected'));
         const active = menu.querySelector(`.menu-option[data-mode="${initialMode}"]`);
         if (active) active.classList.add('selected');

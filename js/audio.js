@@ -108,7 +108,7 @@ class AudioEngine {
             const batch = soundUrls.slice(i, i + BATCH_SIZE);
             const batchPromises = batch.map((url, index) => this.loadSound(url, i + index));
             await Promise.all(batchPromises);
-            
+
             if (onProgress) {
                 const progress = Math.min(((i + BATCH_SIZE) / total) * 100, 100);
                 onProgress(progress);
@@ -149,9 +149,10 @@ class AudioEngine {
         const source = this.audioContext.createBufferSource();
         // Connect the audio buffer to the source node.
         source.buffer = this.soundBuffers[padIndex];
-        // Connect the source node to the analyzer and then to the final output (speakers).
+        // Connect the source node to the analyser only.
+        // The analyser is already connected to the destination in the constructor:
+        // [Source] -> [Analyser] -> [Destination (Speakers)]
         source.connect(this.analyser);
-        this.analyser.connect(this.audioContext.destination);
 
         // Store the source node to manage its lifecycle
         this.activeSources.set(padIndex, source);
