@@ -73,7 +73,6 @@ export async function loadProject(configPath, button, onProgress = null) {
                 if (page.lights) {
                     lights.push(...page.lights);
                 } else {
-                    // Fill with empty strings if lights array is missing for a page
                     lights.push(...new Array(64).fill(""));
                 }
             });
@@ -81,35 +80,66 @@ export async function loadProject(configPath, button, onProgress = null) {
         setProjectSounds(sounds);
         setProjectLights(lights);
 
-        // Se non è stato passato un onProgress esterno (es. dall'app.js all'avvio),
-        // ne creiamo uno interno che aggiorna l'overlay.
-        const internalProgress = (progress) => {
+        // --- PROGRESS TRACKING ---
+        let audioLoaded = 0;
+        let skinLoaded = 0;
+        let videoLoaded = 0;
+        const hasSkin = !!project.coverImage;
+        const hasVideo = !!project.backgroundVideo;
+        const totalAssets = sounds.length + (hasSkin ? 1 : 0) + (hasVideo ? 1 : 0);
+
+        const updateOverallProgress = () => {
+            const totalLoaded = audioLoaded + skinLoaded + videoLoaded;
+            const percentage = Math.min(Math.round((totalLoaded / totalAssets) * 100), 100);
             if (progressText) {
-                const loadingText = getTranslation('overlay.loading').replace('{progress}', Math.round(progress));
+                const loadingText = getTranslation('overlay.loading').replace('{progress}', percentage);
                 progressText.textContent = loadingText;
             }
-            if (onProgress) onProgress(progress);
+            if (onProgress) onProgress(percentage);
         };
 
-        await audioEngine.loadSounds(sounds, internalProgress);
+        // Start all loading processes
+        const loadingPromises = [];
 
-        setLaunchpadBackground(resolvePath(project.coverImage));
+        // 1. Audio Loading
+        const audioPromise = audioEngine.loadSounds(sounds, (loadedSoundsCount) => {
+            audioLoaded = loadedSoundsCount;
+            updateOverallProgress();
+        });
+        loadingPromises.push(audioPromise);
 
-        if (project.backgroundVideo) {
+        // 2. Skin Loading
+        const skinPromise = setLaunchpadBackground(resolvePath(project.coverImage)).then(() => {
+            if (hasSkin) {
+                skinLoaded = 1;
+                updateOverallProgress();
+            }
+        });
+        loadingPromises.push(skinPromise);
+
+        // 3. Video Loading
+        if (hasVideo) {
             console.log("Loading project background video:", project.backgroundVideo);
-            setBackgroundVideo(resolvePath(project.backgroundVideo));
+            const videoPromise = setBackgroundVideo(resolvePath(project.backgroundVideo)).then(() => {
+                videoLoaded = 1;
+                updateOverallProgress();
+            });
+            loadingPromises.push(videoPromise);
         } else {
-            // Se il progetto non ha un video, rimuovi quello attuale
             setBackgroundVideo(null);
         }
 
-        // Communicate the desired visualizer mode via CustomEvent,
-        // decoupling project.js from the window.visualizer instance.
-        // visualizer-controls.js (and visualizer.js itself) listen for this event.
+        // Wait for everything to finish
+        await Promise.all(loadingPromises);
+
+        // Ensure final UI update
+        updateOverallProgress();
+
+        // Visualizer Mode
         const visualizerMode = project.visualizerMode || 'off';
         window.dispatchEvent(new CustomEvent('visualizer:setMode', { detail: { mode: visualizerMode } }));
 
-        // Reset to first page when loading a new project
+        // Reset to first page
         changeSoundSet(0);
 
         if (selectedProjectButton) {
@@ -124,7 +154,6 @@ export async function loadProject(configPath, button, onProgress = null) {
     } catch (error) {
         console.error("Unable to load project:", error);
     } finally {
-        // Nascondi sempre l'overlay alla fine del caricamento
         if (overlay) {
             overlay.classList.add('hidden');
         }

@@ -27,7 +27,7 @@ export function playSound(event, index) {
 
     triggerPad(index);
 
-    // For click (legacy), we still keep a short timeout if no release event is used
+    // For click (legacy), a short timeout is kept if no release event is used
     if (event.type === 'click') {
         ensurePadCache();
         setTimeout(() => {

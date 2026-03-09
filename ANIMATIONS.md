@@ -123,9 +123,8 @@ Sostituire `{char}` con la lettera, `{digit}` con il numero, o `{symbol}` con il
 
 | Pattern Stringa | Esempi |
 |-----------------|---------|
-| `letter_{char}_{color}` | `letter_a_red`, `letter_z_green` |
-| `number_{digit}_{color}` | `number_0_yellow`, `number_5_red` |
-| `number_bold_{digit}_{color}` | `number_bold_0_yellow`, `number_bold_5_red` (Variante spessa) |
+| `letter_{char}_{color}` | `letter_a_red`, `letter_z_green` (Sempre in grassetto) |
+| `number_{digit}_{color}` | `number_0_yellow`, `number_5_red` (Sempre in grassetto) |
 | `symbol_{name}_{color}` | `symbol_question_orange`, `symbol_exclamation_red` |
 | `hold_{color}` | Mantiene il singolo tasto acceso finché è premuto. |
 | `cross_hold_{color}` | Visualizza una croce statica finché il tasto è premuto. |

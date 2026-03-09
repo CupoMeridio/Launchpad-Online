@@ -1,7 +1,5 @@
 /**
- * =============================================================================
  * LAUNCHPAD PWA - JAVASCRIPT ENTRY POINT (app.js)
- * =============================================================================
  */
 
 // Main application modules
@@ -90,9 +88,24 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
         }
 
-        if (audioEngine.audioContext.state === 'suspended') {
-            await audioEngine.audioContext.resume();
-            console.log('AudioContext resumed successfully.');
+        // Initialize Audio Engine (Context & Analyser)
+        await audioEngine.init();
+
+        // The visualizer is initialized here because it depends on the AudioContext
+        // created in audioEngine.init()
+        try {
+            const analyser = audioEngine.getAnalyser();
+            const canvasTop = document.getElementById('visualizer-canvas-top');
+            const canvasBottom = document.getElementById('visualizer-canvas-bottom');
+            const visualizer = new Visualizer(analyser, canvasTop, canvasBottom);
+            visualizer.draw();
+            // The visualizer object must be global as it's used by onclick attributes in HTML
+            window.visualizer = visualizer;
+
+            initializeVisualizerControls();
+
+        } catch (error) {
+            console.error("Unable to initialize visualizer:", error);
         }
 
         const loadedProjects = await projectsDataPromise;
@@ -110,14 +123,14 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
 
         if (!midiInitialized) {
-            // We await initMidi to ensure we know the connection status 
+            // initMidi is awaited to ensure the connection status is known
             // BEFORE deciding whether to manually initialize the UI.
             await initMidi().catch(error => console.error("Error during MIDI initialization:", error));
             midiInitialized = true;
         }
 
-        // If NO MIDI is connected, we still need to call them once for the UI.
-        // We use isMidiConnected from midi.js to check the actual hardware status.
+        // If NO MIDI is connected, a single call is required for the UI.
+        // isMidiConnected from midi.js is used to check the actual hardware status.
         if (!isMidiConnected) {
             console.log("[App] No MIDI connected, initializing UI visuals manually.");
             if (currentProject) {
@@ -132,7 +145,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     };
 
     // Add both event listeners but without { once: true }
-    // so we can remove them manually after the first execution
+    // to allow manual removal after the first execution
     document.addEventListener('click', unlockAudioAndHideOverlay);
     document.addEventListener('touchstart', unlockAudioAndHideOverlay);
 
@@ -147,22 +160,6 @@ document.addEventListener('DOMContentLoaded', async function () {
     });
 
     await projectsDataPromise;
-
-    // --- 5. Audio Visualizer Initialization ---
-    try {
-        const analyser = audioEngine.getAnalyser();
-        const canvasTop = document.getElementById('visualizer-canvas-top');
-        const canvasBottom = document.getElementById('visualizer-canvas-bottom');
-        const visualizer = new Visualizer(analyser, canvasTop, canvasBottom);
-        visualizer.draw();
-        // The visualizer object must be global as it's used by onclick attributes in HTML
-        window.visualizer = visualizer;
-
-        initializeVisualizerControls();
-
-    } catch (error) {
-        console.error("Unable to initialize visualizer:", error);
-    }
 
     // --- 7. Service Worker Registration ---
     if ('serviceWorker' in navigator) {

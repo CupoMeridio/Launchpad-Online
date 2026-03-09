@@ -94,7 +94,7 @@ self.addEventListener('fetch', event => {
     const url = new URL(request.url);
 
     // STRATEGY 1: NETWORK-FIRST for configuration files (.json)
-    // We want the latest project configuration if online, but work offline if not.
+    // The latest project configuration is requested if online, while allowing offline work.
     if (url.pathname.endsWith('.json')) {
         event.respondWith(
             fetch(request)

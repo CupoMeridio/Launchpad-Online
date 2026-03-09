@@ -94,10 +94,12 @@ export function toggleMenu(menuId) {
 /**
  * Sets a background image for the Launchpad.
  * @param {string|null} imageFile - The image file name, or `null` to remove it.
+ * @returns {Promise<void>} A promise that resolves when the background is loaded.
  */
 export function setLaunchpadBackground(imageFile) {
     const launchpad = document.getElementById('Launchpad');
     const menu = document.getElementById('personalize-launchpad-menu');
+
     if (menu) {
         const buttons = menu.querySelectorAll('.menu-option');
         buttons.forEach(b => b.classList.remove('selected'));
@@ -105,14 +107,31 @@ export function setLaunchpadBackground(imageFile) {
         const active = menu.querySelector(selector);
         if (active) active.classList.add('selected');
     }
-    if (imageFile) {
+
+    if (!imageFile) {
+        launchpad.style.backgroundImage = 'none';
+        return Promise.resolve();
+    }
+
+    return new Promise((resolve) => {
         // If the imageFile path contains a slash, assume it's a full path,
         // otherwise assume it's a file in the default assets/images/launchpad covers/ directory.
         const imageSrc = imageFile.includes('/') ? imageFile : `assets/images/launchpad covers/${imageFile}`;
-        launchpad.style.backgroundImage = `url('${imageSrc}?t=${new Date().getTime()}')`;
-    } else {
-        launchpad.style.backgroundImage = 'none';
-    }
+        const fullUrl = `${imageSrc}?t=${new Date().getTime()}`;
+
+        // Create a temporary image to track loading
+        const img = new Image();
+        img.onload = () => {
+            launchpad.style.backgroundImage = `url('${fullUrl}')`;
+            resolve();
+        };
+        img.onerror = () => {
+            console.error(`Error loading skin: ${fullUrl}`);
+            launchpad.style.backgroundImage = 'none';
+            resolve(); // Still resolve to not block loading indefinitely
+        };
+        img.src = fullUrl;
+    });
 }
 
 /**
@@ -155,7 +174,7 @@ export function syncInputSlider(sliderId, inputId, callback, min, max, isFloat =
             input.value = String(clampedValue);
             callback(clampedValue);
         } else if (source === 'input') {
-            // For manual input, we only update the slider and callback if the value is within range
+            // For manual input, the slider and callback are only updated if the value is within range
             // This allows the user to type "1" then "10" then "100" without jumping to "50"
             if (value >= min && value <= max) {
                 slider.value = String(value);

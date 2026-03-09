@@ -21,7 +21,7 @@ export class MatrixRainAnimation {
             this.lines.push({
                 delay: Math.random() * 500 * this.factor,
                 speed: (70 + Math.random() * 50) * this.factor,
-                lastIdx: -1 // Track which row/col we last triggered
+                lastIdx: -1 // Tracks which row/col was last triggered
             });
         }
     }
@@ -40,7 +40,7 @@ export class MatrixRainAnimation {
 
                 if (currentIdx < 8) {
                     activeCount++;
-                    // Only trigger fade if we entered a new cell
+                    // Triggers fade only if a new cell is entered
                     if (currentIdx > line.lastIdx) {
                         const fadeDuration = line.speed * 4;
                         let x, y;
@@ -82,7 +82,7 @@ export class MatrixRainMultiAnimation {
             this.lines.push({
                 delay: Math.random() * 500 * this.factor,
                 speed: (70 + Math.random() * 50) * this.factor,
-                lastIdx: -1 // Track which row/col we last triggered
+                lastIdx: -1 // Tracks which row/col was last triggered
             });
         }
     }
@@ -101,7 +101,7 @@ export class MatrixRainMultiAnimation {
 
                 if (currentIdx < 8) {
                     activeCount++;
-                    // Only trigger fade if we entered a new cell
+                    // Triggers fade only if a new cell is entered
                     if (currentIdx > line.lastIdx) {
                         const fadeDuration = line.speed * 4;
                         let x, y;
@@ -154,7 +154,7 @@ export class StrobeBurstAnimation {
 
         if (targetFlashIdx >= 4) return true; // Finished
 
-        // Check if we entered a new flash cycle
+        // Checks if a new flash cycle has started
         if (targetFlashIdx > this.currentFlashIdx) {
             this.currentFlashIdx = targetFlashIdx;
             this.state = 'waiting';
@@ -249,7 +249,7 @@ export class TextAnimation {
         const elapsed = now - this.startTime;
         const targetCharIdx = Math.floor(elapsed / this.charDuration);
 
-        // Finished when we've processed all characters
+        // Finished when all characters have been processed
         if (targetCharIdx >= this.text.length) {
             return true;
         }
@@ -291,10 +291,9 @@ export class ScrollingTextAnimation {
         if (this.direction === 'left' || this.direction === 'right') {
             this.totalDistance = this.text.length * 8 + 8;
         } else {
-            // For vertical, we might want to stack characters or scroll them one by one?
-            // Usually vertical scroll means the whole word moves up/down.
-            // Since the grid is only 8 high, scrolling a whole word vertically 
-            // means characters are stacked vertically.
+            // For vertical scrolling, characters are stacked or scrolled one by one.
+            // Usually vertical scroll involves the whole word moving up/down.
+            // As the grid is only 8 high, characters are stacked vertically.
             this.totalDistance = this.text.length * 8 + 8;
         }
 

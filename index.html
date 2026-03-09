@@ -77,6 +77,9 @@
                            Their visibility and behavior are managed by 'js/visualizer.js'.
     -->
     <div class="video-overlay"></div>
+    <div id="audio-unlock-overlay" class="launchpad-overlay">
+      <p data-i18n="overlay.clickToStart">Clicca per avviare</p>
+    </div>
     <canvas id="visualizer-canvas-top" class="visualizer-canvas"></canvas>
     <canvas id="visualizer-canvas-bottom" class="visualizer-canvas"></canvas>
 
@@ -373,15 +376,6 @@
           The heart of the application: a grid of buttons that play sounds.
         -->
         <div class="Launchpad" id="Launchpad">
-          <!--
-            AUDIO UNLOCK OVERLAY
-            Many modern browsers block automatic audio playback.
-            This overlay requires user interaction (a click) to unlock the AudioContext,
-            ensuring that sounds can be played.
-          -->
-          <div id="audio-unlock-overlay" class="launchpad-overlay">
-            <p data-i18n="overlay.clickToStart">Clicca per avviare</p>
-          </div>
 
           <!--
             DECORATIVE ELEMENTS OF THE LAUNCHPAD

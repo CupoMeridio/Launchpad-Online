@@ -1,7 +1,5 @@
 /**
- * =============================================================================
  * WEB INTERFACE MODULE (webInterface.js)
- * =============================================================================
  * 
  * Handles all visual updates for the digital Launchpad in the web UI.
  */

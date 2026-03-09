@@ -15,55 +15,49 @@ class AudioEngine {
      * Constructor initializes the audio engine.
      */
     constructor() {
-        // 1. AUDIO CONTEXT CREATION
-        // `AudioContext` is the central access point for Web Audio API.
-        // The construct `(window.AudioContext || window.webkitAudioContext)` ensures compatibility
-        // with older browsers that used a prefixed version.
-        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        // 1. AUDIO CONTEXT (Lazy Initialization)
+        // The AudioContext is NOT created here to avoid the "AudioContext was prevented from starting automatically" warning.
+        // It is created in the `init()` method, which is called after a user gesture.
+        this.audioContext = null;
+        this.analyser = null;
 
-        // 2. ANALYZER CREATION
-        // `AnalyserNode` is a component that provides frequency and waveform data
-        // of audio passing through it, without modifying it. Essential for the visualizer.
-        this.analyser = this.audioContext.createAnalyser();
-
-        /*
-         * VISUALIZER CUSTOMIZATION:
-         * - `fftSize`: Size of the Fast Fourier Transform. Must be a power of 2.
-         *   Higher values (e.g., 2048) give more frequency details (more bars in visualizer),
-         *   but require more processing power. Lower values (e.g., 256) are more performant.
-         *   The number of available bars will be `fftSize / 2`.
-         * - `smoothingTimeConstant`: A value between 0 and 1. Higher values (e.g., 0.8) create a
-         *   more "fluid" and smoothed effect over time, while lower values (e.g., 0.1) make the
-         *   visualizer extremely reactive and "jerky".
-         */
-        this.analyser.fftSize = 512;
-        this.analyser.smoothingTimeConstant = 0.8; // Default value for smooth animation, synchronized with UI.
-
-        // 3. AUDIO GRAPH CONNECTION
-        // Connect the analyzer to the final destination (speakers).
-        // This way, any sound that must be heard and visualized must be
-        // connected to the analyzer, which then passes it to the speakers.
-        // Graph: [Sound Source] -> [Analyser] -> [Destination (Speakers)]
-        this.analyser.connect(this.audioContext.destination);
-
-        // 4. SOUND BUFFERS
+        // 2. SOUND BUFFERS
         // Decoded audio data (`AudioBuffer`) ready for playback.
         this.soundBuffers = [];
 
-        // 5. ACTIVE SOURCES
+        // 3. ACTIVE SOURCES
         // Map to keep track of currently playing source nodes by pad index.
-        // Used to stop sounds before restarting them if the pad is pressed again.
         this.activeSources = new Map();
+    }
 
-        // 6. RESUME CONTEXT ON VISIBILITY CHANGE
-        // Browsers often suspend AudioContext when the tab is backgrounded.
+    /**
+     * Initializes the AudioContext and AnalyserNode.
+     * Must be called after a user gesture (e.g., click/touch).
+     */
+    async init() {
+        if (this.audioContext) return; // Already initialized
+
+        // 1. AUDIO CONTEXT CREATION
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        // 2. ANALYZER CREATION
+        this.analyser = this.audioContext.createAnalyser();
+        this.analyser.fftSize = 512;
+        this.analyser.smoothingTimeConstant = 0.8;
+
+        // 3. AUDIO GRAPH CONNECTION
+        this.analyser.connect(this.audioContext.destination);
+
+        // 4. RESUME CONTEXT ON VISIBILITY CHANGE
         document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible' && this.audioContext.state === 'suspended') {
+            if (document.visibilityState === 'visible' && this.audioContext && this.audioContext.state === 'suspended') {
                 this.audioContext.resume().then(() => {
                     console.log("[AUDIO] AudioContext resumed after tab became visible.");
                 });
             }
         });
+
+        console.log("[AUDIO] AudioEngine initialized.");
     }
 
     /**
@@ -97,7 +91,7 @@ class AudioEngine {
     /**
      * Loads an entire array of sound URLs in batches to avoid saturating connections.
      * @param {string[]} soundUrls - An array of URLs to load.
-     * @param {function} onProgress - Optional callback for loading progress.
+     * @param {function} onProgress - Optional callback for loading progress (loadedCount, totalCount).
      */
     async loadSounds(soundUrls, onProgress = null) {
         this.soundBuffers = []; // Clear previous project buffers.
@@ -110,8 +104,8 @@ class AudioEngine {
             await Promise.all(batchPromises);
 
             if (onProgress) {
-                const progress = Math.min(((i + BATCH_SIZE) / total) * 100, 100);
-                onProgress(progress);
+                const loadedCount = Math.min(i + BATCH_SIZE, total);
+                onProgress(loadedCount, total);
             }
         }
         console.log('All project sounds have been loaded!');

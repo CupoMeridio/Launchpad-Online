@@ -221,13 +221,13 @@
 /*
   AUDIO UNLOCK OVERLAY
   - Style for the screen that appears at the beginning to request user interaction.
-  - Covers the entire Launchpad.
+  - Covers the entire viewport.
   - CUSTOMIZATION:
-    - `background-color`: Overlay background color. `rgba(18, 18, 18, 0.85)` is an almost opaque black.
+    - `background-color`: Overlay background color.
     - `color`, `font-size`, `font-weight`: Style of the "Click to start" text.
 */
 .launchpad-overlay {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
@@ -237,14 +237,13 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 1.5em;
+  font-size: 2em;
   font-weight: bold;
-  z-index: 10;
-  /* Positioned above everything else inside the Launchpad. */
+  z-index: 9999;
+  /* Positioned above everything else on the page. */
   cursor: pointer;
-  border-radius: 10px;
-  /* Same rounding as the Launchpad. */
   text-align: center;
+  padding: 20px;
 }
 
 /* The `.hidden` class is added via JS to hide the overlay after the first click. */

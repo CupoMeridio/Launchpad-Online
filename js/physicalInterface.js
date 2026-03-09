@@ -1,7 +1,5 @@
 /**
- * =============================================================================
  * PHYSICAL INTERFACE MODULE (physicalInterface.js)
- * =============================================================================
  * 
  * Handles all communication with the physical Launchpad device via WebMIDI.
  */

@@ -1,7 +1,5 @@
 /**
- * =============================================================================
  * MIDI MODULE (midi.js)
- * =============================================================================
  *
  * This module handles interaction with physical MIDI controllers, specifically
  * the Novation Launchpad, using the launchpad-webmidi library.
@@ -178,7 +176,7 @@ export async function initMidi() {
         // Set up the handler for device state changes (hot-plugging)
         midiAccessRef.onstatechange = (event) => {
             // A port change can trigger multiple times (once for input, once for output)
-            // We only process one of them to avoid duplicate notifications
+            // Only one of them is processed to avoid duplicate notifications
             if (event.port.type !== 'input') return;
 
             console.log(`[MIDI] MIDI device state change: ${event.port.name}, ${event.port.state}`);
@@ -188,7 +186,7 @@ export async function initMidi() {
             if (event.port.state === 'disconnected' && isLaunchpad) {
                 console.log("[MIDI] Launchpad disconnected via onstatechange.");
                 // Update status and notify even if launchpad variable is null, 
-                // as long as we know a Launchpad device was disconnected.
+                // as long as a Launchpad device is known to have been disconnected.
                 updateMidiStatus(false);
                 showNotification(getTranslation('midi.status.disconnected'), 'error');
                 disposeMidi({ releaseAccess: false });
