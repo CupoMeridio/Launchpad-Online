@@ -368,45 +368,92 @@ export function setLaunchpadSize(size) {
 }
 
 let currentIconUrl = null;
-export function setTopRightIconFile(file) {
+
+/**
+ * Sets the top-right icon from a File object or a URL string.
+ * @param {File|string} fileOrUrl - The file object or URL to set as the icon.
+ * @returns {Promise<void>}
+ */
+export function setTopRightIconFile(fileOrUrl) {
     const container = document.getElementById('image-container');
-    if (!container || !file) return;
-    if (currentIconUrl) {
+    if (!container || !fileOrUrl) return Promise.resolve();
+
+    if (currentIconUrl && currentIconUrl.startsWith('blob:')) {
         URL.revokeObjectURL(currentIconUrl);
-        currentIconUrl = null;
     }
-    const url = URL.createObjectURL(file);
-    currentIconUrl = url;
-    let el;
-    if (file.type.startsWith('video/')) {
-        el = document.createElement('video');
-        el.autoplay = true;
-        el.loop = true;
-        el.muted = true;
-        el.playsInline = true;
-    } else {
-        el = document.createElement('img');
-        el.alt = 'immagine';
-    }
-    el.src = url;
-    el.className = 'square-image';
-    container.innerHTML = '';
-    container.appendChild(el);
+
+    return new Promise((resolve) => {
+        let url;
+        let isVideo = false;
+
+        if (typeof fileOrUrl === 'string') {
+            url = fileOrUrl;
+            // Check extension for video
+            const ext = url.split('.').pop().toLowerCase();
+            if (['mp4', 'webm', 'ogg'].includes(ext)) {
+                isVideo = true;
+            }
+        } else {
+            url = URL.createObjectURL(fileOrUrl);
+            currentIconUrl = url;
+            if (fileOrUrl.type.startsWith('video/')) {
+                isVideo = true;
+            }
+        }
+
+        let el;
+        if (isVideo) {
+            el = document.createElement('video');
+            el.autoplay = true;
+            el.loop = true;
+            el.muted = true;
+            el.playsInline = true;
+            el.oncanplay = () => resolve();
+            el.onerror = () => {
+                console.error(`Error loading icon video: ${url}`);
+                resolve();
+            };
+        } else {
+            el = document.createElement('img');
+            el.alt = 'immagine';
+            el.onload = () => resolve();
+            el.onerror = () => {
+                console.error(`Error loading icon image: ${url}`);
+                resolve();
+            };
+        }
+        el.src = url;
+        el.className = 'square-image';
+        container.innerHTML = '';
+        container.appendChild(el);
+    });
 }
 
+/**
+ * Resets the top-right icon to the default logo.
+ * @returns {Promise<void>}
+ */
 export function resetTopRightIcon() {
     const container = document.getElementById('image-container');
-    if (!container) return;
-    if (currentIconUrl) {
+    if (!container) return Promise.resolve();
+    if (currentIconUrl && currentIconUrl.startsWith('blob:')) {
         URL.revokeObjectURL(currentIconUrl);
-        currentIconUrl = null;
     }
+    currentIconUrl = null;
     const input = document.getElementById('logo-file-input');
     if (input) input.value = '';
-    const img = document.createElement('img');
-    img.src = 'assets/icons/Logo.png';
-    img.alt = 'immagine';
-    img.className = 'square-image';
-    container.innerHTML = '';
-    container.appendChild(img);
+
+    return new Promise((resolve) => {
+        const img = document.createElement('img');
+        img.src = 'assets/icons/Logo.png';
+        img.alt = 'immagine';
+        img.className = 'square-image';
+        img.onload = () => resolve();
+        img.onerror = () => {
+            console.error('Error loading default logo');
+            resolve();
+        };
+        container.innerHTML = '';
+        container.appendChild(img);
+    });
 }

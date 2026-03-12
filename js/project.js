@@ -5,7 +5,7 @@
  */
 
 import { audioEngine } from './audio.js';
-import { setLaunchpadBackground, getTranslation } from './ui.js';
+import { setLaunchpadBackground, getTranslation, setTopRightIconFile, resetTopRightIcon } from './ui.js';
 import { setBackgroundVideo } from './video.js';
 import { selectedProjectButton, setCurrentProject, setProjectSounds, setProjectLights, setSelectedProjectButton } from './app.js';
 import { changeSoundSet } from './interaction.js';
@@ -83,13 +83,15 @@ export async function loadProject(configPath, button, onProgress = null) {
         // --- PROGRESS TRACKING ---
         let audioLoaded = 0;
         let skinLoaded = 0;
+        let iconLoaded = 0;
         let videoLoaded = 0;
         const hasSkin = !!project.coverImage;
+        const hasIcon = !!project.iconImage;
         const hasVideo = !!project.backgroundVideo;
-        const totalAssets = sounds.length + (hasSkin ? 1 : 0) + (hasVideo ? 1 : 0);
+        const totalAssets = sounds.length + (hasSkin ? 1 : 0) + (hasIcon ? 1 : 0) + (hasVideo ? 1 : 0);
 
         const updateOverallProgress = () => {
-            const totalLoaded = audioLoaded + skinLoaded + videoLoaded;
+            const totalLoaded = audioLoaded + skinLoaded + iconLoaded + videoLoaded;
             const percentage = Math.min(Math.round((totalLoaded / totalAssets) * 100), 100);
             if (progressText) {
                 const loadingText = getTranslation('overlay.loading').replace('{progress}', percentage);
@@ -117,7 +119,21 @@ export async function loadProject(configPath, button, onProgress = null) {
         });
         loadingPromises.push(skinPromise);
 
-        // 3. Video Loading
+        //3. Icon loading
+        let iconPromise;
+        if (hasIcon) {
+            iconPromise = setTopRightIconFile(resolvePath(project.iconImage)).then(() => {
+                iconLoaded = 1;
+                updateOverallProgress();
+            });
+        } else {
+            // Se non c'è un'icona specifica per il progetto, ripristina quella di default
+            iconPromise = resetTopRightIcon();
+        }
+        loadingPromises.push(iconPromise);
+
+
+        // 4. Video Loading
         if (hasVideo) {
             console.log("Loading project background video:", project.backgroundVideo);
             const videoPromise = setBackgroundVideo(resolvePath(project.backgroundVideo)).then(() => {
