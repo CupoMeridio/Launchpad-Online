@@ -17,38 +17,38 @@
 // CUSTOMIZATION: When you make significant changes to App Shell files (e.g., update CSS or JS),
 // increment the version in the name (e.g., from 'v1' to 'v2'). This will invalidate the old cache and force
 // the Service Worker to download new files during the 'install' event.
-const CACHE_NAME = 'launchpad-pwa-cache-v2';
+const CACHE_NAME = 'launchpad-pwa-cache-v4';
 
 // APP SHELL: The fundamental files for the application interface.
 // These files are saved in cache during installation to ensure the app
 // can be launched even without an internet connection.
 const APP_SHELL_FILES = [
-    '/', // The root, for requests to the main page
-    '/index.html',
-    '/css/style.css',
-    '/css/launchpad.css',
-    '/js/app.js',
-    '/js/audio.js',
-    '/js/interaction.js',
-    '/js/lights.js',
-    '/js/midi.js',
-    '/js/physicalInterface.js',
-    '/js/project.js',
-    '/js/ui.js',
-    '/js/video.js',
-    '/js/visualizer.js',
-    '/js/visualizer-controls.js',
-    '/js/webInterface.js',
-    '/js/vendor/launchpad-webmidi.js',
-    '/js/static-data.json',
-    '/manifest.json',
+    '/Launchpad-Online/', // The root, for requests to the main page
+    '/Launchpad-Online/index.html',
+    '/Launchpad-Online/css/style.css',
+    '/Launchpad-Online/css/launchpad.css',
+    '/Launchpad-Online/js/app.js',
+    '/Launchpad-Online/js/audio.js',
+    '/Launchpad-Online/js/interaction.js',
+    '/Launchpad-Online/js/lights.js',
+    '/Launchpad-Online/js/midi.js',
+    '/Launchpad-Online/js/physicalInterface.js',
+    '/Launchpad-Online/js/project.js',
+    '/Launchpad-Online/js/ui.js',
+    '/Launchpad-Online/js/video.js',
+    '/Launchpad-Online/js/visualizer.js',
+    '/Launchpad-Online/js/visualizer-controls.js',
+    '/Launchpad-Online/js/webInterface.js',
+    '/Launchpad-Online/js/vendor/launchpad-webmidi.js',
+    '/Launchpad-Online/js/static-data.json',
+    '/Launchpad-Online/manifest.json',
     // Main icons
-    '/assets/icons/android-chrome-192x192.png',
-    '/assets/icons/android-chrome-512x512.png',
-    '/assets/icons/apple-touch-icon.png',
-    '/assets/icons/favicon.ico',
-    '/assets/icons/Logo.png',
-    '/assets/icons/triangle.png'
+    '/Launchpad-Online/assets/icons/android-chrome-192x192.png',
+    '/Launchpad-Online/assets/icons/android-chrome-512x512.png',
+    '/Launchpad-Online/assets/icons/apple-touch-icon.png',
+    '/Launchpad-Online/assets/icons/favicon.ico',
+    '/Launchpad-Online/assets/icons/Logo.png',
+    '/Launchpad-Online/assets/icons/triangle.png'
 ];
 
 // 1. 'INSTALL' EVENT: Caching the App Shell
@@ -92,6 +92,41 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     const { request } = event;
     const url = new URL(request.url);
+
+    // Inietta Permissions-Policy header nelle risposte di navigazione (HTML)
+    if (request.mode === 'navigate') {
+        event.respondWith(
+            fetch(request)
+                .then(response => {
+                    const headers = new Headers(response.headers);
+                    headers.set('Permissions-Policy', 'midi=(self)');
+                    headers.set('Feature-Policy', 'midi \'self\''); // Fallback per browser più vecchi
+                    const newResponse = new Response(response.body, {
+                        status: response.status,
+                        statusText: response.statusText,
+                        headers
+                    });
+                    // Aggiorna la cache con la risposta che include i nuovi header
+                    caches.open(CACHE_NAME).then(cache => cache.put(request, newResponse.clone()));
+                    return newResponse;
+                })
+                .catch(async () => {
+                    const cached = await caches.match(request);
+                    if (cached) {
+                        // Ricostruisci la risposta cached con i nuovi header
+                        const headers = new Headers(cached.headers);
+                        headers.set('Permissions-Policy', 'midi=(self)');
+                        headers.set('Feature-Policy', 'midi \'self\'');
+                        return new Response(cached.body, {
+                            status: cached.status,
+                            statusText: cached.statusText,
+                            headers
+                        });
+                    }
+                })
+        );
+        return;
+    }
 
     // STRATEGY 1: NETWORK-FIRST for configuration files (.json)
     // The latest project configuration is requested if online, while allowing offline work.

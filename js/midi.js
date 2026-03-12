@@ -126,15 +126,24 @@ async function connectToLaunchpad() {
             throw new Error("launchpad-webmidi library not loaded correctly");
         }
 
-        // Create a new Launchpad instance to scan for devices
-        const tempLaunchpad = new Launchpad(''); // Empty name to find any Launchpad
+        const input = findPort(midiAccessRef.inputs.values());
+        const output = findPort(midiAccessRef.outputs.values());
+
+        if (!input || !output) {
+            console.log("[MIDI] No Launchpad found during scan.");
+            // Ensure status is updated if connection fails
+            if (!launchpad || !isMidiConnected) {
+                updateMidiStatus(false);
+            }
+            return;
+        }
 
         // Connect to Launchpad
-        await tempLaunchpad.connect();
+        resetLaunchpadState();
+        launchpad = new Launchpad();
+        launchpad.attach(input, output);
 
         // If connection is successful, assign it to the main variable
-        resetLaunchpadState();
-        launchpad = tempLaunchpad;
         setLaunchpadInstance(launchpad);
         console.log(`[MIDI] ${launchpad.name || ''} connected`);
 
@@ -151,15 +160,22 @@ async function connectToLaunchpad() {
         changeMode(currentMode);
 
     } catch (error) {
-        console.log("[MIDI] No Launchpad found during scan.");
-        // Ensure status is updated if connection fails
-        if (!launchpad || !isMidiConnected) {
-            updateMidiStatus(false);
-        }
+        console.error("[MIDI] Connection error:", error);
+        updateMidiStatus(false);
     } finally {
         isConnecting = false;
     }
 }
+
+function findPort(iterator) {
+    let item = iterator.next();
+    while (!item.done) {
+        if (item.value.name.includes('Launchpad')) return item.value;
+        item = iterator.next();
+    }
+    return null;
+}
+
 
 /**
  * Initializes the MIDI system and sets up hot-plugging.
@@ -170,7 +186,7 @@ export async function initMidi() {
 
     try {
         // Request MIDI access from the browser
-        midiAccessRef = await navigator.requestMIDIAccess({ sysex: false });
+        midiAccessRef = await navigator.requestMIDIAccess();
         console.log("[MIDI] Web MIDI API access granted.");
 
         // Set up the handler for device state changes (hot-plugging)
@@ -235,8 +251,8 @@ export async function disposeMidi({ releaseAccess = false } = {}) {
     try {
         if (launchpad) {
             try { launchpad.reset(0); } catch (e) { }
-            try { if (launchpad.midiIn && typeof launchpad.midiIn.close === 'function') await launchpad.midiIn.close(); } catch (e) { }
-            try { if (launchpad.midiOut && typeof launchpad.midiOut.close === 'function') await launchpad.midiOut.close(); } catch (e) { }
+            // DO NOT close MIDI ports: they belong to the shared midiAccessRef
+            // and closing them prevents reconnection
             launchpad = null;
             updateMidiStatus(false);
         }
