@@ -5,10 +5,19 @@
  */
 
 import { audioEngine } from './audio.js';
-import { setLaunchpadBackground, getTranslation, setTopRightIconFile, resetTopRightIcon } from './ui.js';
+import { setLaunchpadBackground, getTranslation, setTopRightIconFile, resetTopRightIcon, showNotification } from './ui.js';
 import { setBackgroundVideo } from './video.js';
 import { selectedProjectButton, setCurrentProject, setProjectSounds, setProjectLights, setSelectedProjectButton } from './app.js';
 import { changeSoundSet } from './interaction.js';
+import { stopAnimationLoop, startAnimationLoop } from './lights.js';
+import { validateProject, getErrorSummary } from './projectValidator.js';
+import { 
+    beginLoadingProject, 
+    markProjectReady, 
+    markProjectLoadError,
+    isProjectLoading,
+    isProjectReady
+} from './projectLoadingState.js';
 
 /**
  * Dynamically populates the background video menu.
@@ -38,10 +47,22 @@ export function initializeBackgroundMenu(videoFiles) {
  * @param {function} onProgress - Optional callback for loading progress (0-100).
  */
 export async function loadProject(configPath, button, onProgress = null) {
+    // Prevent multiple concurrent loads - wait for previous to complete
+    if (isProjectLoading()) {
+        console.log("[Project] Project loading already in progress, queueing...");
+        return;
+    }
+
+    // Mark loading as started
+    await beginLoadingProject();
+
     const overlay = document.getElementById('audio-unlock-overlay');
     const progressText = overlay ? overlay.querySelector('p') : null;
 
     try {
+        // Stop the animation loop to clean up previous animations before loading new project
+        stopAnimationLoop();
+
         // Mostra l'overlay durante il caricamento del progetto
         if (overlay) {
             overlay.classList.remove('hidden');
@@ -53,9 +74,20 @@ export async function loadProject(configPath, button, onProgress = null) {
 
         const response = await fetch(configPath);
         if (!response.ok) {
-            throw new Error(`Errore HTTP: ${response.status}`);
+            throw new Error(`HTTP Error: ${response.status} - Failed to load project`);
         }
         const project = await response.json();
+
+        // Validate project schema before processing
+        const validation = validateProject(project);
+        if (!validation.isValid) {
+            const errorSummary = getErrorSummary(validation.errors);
+            console.error('[Project] Validation failed:', validation.errors);
+            throw new Error(`Project validation failed:\n${errorSummary}`);
+        }
+
+        // CRITICAL: Set current project BEFORE any operations that depend on it
+        // This ensures MIDI and other modules see consistent state
         setCurrentProject(project);
 
         const baseUrl = configPath.substring(0, configPath.lastIndexOf('/') + 1);
@@ -107,6 +139,9 @@ export async function loadProject(configPath, button, onProgress = null) {
         const audioPromise = audioEngine.loadSounds(sounds, (loadedSoundsCount) => {
             audioLoaded = loadedSoundsCount;
             updateOverallProgress();
+        }).catch((error) => {
+            console.error("[Project] Audio loading error:", error);
+            showNotification('Failed to load all project audio files. Some pads may be silent.', 'warning');
         });
         loadingPromises.push(audioPromise);
 
@@ -155,9 +190,6 @@ export async function loadProject(configPath, button, onProgress = null) {
         const visualizerMode = project.visualizerMode || 'off';
         window.dispatchEvent(new CustomEvent('visualizer:setMode', { detail: { mode: visualizerMode } }));
 
-        // Reset to first page
-        changeSoundSet(0);
-
         if (selectedProjectButton) {
             selectedProjectButton.classList.remove('selected');
         }
@@ -167,12 +199,42 @@ export async function loadProject(configPath, button, onProgress = null) {
         }
 
         console.log(`Project "${project.name}" loaded.`);
+        
+        // MARK PROJECT AS READY - Critical for MIDI and other systems
+        // This signals that currentProject, projectSounds, and projectLights are all set
+        markProjectReady();
+
+        // Reset to first page ONLY AFTER the project is marked as ready
+        changeSoundSet(0);
+        
     } catch (error) {
-        console.error("Unable to load project:", error);
+        console.error("[Project] Failed to load project:", error);
+        
+        // Mark loading as failed - prevents MIDI and other systems from using incomplete state
+        markProjectLoadError(error);
+        
+        // Extract meaningful error message
+        let userMessage;
+        if (error.message.includes('validation failed')) {
+            userMessage = `Project configuration error: ${error.message}`;
+        } else if (error.message.includes('HTTP Error')) {
+            userMessage = 'Could not load project file. Check the file path and try again.';
+        } else if (error.message.includes('JSON')) {
+            userMessage = 'Project file is not valid JSON. Check the file format.';
+        } else {
+            userMessage = `Failed to load project: ${error.message}`;
+        }
+
+        // Show notification to user
+        if (typeof showNotification === 'function') {
+            showNotification(userMessage, 'error');
+        }
     } finally {
         if (overlay) {
             overlay.classList.add('hidden');
         }
+        // Resume animation loop after project loading completes (success or failure)
+        startAnimationLoop();
     }
 }
 

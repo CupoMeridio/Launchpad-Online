@@ -1,4 +1,44 @@
 import { updateVideoControlsVisibility } from './video.js';
+import { LAUNCHPAD_ROTATION_MIN, LAUNCHPAD_ROTATION_MAX, LAUNCHPAD_SIZE_MIN, LAUNCHPAD_SIZE_MAX } from './constants.js';
+
+// ============================================================================
+// LOCALSTORAGE HELPERS - Safe wrappers to handle private browsing & disabled storage
+// ============================================================================
+
+/**
+ * Safely retrieve a value from localStorage.
+ * @param {string} key - The storage key to retrieve
+ * @param {*} defaultValue - Value to return if key not found or storage unavailable
+ * @returns {*} The stored value or defaultValue
+ */
+function safeLocalStorageGetItem(key, defaultValue = null) {
+    try {
+        const value = localStorage.getItem(key);
+        return value !== null ? value : defaultValue;
+    } catch (error) {
+        // Fails in private browsing, disabled storage, or quota exceeded
+        console.warn(`[UI] localStorage.getItem('${key}') failed:`, error.message);
+        return defaultValue;
+    }
+}
+
+/**
+ * Safely store a value in localStorage.
+ * @param {string} key - The storage key to set
+ * @param {*} value - The value to store
+ * @returns {boolean} True if successful, false if storage unavailable
+ */
+function safeLocalStorageSetItem(key, value) {
+    try {
+        localStorage.setItem(key, String(value));
+        return true;
+    } catch (error) {
+        // Fails in private browsing, disabled storage, or quota exceeded
+        console.warn(`[UI] localStorage.setItem('${key}') failed:`, error.message);
+        return false;
+    }
+}
+
 let translations = {};
 let currentLanguage = 'it';
 
@@ -34,14 +74,14 @@ export function getTranslation(key) {
 
 export async function initializeLanguageControls() {
     const select = document.getElementById('language-select');
-    const saved = localStorage.getItem('ui.language');
+    const saved = safeLocalStorageGetItem('ui.language', 'it');
     const initialLang = saved || 'it';
 
     if (select) {
         select.value = initialLang;
         select.addEventListener('change', async function () {
             const newLang = this.value;
-            localStorage.setItem('ui.language', newLang);
+            safeLocalStorageSetItem('ui.language', newLang);
             await loadTranslations(newLang);
         });
     }
@@ -224,32 +264,36 @@ export function initializePersonalizeLaunchpadMenu(imageFiles) {
     // Rotation synchronization
     const rotationSlider = document.getElementById('rotation-slider');
     const rotationInput = document.getElementById('rotation-input');
-    const savedRotation = localStorage.getItem('launchpad.rotation');
+    const savedRotation = safeLocalStorageGetItem('launchpad.rotation', null);
 
     if (savedRotation !== null) {
-        currentRotation = parseInt(savedRotation, 10);
+        const rotationValue = parseInt(savedRotation, 10);
+        setSettingValue('rotation', rotationValue);
         if (rotationSlider) rotationSlider.value = savedRotation;
         if (rotationInput) rotationInput.value = savedRotation;
     } else if (rotationSlider) {
-        currentRotation = parseInt(rotationSlider.value, 10);
+        const defaultRotation = parseInt(rotationSlider.value, 10);
+        setSettingValue('rotation', defaultRotation);
     }
     applyLaunchpadTransform();
-    syncInputSlider('rotation-slider', 'rotation-input', setLaunchpadRotation, 0, 360);
+    syncInputSlider('rotation-slider', 'rotation-input', setLaunchpadRotation, LAUNCHPAD_ROTATION_MIN, LAUNCHPAD_ROTATION_MAX);
 
     // Size synchronization
     const sizeSlider = document.getElementById('size-slider');
     const sizeInput = document.getElementById('size-input');
-    const savedSize = localStorage.getItem('launchpad.size');
+    const savedSize = safeLocalStorageGetItem('launchpad.size', null);
 
     if (savedSize !== null) {
-        currentScale = parseInt(savedSize, 10) / 100;
+        const sizeValue = parseInt(savedSize, 10);
+        setSettingValue('scale', sizeValue / 100);
         if (sizeSlider) sizeSlider.value = savedSize;
         if (sizeInput) sizeInput.value = savedSize;
     } else if (sizeSlider) {
-        currentScale = parseInt(sizeSlider.value, 10) / 100;
+        const defaultSize = parseInt(sizeSlider.value, 10);
+        setSettingValue('scale', defaultSize / 100);
     }
     applyLaunchpadTransform();
-    syncInputSlider('size-slider', 'size-input', setLaunchpadSize, 50, 140);
+    syncInputSlider('size-slider', 'size-input', setLaunchpadSize, LAUNCHPAD_SIZE_MIN, LAUNCHPAD_SIZE_MAX);
 
     const logoInput = document.getElementById('logo-file-input');
     const logoTrigger = document.getElementById('logo-file-trigger');
@@ -292,8 +336,36 @@ export function showNotification(message, type = 'info', duration = 3000) {
     }, duration);
 }
 
-let currentRotation = 0;
-let currentScale = 1;
+/**
+ * Launchpad UI Settings - Grouped state management
+ * Centralizes all launchpad customization settings (rotation, scale, etc.)
+ * Benefits: Easy to extend with new settings, consistent persistence pattern
+ */
+let launchpadSettings = {
+    rotation: 0,
+    scale: 1
+};
+
+/**
+ * Gets a launchpad setting value
+ * @param {string} key - Setting key (e.g., 'rotation', 'scale')
+ * @param {*} defaultValue - Default if not set
+ * @returns {*} The setting value
+ */
+function getSettingValue(key, defaultValue = null) {
+    return launchpadSettings[key] !== undefined ? launchpadSettings[key] : defaultValue;
+}
+
+/**
+ * Sets a launchpad setting value and persists to storage
+ * @param {string} key - Setting key (e.g., 'rotation', 'scale')
+ * @param {*} value - Value to set
+ */
+function setSettingValue(key, value) {
+    launchpadSettings[key] = value;
+    // Persist to storage with 'launchpad.' prefix
+    safeLocalStorageSetItem(`launchpad.${key}`, value);
+}
 
 /**
  * Binds all static UI event listeners that previously relied on inline
@@ -331,7 +403,7 @@ export function bindStaticUIEvents() {
     if (clearBgBtn) {
         clearBgBtn.addEventListener('click', () => {
             if (clearBgBtn.classList.contains('selected')) return;
-            import('./video.js').then(m => m.clearBackground());
+            import('./video.js').then(m => m.setBackgroundVideo(null));
         });
     }
 
@@ -351,20 +423,49 @@ export function bindStaticUIEvents() {
 function applyLaunchpadTransform() {
     const launchpad = document.getElementById('Launchpad');
     if (launchpad) {
-        launchpad.style.transform = `rotate(${currentRotation}deg) scale(${currentScale})`;
+        const rotation = getSettingValue('rotation', 0);
+        const scale = getSettingValue('scale', 1);
+        launchpad.style.transform = `rotate(${rotation}deg) scale(${scale})`;
     }
 }
 
 export function setLaunchpadRotation(angle) {
-    currentRotation = angle;
-    localStorage.setItem('launchpad.rotation', angle);
+    setSettingValue('rotation', angle);
     applyLaunchpadTransform();
 }
 
 export function setLaunchpadSize(size) {
-    currentScale = size / 100;
-    localStorage.setItem('launchpad.size', size);
+    setSettingValue('scale', size / 100);
     applyLaunchpadTransform();
+}
+
+/**
+ * Initializes the menu for selecting the Launchpad mode.
+ * Only the 4 official modes (4-7) are displayed.
+ */
+export function initializeModeMenu() {
+    const menu = document.getElementById('mode-menu');
+    if (!menu) return;
+
+    const modes = [
+        { index: 4, name: 'Session', i18n: 'launchpad.mode.session' },
+        { index: 5, name: 'User 1', i18n: 'launchpad.mode.user1' },
+        { index: 6, name: 'User 2', i18n: 'launchpad.mode.user2' },
+        { index: 7, name: 'Mixer', i18n: 'launchpad.mode.mixer' }
+    ];
+
+    modes.forEach(mode => {
+        const button = document.createElement('button');
+        button.className = 'menu-option';
+        button.setAttribute('data-mode', mode.index);
+        button.setAttribute('data-i18n', mode.i18n);
+        button.textContent = mode.name;
+        button.onclick = () => {
+            if (button.classList.contains('selected')) return;
+            import('./interaction.js').then(m => m.changeMode(mode.index));
+        };
+        menu.appendChild(button);
+    });
 }
 
 let currentIconUrl = null;

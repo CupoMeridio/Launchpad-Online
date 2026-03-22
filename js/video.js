@@ -217,19 +217,3 @@ export function setBackgroundFile(file) {
     updateVideoControlsVisibility();
 }
 
-export function clearBackground() {
-    const overlay = document.querySelector('.video-overlay');
-    removeExistingBackground();
-    if (overlay) overlay.classList.remove('active');
-    currentBackgroundEl = null;
-    resetVideoControls();
-    // Deselect all buttons and mark 'none' as selected (unified logic, replaces setNoneSelected)
-    const backgroundMenu = document.getElementById('background-menu');
-    if (backgroundMenu) {
-        backgroundMenu.querySelectorAll('.menu-option').forEach(b => b.classList.remove('selected'));
-        const noneBtn = backgroundMenu.querySelector('[data-video="none"]');
-        if (noneBtn) noneBtn.classList.add('selected');
-    }
-    updateVideoControlsVisibility();
-}
-

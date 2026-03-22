@@ -14,41 +14,50 @@
  */
 
 // CACHE NAME
-// CUSTOMIZATION: When you make significant changes to App Shell files (e.g., update CSS or JS),
-// increment the version in the name (e.g., from 'v1' to 'v2'). This will invalidate the old cache and force
-// the Service Worker to download new files during the 'install' event.
-const CACHE_NAME = 'launchpad-pwa-cache-v4';
+// Format: 'launchpad-pwa-cache-YYYY-MM-DD-HHMM'
+// CUSTOMIZATION: When you make changes to App Shell files, update this timestamp.
+// This invalidates the old cache and forces the Service Worker to download new files.
+// Example: 'launchpad-pwa-cache-2026-03-21-1430' → update to → 'launchpad-pwa-cache-2026-03-21-1505'
+const CACHE_NAME = 'launchpad-pwa-cache-2026-03-21-1946';
+
+// Get the base path dynamically to support both local dev and GitHub Pages
+const basePath = self.registration.scope.replace(self.location.origin, '');
 
 // APP SHELL: The fundamental files for the application interface.
 // These files are saved in cache during installation to ensure the app
 // can be launched even without an internet connection.
 const APP_SHELL_FILES = [
-    '/Launchpad-Online/', // The root, for requests to the main page
-    '/Launchpad-Online/index.html',
-    '/Launchpad-Online/css/style.css',
-    '/Launchpad-Online/css/launchpad.css',
-    '/Launchpad-Online/js/app.js',
-    '/Launchpad-Online/js/audio.js',
-    '/Launchpad-Online/js/interaction.js',
-    '/Launchpad-Online/js/lights.js',
-    '/Launchpad-Online/js/midi.js',
-    '/Launchpad-Online/js/physicalInterface.js',
-    '/Launchpad-Online/js/project.js',
-    '/Launchpad-Online/js/ui.js',
-    '/Launchpad-Online/js/video.js',
-    '/Launchpad-Online/js/visualizer.js',
-    '/Launchpad-Online/js/visualizer-controls.js',
-    '/Launchpad-Online/js/webInterface.js',
-    '/Launchpad-Online/js/vendor/launchpad-webmidi.js',
-    '/Launchpad-Online/js/static-data.json',
-    '/Launchpad-Online/manifest.json',
+    `${basePath}`, // The root, for requests to the main page
+    `${basePath}index.html`,
+    `${basePath}css/style.css`,
+    `${basePath}css/launchpad.css`,
+    `${basePath}js/app.js`,
+    `${basePath}js/audio.js`,
+    `${basePath}js/interaction.js`,
+    `${basePath}js/lights.js`,
+    `${basePath}js/midi.js`,
+    `${basePath}js/physicalInterface.js`,
+    `${basePath}js/project.js`,
+    `${basePath}js/ui.js`,
+    `${basePath}js/video.js`,
+    `${basePath}js/visualizer.js`,
+    `${basePath}js/visualizer-controls.js`,
+    `${basePath}js/visualizerManager.js`,
+    `${basePath}js/projectValidator.js`,
+    `${basePath}js/audioErrorHandler.js`,
+    `${basePath}js/eventCleanup.js`,
+    `${basePath}js/projectLoadingState.js`,
+    `${basePath}js/webInterface.js`,
+    `${basePath}js/vendor/launchpad-webmidi.js`,
+    `${basePath}js/static-data.json`,
+    `${basePath}manifest.json`,
     // Main icons
-    '/Launchpad-Online/assets/icons/android-chrome-192x192.png',
-    '/Launchpad-Online/assets/icons/android-chrome-512x512.png',
-    '/Launchpad-Online/assets/icons/apple-touch-icon.png',
-    '/Launchpad-Online/assets/icons/favicon.ico',
-    '/Launchpad-Online/assets/icons/Logo.png',
-    '/Launchpad-Online/assets/icons/triangle.png'
+    `${basePath}assets/icons/android-chrome-192x192.png`,
+    `${basePath}assets/icons/android-chrome-512x512.png`,
+    `${basePath}assets/icons/apple-touch-icon.png`,
+    `${basePath}assets/icons/favicon.ico`,
+    `${basePath}assets/icons/Logo.png`,
+    `${basePath}assets/icons/triangle.png`
 ];
 
 // 1. 'INSTALL' EVENT: Caching the App Shell
@@ -100,26 +109,38 @@ self.addEventListener('fetch', event => {
                 .then(response => {
                     const headers = new Headers(response.headers);
                     headers.set('Permissions-Policy', 'midi=(self)');
-                    headers.set('Feature-Policy', 'midi \'self\''); // Fallback per browser più vecchi
+                    // Rimuoviamo Feature-Policy perché obsoleto e causa warning se usato con Permissions-Policy
+                    
+                    // Clona la risposta originale *prima* di usarne il body
+                    const responseToCache = response.clone();
+                    
                     const newResponse = new Response(response.body, {
                         status: response.status,
                         statusText: response.statusText,
                         headers
                     });
+                    
+                    // Crea un'altra risposta con gli header modificati da mettere in cache
+                    const responseForCache = new Response(responseToCache.body, {
+                        status: responseToCache.status,
+                        statusText: responseToCache.statusText,
+                        headers
+                    });
+
                     // Aggiorna la cache con la risposta che include i nuovi header
-                    caches.open(CACHE_NAME).then(cache => cache.put(request, newResponse.clone()));
+                    caches.open(CACHE_NAME).then(cache => cache.put(request, responseForCache));
                     return newResponse;
                 })
                 .catch(async () => {
                     const cached = await caches.match(request);
                     if (cached) {
+                        const clonedCached = cached.clone();
                         // Ricostruisci la risposta cached con i nuovi header
-                        const headers = new Headers(cached.headers);
+                        const headers = new Headers(clonedCached.headers);
                         headers.set('Permissions-Policy', 'midi=(self)');
-                        headers.set('Feature-Policy', 'midi \'self\'');
-                        return new Response(cached.body, {
-                            status: cached.status,
-                            statusText: cached.statusText,
+                        return new Response(clonedCached.body, {
+                            status: clonedCached.status,
+                            statusText: clonedCached.statusText,
                             headers
                         });
                     }
@@ -153,6 +174,10 @@ self.addEventListener('fetch', event => {
                     return cachedResponse;
                 }
                 return fetch(request).then(networkResponse => {
+                    // Do not cache partial responses (206) as Cache API doesn't support them
+                    if (networkResponse.status === 206) {
+                        return networkResponse;
+                    }
                     return caches.open(CACHE_NAME).then(cache => {
                         cache.put(request, networkResponse.clone());
                         return networkResponse;
