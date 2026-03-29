@@ -28,13 +28,6 @@ let lastError = null;
 let loadingTimeoutId = null; // Safety timeout to prevent infinite loading state
 
 /**
- * Gets the current project loading state
- */
-export function getProjectLoadingState() {
-    return currentLoadingState;
-}
-
-/**
  * Returns true if a project is currently loading
  */
 export function isProjectLoading() {
@@ -46,13 +39,6 @@ export function isProjectLoading() {
  */
 export function isProjectReady() {
     return currentLoadingState === LOADING_STATES.READY;
-}
-
-/**
- * Gets the last error that occurred during loading (if any)
- */
-export function getLastLoadingError() {
-    return lastError;
 }
 
 /**
@@ -172,16 +158,6 @@ export async function wrapProjectLoading(operation) {
 }
 
 /**
- * Resets project loading state to IDLE
- * Called when user navigates away or app shuts down
- */
-export function resetProjectLoadingState() {
-    currentLoadingState = LOADING_STATES.IDLE;
-    lastError = null;
-    console.log("[ProjectLoading] Project loading state reset");
-}
-
-/**
  * Waits until the project is ready before proceeding
  * Useful for operations that depend on project data.
  * 
@@ -210,27 +186,4 @@ export async function waitForProjectReady(timeout = 30000) {
     
     console.warn(`[ProjectLoading] Timeout waiting for project after ${timeout}ms`);
     return false;
-}
-
-/**
- * Allows MIDI and other systems to safely check if they can access project state
- * This should be called before any operation that depends on currentProject/projectLights
- * 
- * @throws {Error} If project is in an invalid state
- */
-export function assertProjectReady() {
-    if (currentLoadingState === LOADING_STATES.ERROR) {
-        throw new Error(`Cannot proceed: Project loading error - ${lastError?.message}`);
-    }
-    if (!isProjectReady()) {
-        throw new Error(`Cannot proceed: Project not ready (state: ${currentLoadingState})`);
-    }
-}
-
-/**
- * Safe version of assertProjectReady for optional checks
- * @returns {boolean} True if project is ready, false otherwise
- */
-export function isProjectSafeToUse() {
-    return isProjectReady() && !lastError;
 }

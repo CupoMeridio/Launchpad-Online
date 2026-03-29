@@ -103,26 +103,6 @@ export function cleanup(target, eventType = null) {
 }
 
 /**
- * Gets statistics about registered listeners.
- * Useful for debugging and monitoring.
- * 
- * @returns {Object} Stats including count by event type
- */
-export function getListenerStats() {
-    let totalListeners = 0;
-    const stats = {};
-    
-    // Note: WeakMap is not iterable, so we can only get stats for WeakMap contents
-    // In production, you might log stats before cleanup
-    console.log('[EventCleanup] Listener tracking enabled (WeakMap)');
-    
-    return {
-        message: 'Use cleanup() to remove tracked listeners',
-        note: 'WeakMap prevents iteration, but cleanup() removes all tracked listeners'
-    };
-}
-
-/**
  * Removes a specific listener registered on a target.
  * 
  * @param {EventTarget} target - The element/window
@@ -150,51 +130,4 @@ export function removeListener(target, eventType, listenerToRemove) {
             registry.delete(eventType);
         }
     }
-}
-
-/**
- * Creates a one-time listener that automatically unregisters itself.
- * Useful for initialization events that should only fire once per interaction.
- * 
- * @param {EventTarget} target - The element/window to attach listener to
- * @param {string} eventType - Event type
- * @param {Function} listener - The callback function
- * @param {Object|boolean} options - addEventListener options
- */
-export function registerOneTimeListener(target, eventType, listener, options = false) {
-    const wrappedListener = function(event) {
-        listener(event);
-        removeListener(target, eventType, wrappedListener);
-    };
-    
-    return registerListener(target, eventType, wrappedListener, options);
-}
-
-/**
- * Batch register multiple listeners on the same target.
- * Useful for initializing many listeners at once.
- * 
- * @param {EventTarget} target - The target element
- * @param {Array<Array>} listeners - Array of [eventType, listener, options] tuples
- */
-export function registerListeners(target, listeners) {
-    for (const [eventType, listener, options = false] of listeners) {
-        registerListener(target, eventType, listener, options);
-    }
-}
-
-/**
- * Checks if a specific listener is registered.
- * Note: Due to WeakMap limitations, this is for debugging only.
- * 
- * @param {EventTarget} target - The target to check
- * @param {string} eventType - Event type to check
- * @returns {boolean} True if target has registered listeners for event type
- */
-export function hasListeners(target, eventType) {
-    if (!registeredListeners.has(target)) {
-        return false;
-    }
-    const registry = getTargetRegistry(target);
-    return registry.has(eventType);
 }

@@ -1,5 +1,8 @@
 import { updateVideoControlsVisibility } from './video.js';
+import { syncInputSlider } from './formControls.js';
 import { LAUNCHPAD_ROTATION_MIN, LAUNCHPAD_ROTATION_MAX, LAUNCHPAD_SIZE_MIN, LAUNCHPAD_SIZE_MAX } from './constants.js';
+
+export { syncInputSlider };
 
 // ============================================================================
 // LOCALSTORAGE HELPERS - Safe wrappers to handle private browsing & disabled storage
@@ -185,61 +188,6 @@ export function toggleLaunchpadStickers(isActive) {
     } else {
         launchpad.classList.remove('has-stickers');
     }
-}
-
-/**
- * Helper to synchronize a slider (range input) with a number input.
- * @param {string} sliderId - The ID of the slider element.
- * @param {string} inputId - The ID of the number input element.
- * @param {Function} callback - Function to call when the value changes.
- * @param {number} min - Minimum allowed value.
- * @param {number} max - Maximum allowed value.
- * @param {boolean} isFloat - Whether the value is a float.
- */
-export function syncInputSlider(sliderId, inputId, callback, min, max, isFloat = false) {
-    const slider = document.getElementById(sliderId);
-    const input = document.getElementById(inputId);
-
-    if (!slider || !input) return;
-
-    const updateValue = (val, source) => {
-        let value = isFloat ? parseFloat(val) : parseInt(val, 10);
-
-        if (isNaN(value)) return;
-
-        // Only clamp if it's not a partial manual input
-        const clampedValue = Math.max(min, Math.min(max, value));
-
-        if (source === 'slider') {
-            input.value = String(clampedValue);
-            callback(clampedValue);
-        } else if (source === 'input') {
-            // For manual input, the slider and callback are only updated if the value is within range
-            // This allows the user to type "1" then "10" then "100" without jumping to "50"
-            if (value >= min && value <= max) {
-                slider.value = String(value);
-                callback(value);
-            }
-        }
-    };
-
-    slider.addEventListener('input', function () {
-        updateValue(this.value, 'slider');
-    });
-
-    input.addEventListener('input', function () {
-        updateValue(this.value, 'input');
-    });
-
-    // Final clamp and sync on blur (when user finishes typing)
-    input.addEventListener('blur', function () {
-        let value = isFloat ? parseFloat(this.value) : parseInt(this.value, 10);
-        if (isNaN(value)) value = min;
-        const clampedValue = Math.max(min, Math.min(max, value));
-        this.value = String(clampedValue);
-        slider.value = String(clampedValue);
-        callback(clampedValue);
-    });
 }
 
 /**

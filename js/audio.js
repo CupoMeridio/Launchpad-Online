@@ -19,6 +19,7 @@ import {
 } from './audioErrorHandler.js';
 import { showNotification } from './ui.js';
 import { registerListener } from './eventCleanup.js';
+import { onVisibilityChange } from './visibilityManager.js';
 
 /**
  * Checks if the Web Audio API is supported in the current browser.
@@ -39,7 +40,6 @@ class AudioEngine {
         this.audioContext = null;
         this.analyser = null;
         this.initError = null;
-        this.visibilityListenerAdded = false; // Track if visibility listener was added
 
         // 2. SOUND BUFFERS
         // Decoded audio data (`AudioBuffer`) ready for playback.
@@ -80,17 +80,13 @@ class AudioEngine {
             this.analyser.connect(this.audioContext.destination);
 
             // 4. RESUME CONTEXT ON VISIBILITY CHANGE
-            // Use registerListener to track and prevent duplicate listeners
-            if (!this.visibilityListenerAdded) {
-                this.visibilityListenerAdded = true;
-                registerListener(document, 'visibilitychange', () => {
-                    if (document.visibilityState === 'visible' && this.audioContext && this.audioContext.state === 'suspended') {
-                        this.audioContext.resume().then(() => {
-                            console.log("[AUDIO] AudioContext resumed after tab became visible.");
-                        });
-                    }
-                });
-            }
+            onVisibilityChange((isVisible) => {
+                if (isVisible && this.audioContext && this.audioContext.state === 'suspended') {
+                    this.audioContext.resume().then(() => {
+                        console.log("[AUDIO] AudioContext resumed after tab became visible.");
+                    });
+                }
+            });
 
             console.log("[AUDIO] AudioEngine initialized successfully.");
         } catch (error) {

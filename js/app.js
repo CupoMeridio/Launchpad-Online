@@ -16,6 +16,7 @@ import { initInteraction, changeSoundSet, changeMode } from './interaction.js';
 import { stopAnimationLoop, startAnimationLoop } from './lights.js';
 import { setVisualizer } from './visualizerManager.js';
 import { registerListener, cleanup, removeListener } from './eventCleanup.js';
+import { initVisibilityManager, onVisibilityChange } from './visibilityManager.js';
 
 // ----------------------------------------------------------------------------
 // APPLICATION GLOBAL STATE
@@ -70,6 +71,9 @@ export function getProjectStateSnapshot() {
     };
 }
 
+// Initialize visibility manager early to catch all visibility changes
+initVisibilityManager();
+
 let midiInitialized = false;
 
 // ----------------------------------------------------------------------------
@@ -83,10 +87,6 @@ document.addEventListener('DOMContentLoaded', async function () {
     // --- 1. Interaction Setup ---
     initInteraction();
     bindStaticUIEvents();  // Bind all sidebar/menu listeners (replaces onclick HTML attributes)
-
-    // Set initial mode (User 1 - index 5)
-    // This logs "Mode changed: 5" once and ensures MIDI sync doesn't see null
-    changeMode(5);
 
     let projectsData = null;
 
@@ -117,6 +117,10 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (audioUnlocked) return; // Exit if already unlocked
         audioUnlocked = true; // Set the flag
 
+        // Set initial mode (User 1 - index 5) after user interaction
+        // This ensures the mode is only set when the user actually interacts with the app
+        changeMode(5);
+
         if (unlockOverlay) {
             const progressText = unlockOverlay.querySelector('p');
             if (progressText) {
@@ -139,7 +143,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
             // Continue without audio - app can still work with visual feedback only
             if (unlockOverlay) {
-                overlayClasses.add('hidden');
+                unlockOverlay.classList.add('hidden');
             }
             return;
         }
@@ -217,10 +221,10 @@ document.addEventListener('DOMContentLoaded', async function () {
     // --- Handle Tab Visibility Changes ---
     // Stop animation loop when tab is hidden to reduce CPU/GPU usage
     // Resume when tab becomes visible again
-    registerListener(document, 'visibilitychange', () => {
-        if (document.visibilityState === 'hidden') {
+    onVisibilityChange((isVisible) => {
+        if (!isVisible) {
             stopAnimationLoop();
-        } else if (document.visibilityState === 'visible') {
+        } else {
             startAnimationLoop();
         }
     });

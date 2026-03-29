@@ -18,7 +18,7 @@
 // CUSTOMIZATION: When you make changes to App Shell files, update this timestamp.
 // This invalidates the old cache and forces the Service Worker to download new files.
 // Example: 'launchpad-pwa-cache-2026-03-21-1430' → update to → 'launchpad-pwa-cache-2026-03-21-1505'
-const CACHE_NAME = 'launchpad-pwa-cache-2026-03-21-1946';
+const CACHE_NAME = 'launchpad-pwa-cache-2026-03-29-2154';
 
 // Get the base path dynamically to support both local dev and GitHub Pages
 const basePath = self.registration.scope.replace(self.location.origin, '');
@@ -73,6 +73,8 @@ self.addEventListener('install', event => {
             return cache.addAll(APP_SHELL_FILES);
         })
     );
+    // Force the service worker to activate immediately instead of waiting
+    self.skipWaiting();
 });
 
 // 2. 'ACTIVATE' EVENT: Cleaning up old caches

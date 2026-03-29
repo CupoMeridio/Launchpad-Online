@@ -19,7 +19,8 @@ import { getTranslation, showNotification } from './ui.js';
 import { setLaunchpadInstance } from './physicalInterface.js';
 import { triggerPad, releasePad, changeSoundSet, changeMode } from './interaction.js';
 import { getProjectStateSnapshot } from './app.js';
-import { registerListener, cleanup } from './eventCleanup.js';
+import { registerListener, cleanup, removeListener } from './eventCleanup.js';
+import { onVisibilityChange } from './visibilityManager.js';
 import { isProjectReady, waitForProjectReady } from './projectLoadingState.js';
 import { SCENE_BUTTONS_X, AUTOMAP_BUTTONS_Y, LAUNCHPAD_COLS, LAUNCHPAD_ROWS } from './constants.js';
 
@@ -50,7 +51,8 @@ const MIDI_STATE = {
 
 let midiState = MIDI_STATE.UNINITIALIZED;
 let initializingPromise = null; // Guard for concurrent initMidi calls
-let visibilityListenerAdded = false; // Prevents duplicate visibility listeners
+let visibilityUnsubscribe = null; // Store visibility change unsubscribe function
+let hardwareLayoutListener = null; // Store hardware layout listener reference for cleanup
 
 export let isMidiConnected = false;
 
@@ -81,13 +83,6 @@ function setMidiState(newState) {
     isMidiConnected = (newState === MIDI_STATE.CONNECTED);
     
     return true;
-}
-
-/**
- * Get current MIDI state for debugging and testing
- */
-export function getMidiState() {
-    return midiState;
 }
 
 /**
@@ -351,35 +346,40 @@ export async function initMidi() {
             // Perform an initial scan for the Launchpad
             await connectToLaunchpad();
 
-            registerListener(window, 'midi:setHardwareLayout', handleHardwareLayoutChange);
+            // Clean up previous hardware layout listener if exists
+            if (hardwareLayoutListener) {
+                removeListener(window, 'midi:setHardwareLayout', hardwareLayoutListener);
+            }
+            // Store listener reference for cleanup
+            hardwareLayoutListener = handleHardwareLayoutChange;
+            registerListener(window, 'midi:setHardwareLayout', hardwareLayoutListener);
+
+            // Clean up previous visibility callback before registering a new one
+            // This prevents callback accumulation in the Set
+            if (visibilityUnsubscribe) {
+                visibilityUnsubscribe();
+            }
 
             // Handle visibility change (e.g., browser minimized/restored)
             // When page is hidden: fully dispose MIDI to avoid stale references
             // When page is visible: reinitialize MIDI from scratch for robustness
-            if (!visibilityListenerAdded) {
-                visibilityListenerAdded = true;
-                registerListener(document, 'visibilitychange', () => {
-                    if (document.visibilityState === 'hidden') {
-                        console.log("[MIDI] Page hidden, fully disposing MIDI system...");
-                        // Fully dispose: releases midiAccessRef and returns to UNINITIALIZED
-                        disposeMidi({ releaseAccess: true });
-                        return;
-                    }
+            visibilityUnsubscribe = onVisibilityChange((isVisible) => {
+                if (!isVisible) {
+                    console.log("[MIDI] Page hidden, fully disposing MIDI system...");
+                    disposeMidi({ releaseAccess: true });
+                    return;
+                }
 
-                    if (document.visibilityState === 'visible') {
-                        console.log("[MIDI] Page visible, reinitializing MIDI system...");
-                        // If MIDI was disposed, reinitialize from scratch
-                        // This ensures midiAccessRef is fresh and avoids stale references
-                        if (midiState === MIDI_STATE.UNINITIALIZED) {
-                            // Give browser time to restore MIDI hardware access
-                            setTimeout(() => {
-                                console.log("[MIDI] Attempting full MIDI reinitialization...");
-                                initMidi().catch(error => console.error("[MIDI] Reinitialization error:", error));
-                            }, 500);
-                        }
-                    }
-                });
-            }
+                console.log("[MIDI] Page visible, reinitializing MIDI system...");
+                // If MIDI was disposed or uninitialized, reinitialize from scratch
+                // This ensures midiAccessRef is fresh and avoids stale references
+                if (midiState === MIDI_STATE.UNINITIALIZED || midiState === MIDI_STATE.DISPOSED) {
+                    setTimeout(() => {
+                        console.log("[MIDI] Attempting full MIDI reinitialization...");
+                        initMidi().catch(error => console.error("[MIDI] Reinitialization error:", error));
+                    }, 500);
+                }
+            });
 
         } catch (error) {
             console.error("[MIDI] Web MIDI API not supported or access denied.", error);
@@ -409,6 +409,11 @@ export async function disposeMidi({ releaseAccess = false } = {}) {
 
     console.log("[MIDI] Disposing MIDI system...");
     setMidiState(MIDI_STATE.DISPOSED);
+
+    // Do NOT unsubscribe from visibility changes here!
+    // The callback must remain registered so initMidi() can be called
+    // when the page becomes visible again.
+    // The callback itself will check midiState and skip dispose if already DISPOSED.
 
     try {
         if (launchpad) {
