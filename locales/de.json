@@ -52,5 +52,6 @@
     "launchpad.skins.title": "Launchpad-Hintergründe",
     "launchpad.size": "Launchpad-Größe",
     "visualizer.bassPulse.enable": "Bass-Puls-Effekt",
-    "visualizer.bassPulse.threshold": "Bass-Schwellenwert"
+    "visualizer.bassPulse.threshold": "Bass-Schwellenwert",
+    "error.offline": "Ressource kann nicht geladen werden: Du bist offline."
 }

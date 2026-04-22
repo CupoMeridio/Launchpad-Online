@@ -52,5 +52,6 @@
     "launchpad.skins.title": "Fondos de Launchpad",
     "launchpad.size": "Tamaño del Launchpad",
     "visualizer.bassPulse.enable": "Efecto de Pulso de Bajos",
-    "visualizer.bassPulse.threshold": "Umbral de Bajos"
+    "visualizer.bassPulse.threshold": "Umbral de Bajos",
+    "error.offline": "No se puede cargar el recurso: estás desconectado."
 }

@@ -52,5 +52,6 @@
     "launchpad.skins.title": "Arrière-plans Launchpad",
     "launchpad.size": "Taille du Launchpad",
     "visualizer.bassPulse.enable": "Effet Pulsation Basses",
-    "visualizer.bassPulse.threshold": "Seuil des Basses"
+    "visualizer.bassPulse.threshold": "Seuil des Basses",
+    "error.offline": "Impossible de charger la ressource : vous êtes hors ligne."
 }

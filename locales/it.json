@@ -52,5 +52,6 @@
     "launchpad.skins.title": "Sfondi Launchpad",
     "launchpad.size": "Dimensione Launchpad",
     "visualizer.bassPulse.enable": "Effetto Pulsante Bassi",
-    "visualizer.bassPulse.threshold": "Soglia Bassi"
+    "visualizer.bassPulse.threshold": "Soglia Bassi",
+    "error.offline": "Impossibile caricare la risorsa: sei offline."
 }

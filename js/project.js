@@ -74,6 +74,17 @@ export async function loadProject(configPath, button, onProgress = null) {
 
         const response = await fetch(configPath);
         if (!response.ok) {
+            // Gestione specifica per il caso offline restituito dal Service Worker
+            if (response.status === 503) {
+                let errData = null;
+                try { errData = await response.json(); } catch (_) { /* parsing fallito, usa errore generico */ }
+
+                if (errData?.error === "offline") {
+                    const offlineMessage = getTranslation('error.offline');
+                    showNotification(offlineMessage, "warning", 5000);
+                    throw new Error(offlineMessage);
+                }
+            }
             throw new Error(`HTTP Error: ${response.status} - Failed to load project`);
         }
         const project = await response.json();
@@ -154,7 +165,7 @@ export async function loadProject(configPath, button, onProgress = null) {
         });
         loadingPromises.push(skinPromise);
 
-        //3. Icon loading
+        // 3. Icon Loading
         let iconPromise;
         if (hasIcon) {
             iconPromise = setTopRightIconFile(resolvePath(project.iconImage)).then(() => {
@@ -166,7 +177,6 @@ export async function loadProject(configPath, button, onProgress = null) {
             iconPromise = resetTopRightIcon();
         }
         loadingPromises.push(iconPromise);
-
 
         // 4. Video Loading
         if (hasVideo) {
