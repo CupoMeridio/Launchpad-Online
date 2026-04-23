@@ -2,6 +2,7 @@
   "id": "virtual-riot-idols",
   "name": "Virtual Riot - Idols",
   "coverImage": "",
+  "iconImage": "icon.png",
   "backgroundVideo": "assets/videos/Neon Tunnel.webm",
   "pages": [
     {
@@ -40,10 +41,10 @@
         "samples/pagina2/drop1.wav", "", "", "", "", "", "samples/pagina2/alt-drop3.wav", "samples/pagina2/drop18.wav"
       ],
       "lights": [
-        "number_bold_4_green", "", "", "", "", "", "", "",
-        "", "number_bold_3_yellow", "", "", "", "", "", "",
-        "", "", "number_bold_2_amber", "", "", "", "", "",
-        "", "", "", "number_bold_1_red", "", "", "", "",
+        "number_4_green", "", "", "", "", "", "", "",
+        "", "number_3_yellow", "", "", "", "", "", "",
+        "", "", "number_2_amber", "", "", "", "", "",
+        "", "", "", "number_1_red", "", "", "", "",
         "", "", "", "", "", "", "", "",
         "", "", "", "", "", "", "", "",
         "", "", "", "", "", "", "", "",

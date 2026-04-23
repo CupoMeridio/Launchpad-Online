@@ -1,10 +1,21 @@
 import { audioEngine } from './audio.js';
 import { syncInputSlider } from './ui.js';
+import * as VisualizerManager from './visualizerManager.js';
+import { registerListener, cleanup } from './eventCleanup.js';
+
+let visualizerControlsInitialized = false; // Prevent duplicate listener registration
 
 /**
  * Initializes all controls for the visualizer.
+ * Only initializes once to prevent duplicate listeners.
  */
 export function initializeVisualizerControls() {
+    // Prevent multiple initializations
+    if (visualizerControlsInitialized) {
+        console.log("[VisualizerControls] Already initialized, skipping duplicate setup");
+        return;
+    }
+    visualizerControlsInitialized = true;
     // Smoothing control
     const smoothingSlider = document.getElementById('smoothing-slider');
     const smoothingInput = document.getElementById('smoothing-input');
@@ -13,7 +24,7 @@ export function initializeVisualizerControls() {
         smoothingSlider.value = initialValue;
         smoothingInput.value = initialValue;
         syncInputSlider('smoothing-slider', 'smoothing-input', (value) => {
-            if (window.visualizer) window.visualizer.setSmoothing(value);
+            VisualizerManager.setSmoothing(value);
         }, 0, 0.95, true);
     }
 
@@ -25,20 +36,18 @@ export function initializeVisualizerControls() {
 
     if (color1Picker && color2Picker && enableGradientCheckbox && gradientControls) {
         const updateColors = () => {
-            if (window.visualizer) {
-                const color1 = color1Picker.value;
-                const color2 = enableGradientCheckbox.checked ? color2Picker.value : color1;
-                window.visualizer.setColors(color1, color2);
-            }
+            const color1 = color1Picker.value;
+            const color2 = enableGradientCheckbox.checked ? color2Picker.value : color1;
+            VisualizerManager.setColors(color1, color2);
         };
 
-        enableGradientCheckbox.addEventListener('change', () => {
+        registerListener(enableGradientCheckbox, 'change', () => {
             gradientControls.style.display = enableGradientCheckbox.checked ? 'block' : 'none';
             updateColors();
         });
 
-        color1Picker.addEventListener('input', updateColors);
-        color2Picker.addEventListener('input', updateColors);
+        registerListener(color1Picker, 'input', updateColors);
+        registerListener(color2Picker, 'input', updateColors);
 
         // Set initial state
         gradientControls.style.display = enableGradientCheckbox.checked ? 'block' : 'none';
@@ -48,15 +57,11 @@ export function initializeVisualizerControls() {
     // Gradient direction control
     const gradientDirection = document.getElementById('gradient-direction');
     if (gradientDirection) {
-        gradientDirection.addEventListener('change', function () {
-            if (window.visualizer) {
-                window.visualizer.setGradientDirection(this.value);
-            }
+        registerListener(gradientDirection, 'change', function () {
+            VisualizerManager.setGradientDirection(this.value);
         });
         // Set initial direction
-        if (window.visualizer) {
-            window.visualizer.setGradientDirection(gradientDirection.value);
-        }
+        VisualizerManager.setGradientDirection(gradientDirection.value);
     }
 
     // Transparency control
@@ -64,12 +69,10 @@ export function initializeVisualizerControls() {
     const alphaInput = document.getElementById('alpha-input');
     if (alphaSlider && alphaInput) {
         syncInputSlider('alpha-slider', 'alpha-input', (value) => {
-            if (window.visualizer) window.visualizer.setAlpha(value);
+            VisualizerManager.setAlpha(value);
         }, 0, 1, true);
         // Set initial transparency
-        if (window.visualizer) {
-            window.visualizer.setAlpha(alphaSlider.value);
-        }
+        VisualizerManager.setAlpha(alphaSlider.value);
     }
 
     const symmetricCheckbox = document.getElementById('symmetric-checkbox');
@@ -78,14 +81,12 @@ export function initializeVisualizerControls() {
     if (symmetricCheckbox && symmetricMode && symmetricModeSelect) {
         const applySymmetry = () => {
             const enabled = !!symmetricCheckbox.checked;
-            if (window.visualizer) {
-                window.visualizer.setSymmetric(enabled);
-                window.visualizer.setSymmetryReverse(symmetricModeSelect.value === 'reverse');
-            }
+            VisualizerManager.setSymmetric(enabled);
+            VisualizerManager.setSymmetryReverse(symmetricModeSelect.value === 'reverse');
             symmetricMode.style.display = enabled ? 'block' : 'none';
         };
-        symmetricCheckbox.addEventListener('change', applySymmetry);
-        symmetricModeSelect.addEventListener('change', applySymmetry);
+        registerListener(symmetricCheckbox, 'change', applySymmetry);
+        registerListener(symmetricModeSelect, 'change', applySymmetry);
         applySymmetry();
     }
 
@@ -98,23 +99,19 @@ export function initializeVisualizerControls() {
     if (bassPulseToggle && bassThresholdControls && bassThresholdSlider && bassThresholdInput) {
         const applyBassPulse = () => {
             const enabled = !!bassPulseToggle.checked;
-            if (window.visualizer) {
-                window.visualizer.setBassPulse(enabled);
-            }
+            VisualizerManager.setBassPulse(enabled);
             bassThresholdControls.style.display = enabled ? 'block' : 'none';
         };
 
-        bassPulseToggle.addEventListener('change', applyBassPulse);
+        registerListener(bassPulseToggle, 'change', applyBassPulse);
 
         syncInputSlider('bass-threshold-slider', 'bass-threshold-input', (value) => {
-            if (window.visualizer) window.visualizer.setBassThreshold(value);
+            VisualizerManager.setBassThreshold(value);
         }, 0, 255, false);
 
         // Set initial state
         applyBassPulse();
-        if (window.visualizer) {
-            window.visualizer.setBassThreshold(parseInt(bassThresholdSlider.value, 10));
-        }
+        VisualizerManager.setBassThreshold(parseInt(bassThresholdSlider.value, 10));
     }
 
     const updateControlsVisibility = (mode) => {
@@ -134,7 +131,7 @@ export function initializeVisualizerControls() {
         });
     };
 
-    window.addEventListener('visualizer:mode', (e) => {
+    registerListener(window, 'visualizer:mode', (e) => {
         updateControlsVisibility(e.detail?.mode);
         const menu = document.getElementById('visualizer-menu');
         if (menu) {
@@ -145,7 +142,7 @@ export function initializeVisualizerControls() {
         }
     });
 
-    const initialMode = window.visualizer ? window.visualizer.mode : 'off';
+    const initialMode = VisualizerManager.getVisualizer()?.mode || 'off';
     updateControlsVisibility(initialMode);
     const menu = document.getElementById('visualizer-menu');
     if (menu) {
@@ -153,11 +150,9 @@ export function initializeVisualizerControls() {
 
         // Add click listeners to change mode
         buttons.forEach(btn => {
-            btn.addEventListener('click', () => {
+            registerListener(btn, 'click', () => {
                 if (btn.classList.contains('selected')) return;
-                if (window.visualizer) {
-                    window.visualizer.setMode(btn.dataset.mode);
-                }
+                VisualizerManager.setMode(btn.dataset.mode);
             });
         });
 

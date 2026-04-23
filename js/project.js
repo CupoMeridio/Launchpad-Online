@@ -5,10 +5,19 @@
  */
 
 import { audioEngine } from './audio.js';
-import { setLaunchpadBackground, getTranslation } from './ui.js';
+import { setLaunchpadBackground, getTranslation, setTopRightIconFile, resetTopRightIcon, showNotification } from './ui.js';
 import { setBackgroundVideo } from './video.js';
 import { selectedProjectButton, setCurrentProject, setProjectSounds, setProjectLights, setSelectedProjectButton } from './app.js';
 import { changeSoundSet } from './interaction.js';
+import { stopAnimationLoop, startAnimationLoop } from './lights.js';
+import { validateProject, getErrorSummary } from './projectValidator.js';
+import { 
+    beginLoadingProject, 
+    markProjectReady, 
+    markProjectLoadError,
+    isProjectLoading,
+    isProjectReady
+} from './projectLoadingState.js';
 
 /**
  * Dynamically populates the background video menu.
@@ -38,10 +47,22 @@ export function initializeBackgroundMenu(videoFiles) {
  * @param {function} onProgress - Optional callback for loading progress (0-100).
  */
 export async function loadProject(configPath, button, onProgress = null) {
+    // Prevent multiple concurrent loads - wait for previous to complete
+    if (isProjectLoading()) {
+        console.log("[Project] Project loading already in progress, queueing...");
+        return;
+    }
+
+    // Mark loading as started
+    await beginLoadingProject();
+
     const overlay = document.getElementById('audio-unlock-overlay');
     const progressText = overlay ? overlay.querySelector('p') : null;
 
     try {
+        // Stop the animation loop to clean up previous animations before loading new project
+        stopAnimationLoop();
+
         // Mostra l'overlay durante il caricamento del progetto
         if (overlay) {
             overlay.classList.remove('hidden');
@@ -53,9 +74,31 @@ export async function loadProject(configPath, button, onProgress = null) {
 
         const response = await fetch(configPath);
         if (!response.ok) {
-            throw new Error(`Errore HTTP: ${response.status}`);
+            // Gestione specifica per il caso offline restituito dal Service Worker
+            if (response.status === 503) {
+                let errData = null;
+                try { errData = await response.json(); } catch (_) { /* parsing fallito, usa errore generico */ }
+
+                if (errData?.error === "offline") {
+                    const offlineMessage = getTranslation('error.offline');
+                    showNotification(offlineMessage, "warning", 5000);
+                    throw new Error(offlineMessage);
+                }
+            }
+            throw new Error(`HTTP Error: ${response.status} - Failed to load project`);
         }
         const project = await response.json();
+
+        // Validate project schema before processing
+        const validation = validateProject(project);
+        if (!validation.isValid) {
+            const errorSummary = getErrorSummary(validation.errors);
+            console.error('[Project] Validation failed:', validation.errors);
+            throw new Error(`Project validation failed:\n${errorSummary}`);
+        }
+
+        // CRITICAL: Set current project BEFORE any operations that depend on it
+        // This ensures MIDI and other modules see consistent state
         setCurrentProject(project);
 
         const baseUrl = configPath.substring(0, configPath.lastIndexOf('/') + 1);
@@ -73,7 +116,6 @@ export async function loadProject(configPath, button, onProgress = null) {
                 if (page.lights) {
                     lights.push(...page.lights);
                 } else {
-                    // Fill with empty strings if lights array is missing for a page
                     lights.push(...new Array(64).fill(""));
                 }
             });
@@ -81,36 +123,82 @@ export async function loadProject(configPath, button, onProgress = null) {
         setProjectSounds(sounds);
         setProjectLights(lights);
 
-        // Se non è stato passato un onProgress esterno (es. dall'app.js all'avvio),
-        // ne creiamo uno interno che aggiorna l'overlay.
-        const internalProgress = (progress) => {
+        // --- PROGRESS TRACKING ---
+        let audioLoaded = 0;
+        let skinLoaded = 0;
+        let iconLoaded = 0;
+        let videoLoaded = 0;
+        const hasSkin = !!project.coverImage;
+        const hasIcon = !!project.iconImage;
+        const hasVideo = !!project.backgroundVideo;
+        const totalAssets = sounds.length + (hasSkin ? 1 : 0) + (hasIcon ? 1 : 0) + (hasVideo ? 1 : 0);
+
+        const updateOverallProgress = () => {
+            const totalLoaded = audioLoaded + skinLoaded + iconLoaded + videoLoaded;
+            const percentage = Math.min(Math.round((totalLoaded / totalAssets) * 100), 100);
             if (progressText) {
-                const loadingText = getTranslation('overlay.loading').replace('{progress}', Math.round(progress));
+                const loadingText = getTranslation('overlay.loading').replace('{progress}', percentage);
                 progressText.textContent = loadingText;
             }
-            if (onProgress) onProgress(progress);
+            if (onProgress) onProgress(percentage);
         };
 
-        await audioEngine.loadSounds(sounds, internalProgress);
+        // Start all loading processes
+        const loadingPromises = [];
 
-        setLaunchpadBackground(resolvePath(project.coverImage));
+        // 1. Audio Loading
+        const audioPromise = audioEngine.loadSounds(sounds, (loadedSoundsCount) => {
+            audioLoaded = loadedSoundsCount;
+            updateOverallProgress();
+        }).catch((error) => {
+            console.error("[Project] Audio loading error:", error);
+            showNotification('Failed to load all project audio files. Some pads may be silent.', 'warning');
+        });
+        loadingPromises.push(audioPromise);
 
-        if (project.backgroundVideo) {
-            console.log("Loading project background video:", project.backgroundVideo);
-            setBackgroundVideo(resolvePath(project.backgroundVideo));
+        // 2. Skin Loading
+        const skinPromise = setLaunchpadBackground(resolvePath(project.coverImage)).then(() => {
+            if (hasSkin) {
+                skinLoaded = 1;
+                updateOverallProgress();
+            }
+        });
+        loadingPromises.push(skinPromise);
+
+        // 3. Icon Loading
+        let iconPromise;
+        if (hasIcon) {
+            iconPromise = setTopRightIconFile(resolvePath(project.iconImage)).then(() => {
+                iconLoaded = 1;
+                updateOverallProgress();
+            });
         } else {
-            // Se il progetto non ha un video, rimuovi quello attuale
+            // Se non c'è un'icona specifica per il progetto, ripristina quella di default
+            iconPromise = resetTopRightIcon();
+        }
+        loadingPromises.push(iconPromise);
+
+        // 4. Video Loading
+        if (hasVideo) {
+            console.log("Loading project background video:", project.backgroundVideo);
+            const videoPromise = setBackgroundVideo(resolvePath(project.backgroundVideo)).then(() => {
+                videoLoaded = 1;
+                updateOverallProgress();
+            });
+            loadingPromises.push(videoPromise);
+        } else {
             setBackgroundVideo(null);
         }
 
-        // Communicate the desired visualizer mode via CustomEvent,
-        // decoupling project.js from the window.visualizer instance.
-        // visualizer-controls.js (and visualizer.js itself) listen for this event.
+        // Wait for everything to finish
+        await Promise.all(loadingPromises);
+
+        // Ensure final UI update
+        updateOverallProgress();
+
+        // Visualizer Mode
         const visualizerMode = project.visualizerMode || 'off';
         window.dispatchEvent(new CustomEvent('visualizer:setMode', { detail: { mode: visualizerMode } }));
-
-        // Reset to first page when loading a new project
-        changeSoundSet(0);
 
         if (selectedProjectButton) {
             selectedProjectButton.classList.remove('selected');
@@ -121,13 +209,42 @@ export async function loadProject(configPath, button, onProgress = null) {
         }
 
         console.log(`Project "${project.name}" loaded.`);
+        
+        // MARK PROJECT AS READY - Critical for MIDI and other systems
+        // This signals that currentProject, projectSounds, and projectLights are all set
+        markProjectReady();
+
+        // Reset to first page ONLY AFTER the project is marked as ready
+        changeSoundSet(0);
+        
     } catch (error) {
-        console.error("Unable to load project:", error);
+        console.error("[Project] Failed to load project:", error);
+        
+        // Mark loading as failed - prevents MIDI and other systems from using incomplete state
+        markProjectLoadError(error);
+        
+        // Extract meaningful error message
+        let userMessage;
+        if (error.message.includes('validation failed')) {
+            userMessage = `Project configuration error: ${error.message}`;
+        } else if (error.message.includes('HTTP Error')) {
+            userMessage = 'Could not load project file. Check the file path and try again.';
+        } else if (error.message.includes('JSON')) {
+            userMessage = 'Project file is not valid JSON. Check the file format.';
+        } else {
+            userMessage = `Failed to load project: ${error.message}`;
+        }
+
+        // Show notification to user
+        if (typeof showNotification === 'function') {
+            showNotification(userMessage, 'error');
+        }
     } finally {
-        // Nascondi sempre l'overlay alla fine del caricamento
         if (overlay) {
             overlay.classList.add('hidden');
         }
+        // Resume animation loop after project loading completes (success or failure)
+        startAnimationLoop();
     }
 }
 

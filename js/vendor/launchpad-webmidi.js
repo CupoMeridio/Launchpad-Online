@@ -271,6 +271,10 @@ const yellow = new Color( 3, false, false, 'yellow' );
 /** @type {Color} */
 const off = new Color( 3, false, false, 'off' );
 
+const or = ( a, b ) => {
+    return a === undefined ? b : a;
+};
+
 class Observable {
     constructor() {
         this.observers = {};
@@ -339,44 +343,15 @@ class Launchpad extends Observable {
   
 
 
-    extractLaunchpadIO(items) {
-        var item = items.next();
-        while (!item.done) {
-            if (item.value.name.indexOf(this.name) >= 0) {
-                return item.value;
-            }
-            item = items.next();
+    attach(input, output) {
+        if (!input || !output) {
+            throw new Error('Valid MIDI input and output ports are required.');
         }
-        return undefined;
-    }
-
-    connect() {
-        return new Promise( ( res, rej ) => {
-            if (!navigator.requestMIDIAccess){
-                rej(`Browser doesn't seem to support Web MIDI API`);
-            } else {
-                navigator.requestMIDIAccess()
-                    .then((midiAccess) => {
-                        return {
-                            'input': this.extractLaunchpadIO(midiAccess.inputs.values()),
-                            'output': this.extractLaunchpadIO(midiAccess.outputs.values())
-                        }
-                    })
-                    .then((io) => {                        
-                        return new MidiAdapter(io.input, io.output);
-                    })
-                    .then((midiAdapter) => {
-                        this.midiIn = midiAdapter.input;
-                        this.midiOut = midiAdapter.output;
-                        window.dispatchEvent(
-                            new CustomEvent('connect', { detail: 'Launchpad connected' }));
-                        console.log(`[Launchpad] connect() - Connected`,this.midiIn, this.midiOut);
-                        this.midiIn.onmidimessage = (data) => this._processMessage(data);
-                        res();
-                    })
-                    .catch(rej);
-            }
-        });
+        this.midiIn = input;
+        this.midiOut = output;
+        this.midiIn.onmidimessage = (data) => this._processMessage(data);
+        window.dispatchEvent(new CustomEvent('connect', { detail: 'Launchpad connected' }));
+        console.log(`[Launchpad] attach() - Connected`, this.midiIn, this.midiOut);
     }
 
     /**
@@ -623,11 +598,5 @@ class Launchpad extends Observable {
 
 
 
-class MidiAdapter {
-    constructor(input, output) {
-        this.input = input;
-        this.output = output;
-    }
-}
 
 export { Launchpad as default };

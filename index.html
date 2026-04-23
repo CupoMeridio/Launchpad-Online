@@ -59,6 +59,31 @@
   <script src="js/visualizer-controls.js" type="module" defer></script>
   <script src="js/project.js" type="module" defer></script>
   <script src="js/app.js" type="module" defer></script>
+
+  <!--
+      BROWSER COMPATIBILITY CHECK
+      Check if the browser supports required APIs and warn the user if not.
+    -->
+  <script>
+    // Check for Web Audio API support
+    if (typeof AudioContext === 'undefined' && typeof webkitAudioContext === 'undefined') {
+      // Web Audio not supported - show warning after DOM loads
+      document.addEventListener('DOMContentLoaded', function() {
+        const overlay = document.getElementById('audio-unlock-overlay');
+        if (overlay) {
+          overlay.innerHTML = `
+            <div style="text-align: center; padding: 20px;">
+              <h3>⚠️ Browser Non Supportato</h3>
+              <p>Il tuo browser non supporta l'API Web Audio richiesta da questa applicazione.</p>
+              <p><strong>Browser supportati:</strong> Chrome, Firefox, Edge, Safari</p>
+              <p>Per favore, usa uno di questi browser per accedere a Launchpad Online.</p>
+            </div>
+          `;
+          overlay.classList.remove('hidden');
+        }
+      });
+    }
+  </script>
 </head>
 
 <body>
@@ -77,6 +102,9 @@
                            Their visibility and behavior are managed by 'js/visualizer.js'.
     -->
     <div class="video-overlay"></div>
+    <div id="audio-unlock-overlay" class="launchpad-overlay">
+      <p data-i18n="overlay.clickToStart">Clicca per avviare</p>
+    </div>
     <canvas id="visualizer-canvas-top" class="visualizer-canvas"></canvas>
     <canvas id="visualizer-canvas-bottom" class="visualizer-canvas"></canvas>
 
@@ -190,6 +218,13 @@
           </div>
         </div>
 
+        <div class="menu-item">
+          <button class="menu-toggle" data-menu="mode-menu" data-i18n="menu.mode.toggle">Seleziona
+            modalità</button>
+          <div class="menu-dropdown" id="mode-menu">
+            <!-- Mode items will be populated dynamically -->
+          </div>
+        </div>
         <!--
           VISUALIZER MENU
           - Controls the behavior of the audio visualizer.
@@ -373,15 +408,6 @@
           The heart of the application: a grid of buttons that play sounds.
         -->
         <div class="Launchpad" id="Launchpad">
-          <!--
-            AUDIO UNLOCK OVERLAY
-            Many modern browsers block automatic audio playback.
-            This overlay requires user interaction (a click) to unlock the AudioContext,
-            ensuring that sounds can be played.
-          -->
-          <div id="audio-unlock-overlay" class="launchpad-overlay">
-            <p data-i18n="overlay.clickToStart">Clicca per avviare</p>
-          </div>
 
           <!--
             DECORATIVE ELEMENTS OF THE LAUNCHPAD

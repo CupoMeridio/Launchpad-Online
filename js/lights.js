@@ -24,6 +24,7 @@ export { animations };
 
 let animationFrameId = null;
 let lastTickTime = 0;
+let isLoopRunning = false;
 
 /**
  * Main animation loop.
@@ -52,7 +53,41 @@ function animationLoop(now) {
     animationFrameId = requestAnimationFrame(animationLoop);
 }
 
+/**
+ * Stops the animation loop and cancels pending requestAnimationFrame.
+ * Call this to cleanup and prevent memory leaks when the app is being destroyed
+ * or when you need to pause animations temporarily.
+ */
+export function stopAnimationLoop() {
+    if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+        isLoopRunning = false;
+    }
+}
+
+/**
+ * Starts the animation loop if it's not already running.
+ * Use this to resume animations after calling stopAnimationLoop().
+ */
+export function startAnimationLoop() {
+    if (!isLoopRunning) {
+        isLoopRunning = true;
+        lastTickTime = performance.now();
+        animationLoop(lastTickTime);
+    }
+}
+
+/**
+ * Gets the current state of the animation loop.
+ * @returns {boolean} True if the loop is currently running.
+ */
+export function isAnimationLoopRunning() {
+    return isLoopRunning;
+}
+
 // Start the loop
+isLoopRunning = true;
 lastTickTime = performance.now();
 animationLoop(lastTickTime);
 

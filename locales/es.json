@@ -5,6 +5,7 @@
     "menu.project.toggle": "Seleccionar proyecto",
     "menu.background.toggle": "Fondo",
     "menu.visualizer.toggle": "Visualizador",
+    "menu.mode.toggle": "Seleccionar modo",
     "menu.launchpad.toggle": "Personalizar Launchpad",
     "background.none": "Sin fondo",
     "background.opacity": "Opacidad",
@@ -31,6 +32,10 @@
     "visualizer.alpha": "Transparencia",
     "visualizer.symmetricReverse": "Reflexión inversa",
     "launchpad.stickers.show": "Mostrar pegatinas en el Launchpad",
+    "launchpad.mode.session": "Session",
+    "launchpad.mode.user1": "User 1",
+    "launchpad.mode.user2": "User 2",
+    "launchpad.mode.mixer": "Mixer",
     "launchpad.default": "Predeterminado",
     "overlay.clickToStart": "Haz clic para iniciar",
     "overlay.loading": "Cargando... {progress}%",
@@ -47,5 +52,6 @@
     "launchpad.skins.title": "Fondos de Launchpad",
     "launchpad.size": "Tamaño del Launchpad",
     "visualizer.bassPulse.enable": "Efecto de Pulso de Bajos",
-    "visualizer.bassPulse.threshold": "Umbral de Bajos"
+    "visualizer.bassPulse.threshold": "Umbral de Bajos",
+    "error.offline": "No se puede cargar el recurso: estás desconectado."
 }

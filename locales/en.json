@@ -5,6 +5,7 @@
     "menu.project.toggle": "Select Project",
     "menu.background.toggle": "Background",
     "menu.visualizer.toggle": "Visualizer",
+    "menu.mode.toggle": "Select mode",
     "menu.launchpad.toggle": "Personalize Launchpad",
     "background.none": "No Background",
     "background.opacity": "Opacity",
@@ -31,6 +32,10 @@
     "visualizer.alpha": "Transparency",
     "visualizer.symmetricReverse": "Reverse reflection",
     "launchpad.stickers.show": "Show stickers on Launchpad",
+    "launchpad.mode.session": "Session",
+    "launchpad.mode.user1": "User 1",
+    "launchpad.mode.user2": "User 2",
+    "launchpad.mode.mixer": "Mixer",
     "launchpad.default": "Default",
     "overlay.clickToStart": "Click to start",
     "overlay.loading": "Loading... {progress}%",
@@ -47,5 +52,6 @@
     "launchpad.skins.title": "Launchpad Backgrounds",
     "launchpad.size": "Launchpad size",
     "visualizer.bassPulse.enable": "Bass Pulse Effect",
-    "visualizer.bassPulse.threshold": "Bass Threshold"
+    "visualizer.bassPulse.threshold": "Bass Threshold",
+    "error.offline": "Unable to load resource: you are offline."
 }

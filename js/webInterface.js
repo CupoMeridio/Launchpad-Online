@@ -1,10 +1,10 @@
 /**
- * =============================================================================
  * WEB INTERFACE MODULE (webInterface.js)
- * =============================================================================
  * 
  * Handles all visual updates for the digital Launchpad in the web UI.
  */
+
+import { LAUNCHPAD_COLS } from './constants.js';
 
 /**
  * Map launchpad-webmidi colors to CSS colors for the web UI.
@@ -50,16 +50,26 @@ function ensurePadCache() {
 }
 
 /**
+ * Gets a specific pad element by index.
+ * @param {number} index - The pad index (0-63).
+ * @returns {Element|null} The pad DOM element or null.
+ */
+export function getPadElement(index) {
+    ensurePadCache();
+    if (index >= 0 && index < cachedPads.length) {
+        return cachedPads[index];
+    }
+    return null;
+}
+
+/**
  * Sets color on the digital (web) launchpad.
  * @param {string} color - CSS color or 'off'.
  * @param {number[]} p - [x, y] coordinates.
  */
 export function setWebColor(color, p) {
-    ensurePadCache();
-    // The grid is 8x8, indexed from 0 to 63.
-    // Assuming x is column and y is row.
-    const index = p[1] * 8 + p[0];
-    const pad = cachedPads[index];
+    const index = p[1] * LAUNCHPAD_COLS + p[0];
+    const pad = getPadElement(index);
     if (pad) {
         if (color === 'off') {
             pad.style.backgroundColor = '';

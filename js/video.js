@@ -29,6 +29,11 @@ export function updateVideoControlsVisibility() {
     }
 }
 
+/**
+ * Sets a background video.
+ * @param {string|null} videoFile - The video file name, or `null` to remove it.
+ * @returns {Promise<void>} A promise that resolves when the video is ready to play.
+ */
 export function setBackgroundVideo(videoFile) {
     const overlay = document.querySelector('.video-overlay');
     const backgroundMenu = document.getElementById('background-menu');
@@ -42,7 +47,15 @@ export function setBackgroundVideo(videoFile) {
 
     removeExistingBackground();
 
-    if (videoFile) {
+    if (!videoFile) {
+        overlay.classList.remove('active');
+        currentBackgroundEl = null;
+        resetVideoControls();
+        updateVideoControlsVisibility();
+        return Promise.resolve();
+    }
+
+    return new Promise((resolve) => {
         const video = document.createElement('video');
         video.className = 'background-media';
 
@@ -55,18 +68,23 @@ export function setBackgroundVideo(videoFile) {
         video.loop = true;
         video.muted = true;
 
+        // Resolve when enough data is loaded to play smoothly
+        video.oncanplaythrough = () => {
+            resolve();
+        };
+
+        video.onerror = () => {
+            console.error(`Error loading video: ${videoSrc}`);
+            resolve(); // Resolve to not block
+        };
+
         document.body.appendChild(video);
         overlay.classList.add('active');
         currentBackgroundEl = video;
 
         applyVideoEffects();
-    } else {
-        overlay.classList.remove('active');
-        currentBackgroundEl = null;
-        resetVideoControls();
-    }
-
-    updateVideoControlsVisibility();
+        updateVideoControlsVisibility();
+    });
 }
 
 function resetVideoControls() {
@@ -195,22 +213,6 @@ export function setBackgroundFile(file) {
         overlay.classList.remove('active');
         currentBackgroundEl = null;
         resetVideoControls();
-    }
-    updateVideoControlsVisibility();
-}
-
-export function clearBackground() {
-    const overlay = document.querySelector('.video-overlay');
-    removeExistingBackground();
-    if (overlay) overlay.classList.remove('active');
-    currentBackgroundEl = null;
-    resetVideoControls();
-    // Deselect all buttons and mark 'none' as selected (unified logic, replaces setNoneSelected)
-    const backgroundMenu = document.getElementById('background-menu');
-    if (backgroundMenu) {
-        backgroundMenu.querySelectorAll('.menu-option').forEach(b => b.classList.remove('selected'));
-        const noneBtn = backgroundMenu.querySelector('[data-video="none"]');
-        if (noneBtn) noneBtn.classList.add('selected');
     }
     updateVideoControlsVisibility();
 }
