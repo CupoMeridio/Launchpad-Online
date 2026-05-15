@@ -241,7 +241,7 @@
   align-items: center;
   font-size: 2em;
   font-weight: bold;
-  z-index: 9999;
+  z-index: 5;
   /* Positioned above everything else on the page. */
   cursor: pointer;
   text-align: center;
