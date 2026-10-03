@@ -31,8 +31,20 @@ const APP_SHELL_FILES = [
     `${basePath}index.html`,
     `${basePath}css/style.css`,
     `${basePath}css/launchpad.css`,
+    `${basePath}js/animationClasses.js`,
+    `${basePath}js/animationData.js`,
+    `${basePath}js/animationEngine.js`,
+    `${basePath}js/animationLibrary.js`,
+    `${basePath}js/animations/basic.js`,
+    `${basePath}js/animations/characters.js`,
+    `${basePath}js/animations/directional.js`,
+    `${basePath}js/animations/geometric.js`,
+    `${basePath}js/animations/multi.js`,
+    `${basePath}js/animations/special.js`,
     `${basePath}js/app.js`,
     `${basePath}js/audio.js`,
+    `${basePath}js/constants.js`,
+    `${basePath}js/formControls.js`,
     `${basePath}js/interaction.js`,
     `${basePath}js/lights.js`,
     `${basePath}js/midi.js`,
@@ -40,6 +52,7 @@ const APP_SHELL_FILES = [
     `${basePath}js/project.js`,
     `${basePath}js/ui.js`,
     `${basePath}js/video.js`,
+    `${basePath}js/visibilityManager.js`,
     `${basePath}js/visualizer.js`,
     `${basePath}js/visualizer-controls.js`,
     `${basePath}js/visualizerManager.js`,
@@ -51,11 +64,18 @@ const APP_SHELL_FILES = [
     `${basePath}js/vendor/launchpad-webmidi.js`,
     `${basePath}js/static-data.json`,
     `${basePath}manifest.json`,
+    `${basePath}locales/de.json`,
+    `${basePath}locales/en.json`,
+    `${basePath}locales/es.json`,
+    `${basePath}locales/fr.json`,
+    `${basePath}locales/it.json`,
     // Main icons
     `${basePath}assets/icons/android-chrome-192x192.png`,
     `${basePath}assets/icons/android-chrome-512x512.png`,
     `${basePath}assets/icons/apple-touch-icon.png`,
     `${basePath}assets/icons/favicon.ico`,
+    `${basePath}assets/icons/favicon-16x16.png`,
+    `${basePath}assets/icons/favicon-32x32.png`,
     `${basePath}assets/icons/Logo.png`,
     `${basePath}assets/icons/triangle.png`
 ];
@@ -185,10 +205,10 @@ self.addEventListener('fetch', event => {
     }
 
     // STRATEGY 2: CACHE-FIRST for media and project assets (.wav, .mp4, images)
-    // These files are large and don't change often.
+    // Ignore query parameters used for cache busting on static media URLs.
     if (url.pathname.includes('/projects/') || url.pathname.includes('/assets/')) {
         event.respondWith(
-            caches.match(request).then(cachedResponse => {
+            caches.match(request, { ignoreSearch: true }).then(cachedResponse => {
                 if (cachedResponse) {
                     return cachedResponse;
                 }

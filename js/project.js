@@ -15,9 +15,10 @@ import {
     beginLoadingProject, 
     markProjectReady, 
     markProjectLoadError,
-    isProjectLoading,
     isProjectReady
 } from './projectLoadingState.js';
+
+let activeProjectLoad = null;
 
 /**
  * Dynamically populates the background video menu.
@@ -46,13 +47,20 @@ export function initializeBackgroundMenu(videoFiles) {
  * @param {HTMLElement} button - Clicked button element to update 'selected' state.
  * @param {function} onProgress - Optional callback for loading progress (0-100).
  */
-export async function loadProject(configPath, button, onProgress = null) {
-    // Prevent multiple concurrent loads - wait for previous to complete
-    if (isProjectLoading()) {
-        console.log("[Project] Project loading already in progress, queueing...");
-        return;
+export function loadProject(configPath, button, onProgress = null) {
+    if (activeProjectLoad) {
+        console.log("[Project] A project is already loading; ignoring the new request.");
+        return activeProjectLoad;
     }
 
+    activeProjectLoad = loadProjectInternal(configPath, button, onProgress)
+        .finally(() => {
+            activeProjectLoad = null;
+        });
+    return activeProjectLoad;
+}
+
+async function loadProjectInternal(configPath, button, onProgress = null) {
     // Mark loading as started
     await beginLoadingProject();
 
