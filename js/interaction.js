@@ -5,6 +5,8 @@ import { setPhysicalColor, getLpColor, flushPhysicalColors } from './physicalInt
 import { getPadElement } from './webInterface.js';
 import { registerListener } from './eventCleanup.js';
 import { isProjectReady } from './projectLoadingState.js';
+import { isProjectEditorActive, selectProjectPad, selectProjectPage } from './projectCreator.js';
+import { resolveLightDuration } from './projectCreatorModel.js';
 import { LAUNCHPAD_COLS, LAUNCHPAD_PADS, SCENE_BUTTONS_X, AUTOMAP_BUTTONS_Y, ERROR_SHAKE_DURATION_MS, TOTAL_PAGES, TOTAL_MODES, FIRST_MODE_INDEX, TOTAL_AUTOMAP_BUTTONS } from './constants.js';
 
 let interactionInitialized = false; // Track if listeners have been set up
@@ -15,6 +17,11 @@ let shakeTimeoutId = null; // Track error shake timeout to prevent stacking
  * @param {number} index - The index of the pad to activate (0-63).
  */
 export function triggerPad(index) {
+    if (isProjectEditorActive()) {
+        selectProjectPad(index);
+        return;
+    }
+
     const pad = getPadElement(index);
     if (pad) {
         // Get a consistent snapshot to avoid race conditions during project loading
@@ -31,7 +38,10 @@ export function triggerPad(index) {
             const animationName = state.lights[soundIndex];
             const x = index % LAUNCHPAD_COLS;
             const y = Math.floor(index / LAUNCHPAD_COLS);
-            triggerAnimation(animationName, x, y, duration);
+            const syncToSound = state.lightSyncToSound?.[soundIndex] ?? true;
+            const manualDuration = state.lightDurations?.[soundIndex] ?? 2.5;
+            const animationDuration = resolveLightDuration(syncToSound, duration, manualDuration);
+            triggerAnimation(animationName, x, y, animationDuration);
         } else if (!isProjectReady()) {
             console.log(`[Interaction] Project not ready, skipping light animation for pad ${index}`);
         }
@@ -46,6 +56,8 @@ export function triggerPad(index) {
  * @param {number} index - The index of the pad to deactivate (0-63).
  */
 export function releasePad(index) {
+    if (isProjectEditorActive()) return;
+
     const pad = getPadElement(index);
     if (pad) {
         // Get a consistent snapshot to avoid race conditions during project loading
@@ -182,6 +194,11 @@ function updatePhysicalPageLights(activeIndex) {
  * @param {boolean} updateVisuals - Whether to update the visual state (default: true).
  */
 export function changeSoundSet(index, updateVisuals = true) {
+    if (isProjectEditorActive()) {
+        selectProjectPage(index);
+        return;
+    }
+
     // Check if project is ready before proceeding
     // This prevents race condition where currentProject is set but projectLights isn't
     if (!isProjectReady()) {

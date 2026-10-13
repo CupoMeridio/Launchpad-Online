@@ -7,7 +7,7 @@
 import { audioEngine } from './audio.js';
 import { setLaunchpadBackground, getTranslation, setTopRightIconFile, resetTopRightIcon, showNotification } from './ui.js';
 import { setBackgroundVideo } from './video.js';
-import { selectedProjectButton, setCurrentProject, setProjectSounds, setProjectLights, setSelectedProjectButton } from './app.js';
+import { selectedProjectButton, setCurrentProject, setProjectSounds, setProjectLights, setProjectLightSyncToSound, setProjectLightDurations, setSelectedProjectButton } from './app.js';
 import { changeSoundSet } from './interaction.js';
 import { stopAnimationLoop, startAnimationLoop } from './lights.js';
 import { validateProject, getErrorSummary } from './projectValidator.js';
@@ -118,6 +118,8 @@ async function loadProjectInternal(configPath, button, onProgress = null) {
 
         const sounds = [];
         const lights = [];
+        const lightSyncToSound = [];
+        const lightDurations = [];
         if (project.pages) {
             project.pages.forEach(page => {
                 sounds.push(...page.sounds.map(s => resolvePath(s)));
@@ -126,10 +128,14 @@ async function loadProjectInternal(configPath, button, onProgress = null) {
                 } else {
                     lights.push(...new Array(64).fill(""));
                 }
+                lightSyncToSound.push(...(page.lightSyncToSound || new Array(64).fill(true)));
+                lightDurations.push(...(page.lightDurations || new Array(64).fill(2.5)));
             });
         }
         setProjectSounds(sounds);
         setProjectLights(lights);
+        setProjectLightSyncToSound(lightSyncToSound);
+        setProjectLightDurations(lightDurations);
 
         // --- PROGRESS TRACKING ---
         let audioLoaded = 0;

@@ -117,6 +117,30 @@ export function validatePage(page, pageIndex) {
         }
     }
 
+    if (page.lightSyncToSound !== undefined && page.lightSyncToSound !== null) {
+        if (!Array.isArray(page.lightSyncToSound) || page.lightSyncToSound.length !== 64) {
+            errors.push(`Page ${pageNum}: "lightSyncToSound" must be an array with exactly 64 elements`);
+        } else {
+            page.lightSyncToSound.forEach((enabled, padIndex) => {
+                if (typeof enabled !== 'boolean') {
+                    errors.push(`Page ${pageNum}, Light sync ${padIndex}: must be a boolean`);
+                }
+            });
+        }
+    }
+
+    if (page.lightDurations !== undefined && page.lightDurations !== null) {
+        if (!Array.isArray(page.lightDurations) || page.lightDurations.length !== 64) {
+            errors.push(`Page ${pageNum}: "lightDurations" must be an array with exactly 64 elements`);
+        } else {
+            page.lightDurations.forEach((duration, padIndex) => {
+                if (typeof duration !== 'number' || !Number.isFinite(duration) || duration < 0.1 || duration > 60) {
+                    errors.push(`Page ${pageNum}, Light duration ${padIndex}: must be between 0.1 and 60 seconds`);
+                }
+            });
+        }
+    }
+
     return errors;
 }
 

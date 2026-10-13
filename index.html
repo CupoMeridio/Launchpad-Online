@@ -149,6 +149,10 @@
             <!-- Project items will be populated dynamically -->
           </div>
         </div>
+        <div class="menu-item">
+          <button class="menu-toggle" type="button" id="toggle-project-creator"
+            data-i18n="menu.projectCreator.toggle">Editor / Crea progetto</button>
+        </div>
 
         <!--
           BACKGROUND MENU
@@ -561,6 +565,79 @@
         <div id="notification-container"></div>
       </main>
     </div>
+    <aside id="project-inspector" class="project-inspector" aria-label="Project inspector">
+      <header class="inspector-header">
+        <div>
+          <span class="inspector-eyebrow" data-i18n="creator.mode">MODALITÀ EDITOR</span>
+          <h2 data-i18n="creator.inspector">Ispettore progetto</h2>
+        </div>
+        <button type="button" class="inspector-close" id="creator-close" aria-label="Close editor">×</button>
+      </header>
+      <section id="creator-project-details" class="inspector-section">
+        <label for="project-creator-name" data-i18n="creator.projectName">Nome progetto</label>
+        <input type="text" id="project-creator-name" maxlength="60" autocomplete="off">
+        <label for="creator-page-name" data-i18n="creator.pageName">Nome pagina</label>
+        <input type="text" id="creator-page-name" maxlength="40">
+      </section>
+      <section id="creator-bank-details" class="inspector-section">
+        <div class="inspector-page-heading">
+          <span data-i18n="creator.pages">Pagine progetto</span>
+          <span id="creator-page-count"></span>
+        </div>
+        <div id="creator-page-tabs" class="creator-page-tabs" role="tablist" aria-label="Project pages"></div>
+        <div class="inspector-actions">
+          <button type="button" class="inspector-action" id="creator-add-page" data-i18n="creator.addPage">Aggiungi pagina</button>
+          <button type="button" class="inspector-action" id="creator-remove-page" data-i18n="creator.removePage">Rimuovi pagina</button>
+        </div>
+      </section>
+      <section id="creator-pad-inspector" class="inspector-section" hidden>
+        <div class="inspector-page-heading">
+          <span data-i18n="creator.selectedPad">PAD SELEZIONATO</span>
+          <strong id="creator-selected-pad">Pad 1</strong>
+        </div>
+        <button type="button" class="inspector-action" id="creator-project-settings"
+          data-i18n="creator.projectSettings">Dettagli progetto</button>
+        <p id="creator-sample-name" class="creator-sample-name"></p>
+        <div class="inspector-actions">
+          <button type="button" class="inspector-action" id="creator-import-sound" data-i18n="creator.importSound">Carica file</button>
+          <button type="button" class="inspector-action" id="creator-preview-pad" data-i18n="creator.playPad">Play</button>
+          <button type="button" class="inspector-action" id="creator-remove-sample" data-i18n="creator.removeSample">Rimuovi</button>
+        </div>
+        <input type="file" id="creator-sample-file" class="file-input-hidden" accept="audio/*">
+        <div class="inspector-page-heading">
+          <span data-i18n="creator.lightCatalog">LUCE / ANIMAZIONE</span>
+        </div>
+        <label for="creator-light-search" data-i18n="creator.searchAnimations">Cerca animazione</label>
+        <input type="search" id="creator-light-search" autocomplete="off">
+        <nav id="creator-light-categories" class="creator-light-categories" aria-label="Animation categories"></nav>
+        <div id="creator-light-presets" class="creator-light-presets"></div>
+        <section id="creator-text-animation" class="creator-text-animation" hidden>
+          <label for="creator-animation-text" data-i18n="creator.animationText">Testo animazione</label>
+          <input type="text" id="creator-animation-text" maxlength="16" autocomplete="off">
+          <button type="button" class="inspector-action" id="creator-assign-text-animation"
+            data-i18n="creator.assignAnimation">Assegna animazione</button>
+        </section>
+        <section id="creator-light-timing" class="creator-light-timing" hidden>
+          <label class="creator-sync-toggle">
+            <input type="checkbox" id="creator-light-sync" checked>
+            <span data-i18n="creator.syncLight">Sincronizza alla durata del suono</span>
+          </label>
+          <div id="creator-manual-light-duration" class="creator-manual-light-duration" hidden>
+            <label for="creator-light-duration" data-i18n="creator.lightDuration">Durata luce (secondi)</label>
+            <input type="number" id="creator-light-duration" min="0.1" max="60" step="0.1" value="2.5">
+          </div>
+          <p id="creator-light-duration-unsupported" class="creator-duration-note" hidden
+            data-i18n="creator.lightDurationUnsupported">Questa animazione ha durata fissa.</p>
+        </section>
+        <button type="button" class="inspector-action" id="creator-remove-light"
+          data-i18n="creator.removeLight">Rimuovi luce</button>
+      </section>
+      <footer class="inspector-footer">
+        <span id="creator-sample-count" aria-live="polite"></span>
+        <button type="button" class="inspector-export" id="creator-export" data-i18n="creator.export">Esporta progetto</button>
+      </footer>
+    </aside>
+  </div>
 </body>
 
 </html>

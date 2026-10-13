@@ -102,3 +102,19 @@ test('built-in projects pass validation and reference existing assets', () => {
         }
     }
 });
+
+test('validates optional LED animation data', () => {
+    const project = createValidProject();
+    project.pages[0].lights = Array(64).fill('fade_red');
+    project.pages[0].lightSyncToSound = Array(64).fill(true);
+    project.pages[0].lightDurations = Array(64).fill(2.5);
+    assert.equal(validateProject(project).isValid, true);
+
+    project.pages[0].lights[4] = 42;
+    project.pages[0].lightSyncToSound[2] = 'yes';
+    project.pages[0].lightDurations[3] = 120;
+    const errors = validateProject(project).errors.join('\n');
+    assert.match(errors, /Light 4: must be a string or empty/);
+    assert.match(errors, /Light sync 2: must be a boolean/);
+    assert.match(errors, /Light duration 3: must be between 0.1 and 60 seconds/);
+});
