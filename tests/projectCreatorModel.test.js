@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildProjectExport, createProjectId, createProjectPage, resolveLightDuration } from '../js/projectCreatorModel.js';
+import { buildProjectExport, createProjectId, createProjectPage } from '../js/projectCreatorModel.js';
+import { resolveLightDuration } from '../js/animationData.js';
 import { validateProject } from '../js/projectValidator.js';
 
 test('creates a project with schema-compatible pages and stable sample paths', () => {

@@ -7,6 +7,13 @@
  * Uses a defensive programming approach to catch and report validation errors.
  */
 
+import { 
+    LAUNCHPAD_PADS, 
+    MAX_PROJECT_PAGES, 
+    MIN_LIGHT_DURATION_SEC, 
+    MAX_LIGHT_DURATION_SEC 
+} from './constants.js';
+
 /**
  * Validates a project configuration object.
  * @param {object} project - The project object to validate
@@ -40,8 +47,8 @@ export function validateProject(project) {
         errors.push('Project must have at least one page');
     }
 
-    if (project.pages.length > 8) {
-        errors.push(`Project has ${project.pages.length} pages, but maximum is 8`);
+    if (project.pages.length > MAX_PROJECT_PAGES) {
+        errors.push(`Project has ${project.pages.length} pages, but maximum is ${MAX_PROJECT_PAGES}`);
     }
 
     // 4. Validate each page
@@ -89,9 +96,9 @@ export function validatePage(page, pageIndex) {
         return errors;
     }
 
-    // Validate sounds array length (must be exactly 64 for a page)
-    if (page.sounds.length !== 64) {
-        errors.push(`Page ${pageNum}: sounds array must have exactly 64 elements, found ${page.sounds.length}`);
+    // Validate sounds array length (must be exactly LAUNCHPAD_PADS for a page)
+    if (page.sounds.length !== LAUNCHPAD_PADS) {
+        errors.push(`Page ${pageNum}: sounds array must have exactly ${LAUNCHPAD_PADS} elements, found ${page.sounds.length}`);
     }
 
     // Validate each sound entry
@@ -105,8 +112,8 @@ export function validatePage(page, pageIndex) {
     if (page.lights !== undefined && page.lights !== null) {
         if (!Array.isArray(page.lights)) {
             errors.push(`Page ${pageNum}: "lights" must be an array if provided`);
-        } else if (page.lights.length !== 64) {
-            errors.push(`Page ${pageNum}: lights array must have exactly 64 elements, found ${page.lights.length}`);
+        } else if (page.lights.length !== LAUNCHPAD_PADS) {
+            errors.push(`Page ${pageNum}: lights array must have exactly ${LAUNCHPAD_PADS} elements, found ${page.lights.length}`);
         } else {
             // Validate each light entry
             page.lights.forEach((light, lightIndex) => {
@@ -118,8 +125,8 @@ export function validatePage(page, pageIndex) {
     }
 
     if (page.lightSyncToSound !== undefined && page.lightSyncToSound !== null) {
-        if (!Array.isArray(page.lightSyncToSound) || page.lightSyncToSound.length !== 64) {
-            errors.push(`Page ${pageNum}: "lightSyncToSound" must be an array with exactly 64 elements`);
+        if (!Array.isArray(page.lightSyncToSound) || page.lightSyncToSound.length !== LAUNCHPAD_PADS) {
+            errors.push(`Page ${pageNum}: "lightSyncToSound" must be an array with exactly ${LAUNCHPAD_PADS} elements`);
         } else {
             page.lightSyncToSound.forEach((enabled, padIndex) => {
                 if (typeof enabled !== 'boolean') {
@@ -130,12 +137,12 @@ export function validatePage(page, pageIndex) {
     }
 
     if (page.lightDurations !== undefined && page.lightDurations !== null) {
-        if (!Array.isArray(page.lightDurations) || page.lightDurations.length !== 64) {
-            errors.push(`Page ${pageNum}: "lightDurations" must be an array with exactly 64 elements`);
+        if (!Array.isArray(page.lightDurations) || page.lightDurations.length !== LAUNCHPAD_PADS) {
+            errors.push(`Page ${pageNum}: "lightDurations" must be an array with exactly ${LAUNCHPAD_PADS} elements`);
         } else {
             page.lightDurations.forEach((duration, padIndex) => {
-                if (typeof duration !== 'number' || !Number.isFinite(duration) || duration < 0.1 || duration > 60) {
-                    errors.push(`Page ${pageNum}, Light duration ${padIndex}: must be between 0.1 and 60 seconds`);
+                if (typeof duration !== 'number' || !Number.isFinite(duration) || duration < MIN_LIGHT_DURATION_SEC || duration > MAX_LIGHT_DURATION_SEC) {
+                    errors.push(`Page ${pageNum}, Light duration ${padIndex}: must be between ${MIN_LIGHT_DURATION_SEC} and ${MAX_LIGHT_DURATION_SEC} seconds`);
                 }
             });
         }

@@ -258,12 +258,15 @@ class AudioEngine {
     }
 
     /**
-     * Plays the sound associated with a specific pad.
-     * @param {number} padIndex - The index of the pad (0-63) to play.
-     * @returns {number} Duration of the sound in seconds, or 0 if no sound was played.
+     * Plays an AudioBuffer connected to the AnalyserNode with restart logic.
+     * @param {AudioBuffer|null} buffer - The buffer to play.
+     * @param {string|number} key - Identifier to track and restart previous playback on the same slot.
+     * @returns {number} Duration of the sound in seconds, or 0 if playback failed.
      */
-    playPadSound(padIndex) {
+    playBuffer(buffer, key = 'default') {
         try {
+            if (!buffer) return 0;
+
             // Ensure AudioContext exists
             if (!this.audioContext) {
                 console.warn(`[AUDIO] Cannot play sound: AudioContext not initialized.`);
@@ -277,32 +280,25 @@ class AudioEngine {
                 });
             }
 
-            // Check if an audio buffer exists for the specified pad.
-            if (!this.soundBuffers[padIndex]) {
-                return 0;
-            }
-
             // Validate the buffer before attempting playback
-            const validation = validateAudioBuffer(this.soundBuffers[padIndex]);
+            const validation = validateAudioBuffer(buffer);
             if (!validation.isValid) {
-                console.warn(`[AUDIO] Invalid audio buffer for pad ${padIndex}: ${validation.error}`);
+                console.warn(`[AUDIO] Invalid audio buffer for key ${key}: ${validation.error}`);
                 return 0;
             }
 
             // STOP PREVIOUS SOUND (RESTART LOGIC)
-            // If a sound is already playing for this pad, stop it before starting a new one.
-            if (this.activeSources.has(padIndex)) {
+            if (this.activeSources.has(key)) {
                 try {
-                    const oldSource = this.activeSources.get(padIndex);
+                    const oldSource = this.activeSources.get(key);
                     oldSource.stop();
                 } catch (e) {
                     // Ignore errors if the source has already finished or hasn't started
-                    console.log(`[AUDIO] Could not stop previous source for pad ${padIndex}:`, e);
                 }
-                this.activeSources.delete(padIndex);
+                this.activeSources.delete(key);
             }
 
-            // Create a new `AudioBufferSourceNode` for playback.
+            // Create a new AudioBufferSourceNode for playback
             let source;
             try {
                 source = this.audioContext.createBufferSource();
@@ -312,49 +308,93 @@ class AudioEngine {
             }
 
             try {
-                // Connect the audio buffer to the source node.
-                source.buffer = this.soundBuffers[padIndex];
-                
-                // Connect the source node to the analyser only.
-                // The analyser is already connected to the destination in the constructor:
-                // [Source] -> [Analyser] -> [Destination (Speakers)]
+                source.buffer = buffer;
                 source.connect(this.analyser);
+                this.activeSources.set(key, source);
 
-                // Store the source node to manage its lifecycle
-                this.activeSources.set(padIndex, source);
-
-                // Clean up the source from activeSources once it finished naturally
                 source.onended = () => {
-                    if (this.activeSources.get(padIndex) === source) {
-                        this.activeSources.delete(padIndex);
+                    if (this.activeSources.get(key) === source) {
+                        this.activeSources.delete(key);
                     }
                 };
 
-                // Error handler for playback issues
                 source.onerror = (error) => {
-                    console.error(`[AUDIO] Playback error for pad ${padIndex}:`, error);
-                    this.activeSources.delete(padIndex);
+                    console.error(`[AUDIO] Playback error for key ${key}:`, error);
+                    this.activeSources.delete(key);
                 };
 
-                // Start playback immediately.
                 source.start();
                 return source.buffer.duration;
 
             } catch (error) {
-                console.error(`[AUDIO] Error during playback setup for pad ${padIndex}:`, error);
-                this.activeSources.delete(padIndex);
+                console.error(`[AUDIO] Error during playback setup for key ${key}:`, error);
+                this.activeSources.delete(key);
                 try {
                     source.disconnect();
-                } catch (e) {
-                    // Ignore disconnect errors
-                }
+                } catch (e) {}
                 return 0;
             }
 
         } catch (error) {
-            console.error('[AUDIO] Unexpected error in playPadSound:', error);
+            console.error('[AUDIO] Unexpected error in playBuffer:', error);
             return 0;
         }
+    }
+
+    /**
+     * Stops any currently playing sound for the specified key.
+     * @param {string|number} key
+     */
+    stopSound(key) {
+        if (this.activeSources.has(key)) {
+            try {
+                this.activeSources.get(key).stop();
+            } catch (e) {}
+            this.activeSources.delete(key);
+        }
+    }
+
+    /**
+     * Stops all currently playing sounds whose key starts with the specified prefix (e.g. 'draft:').
+     * @param {string} prefix
+     */
+    stopSoundsWithPrefix(prefix) {
+        for (const key of Array.from(this.activeSources.keys())) {
+            if (typeof key === 'string' && key.startsWith(prefix)) {
+                this.stopSound(key);
+            }
+        }
+    }
+
+    /**
+     * Decodes an audio File or Blob into an AudioBuffer using the active AudioContext.
+     * Initializes AudioContext if not already initialized.
+     * @param {Blob|File} file - The file/blob to decode.
+     * @returns {Promise<AudioBuffer>}
+     */
+    async decodeAudioFile(file) {
+        if (!this.audioContext) {
+            await this.init();
+        }
+        if (this.audioContext.state === 'suspended') {
+            await this.audioContext.resume().catch(() => {});
+        }
+        const arrayBuffer = await file.arrayBuffer();
+        const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+        const validation = validateAudioBuffer(audioBuffer);
+        if (!validation.isValid) {
+            throw new Error(validation.error);
+        }
+        return audioBuffer;
+    }
+
+    /**
+     * Plays the sound associated with a specific pad.
+     * @param {number} padIndex - The index of the pad (0-63) to play.
+     * @returns {number} Duration of the sound in seconds, or 0 if no sound was played.
+     */
+    playPadSound(padIndex) {
+        return this.playBuffer(this.soundBuffers[padIndex], padIndex);
     }
 
     /**

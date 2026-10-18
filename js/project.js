@@ -17,6 +17,7 @@ import {
     markProjectLoadError,
     isProjectReady
 } from './projectLoadingState.js';
+import { LAUNCHPAD_PADS, DEFAULT_LIGHT_DURATION_SEC } from './constants.js';
 
 let activeProjectLoad = null;
 
@@ -126,10 +127,10 @@ async function loadProjectInternal(configPath, button, onProgress = null) {
                 if (page.lights) {
                     lights.push(...page.lights);
                 } else {
-                    lights.push(...new Array(64).fill(""));
+                    lights.push(...new Array(LAUNCHPAD_PADS).fill(""));
                 }
-                lightSyncToSound.push(...(page.lightSyncToSound || new Array(64).fill(true)));
-                lightDurations.push(...(page.lightDurations || new Array(64).fill(2.5)));
+                lightSyncToSound.push(...(page.lightSyncToSound || new Array(LAUNCHPAD_PADS).fill(true)));
+                lightDurations.push(...(page.lightDurations || new Array(LAUNCHPAD_PADS).fill(DEFAULT_LIGHT_DURATION_SEC)));
             });
         }
         setProjectSounds(sounds);

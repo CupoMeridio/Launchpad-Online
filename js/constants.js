@@ -87,3 +87,15 @@ export const LAUNCHPAD_ROTATION_MAX = 360;
  */
 export const LAUNCHPAD_SIZE_MIN = 50; // 50% of original
 export const LAUNCHPAD_SIZE_MAX = 140; // 140% of original
+
+// ============================================================================
+// PROJECT LIGHT & PAGE CONSTRAINTS
+// ============================================================================
+
+export const MAX_PROJECT_PAGES = 8;
+export const DEFAULT_LIGHT_DURATION_SEC = 2.5;
+export const MIN_LIGHT_DURATION_SEC = 0.1;
+export const MAX_LIGHT_DURATION_SEC = 60.0;
+
+export const ANIMATION_COLORS = ['red', 'green', 'amber', 'yellow', 'orange'];
+

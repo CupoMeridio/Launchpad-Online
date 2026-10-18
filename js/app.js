@@ -11,13 +11,12 @@ import { initMidi, isMidiConnected } from './midi.js';
 import { initializeVisualizerControls } from './visualizer-controls.js';
 import { initializeVideoControls } from './video.js';
 import { loadProject, initializeProjectMenu, initializeBackgroundMenu } from './project.js';
-import { initializePersonalizeLaunchpadMenu, initializeLanguageControls, initializeModeMenu, getTranslation, bindStaticUIEvents } from './ui.js';
+import { initializePersonalizeLaunchpadMenu, initializeLanguageControls, initializeModeMenu, getTranslation, bindStaticUIEvents, showNotification } from './ui.js';
 import { initInteraction, changeSoundSet, changeMode } from './interaction.js';
 import { stopAnimationLoop, startAnimationLoop } from './lights.js';
 import { setVisualizer } from './visualizerManager.js';
 import { registerListener, cleanup, removeListener } from './eventCleanup.js';
 import { initVisibilityManager, onVisibilityChange } from './visibilityManager.js';
-import { initializeProjectCreator } from './projectCreator.js';
 
 // ----------------------------------------------------------------------------
 // APPLICATION GLOBAL STATE
@@ -94,7 +93,30 @@ document.addEventListener('DOMContentLoaded', async function () {
     // --- 1. Interaction Setup ---
     initInteraction();
     bindStaticUIEvents();  // Bind all sidebar/menu listeners (replaces onclick HTML attributes)
-    initializeProjectCreator();
+
+    let creatorModulePromise = null;
+    const loadProjectCreator = () => {
+        if (!creatorModulePromise) {
+            creatorModulePromise = import('./projectCreator.js').then(module => {
+                module.initializeProjectCreator();
+                return module;
+            }).catch(error => {
+                creatorModulePromise = null;
+                throw error;
+            });
+        }
+        return creatorModulePromise;
+    };
+
+    document.getElementById('mode-btn-creator')?.addEventListener('click', async () => {
+        try {
+            const creator = await loadProjectCreator();
+            creator.openCreator();
+        } catch (error) {
+            console.error('[App] Failed to load Studio Creator module:', error);
+            showNotification(getTranslation('creator.loadError'), 'error');
+        }
+    });
 
     let projectsData = null;
 

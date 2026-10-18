@@ -34,6 +34,16 @@ test('project editor uses the existing Launchpad grid and a separate inspector',
 
     assert.equal((html.match(/id="Launchpad"/g) || []).length, 1);
     assert.match(html, /id="project-inspector"/);
+    assert.match(html, /id="mode-btn-performance"/);
+    assert.match(html, /id="mode-btn-creator"/);
+    assert.match(html, /id="studio-mode-edit"/);
+    assert.match(html, /id="studio-mode-live"/);
+    assert.match(html, /id="creator-hold-hint"/);
+    assert.match(html, /id="creator-assigned-light"/);
+    assert.match(html, /id="studio-live-toolbar"/);
+    assert.match(html, /id="studio-live-project-name"/);
+    assert.match(html, /id="studio-live-page-indicator"/);
+    assert.match(html, /id="studio-exit-live"/);
     assert.doesNotMatch(html, /project-creator-overlay|creator-pad-grid/);
     assert.doesNotMatch(html, /creator-sound-catalog|creator-sound-library/);
     assert.doesNotMatch(html, /creator-volume|creator-trigger-mode|project-creator-bpm/);

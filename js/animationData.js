@@ -48,3 +48,18 @@ export const symbolCoords = {
     'question': [[3, 0], [4, 0], [5, 0], [2, 1], [6, 1], [6, 2], [4, 3], [5, 3], [4, 4], [4, 5], [4, 7]],
     'exclamation': [[3, 0], [4, 0], [3, 1], [4, 1], [3, 2], [4, 2], [3, 3], [4, 3], [3, 4], [4, 4], [3, 5], [4, 5], [3, 7], [4, 7]]
 };
+
+/**
+ * Resolves effective light duration based on audio duration and manual settings.
+ * Pure utility function without side effects.
+ * @param {boolean} syncToSound
+ * @param {number|null} soundDuration
+ * @param {number} customDuration
+ * @returns {number}
+ */
+export function resolveLightDuration(syncToSound, soundDuration, customDuration) {
+    return syncToSound && Number.isFinite(soundDuration) && soundDuration > 0
+        ? soundDuration
+        : customDuration;
+}
+

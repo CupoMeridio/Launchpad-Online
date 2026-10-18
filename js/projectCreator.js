@@ -1,14 +1,28 @@
 import { getTranslation, showNotification } from './ui.js';
 import { validateProject } from './projectValidator.js';
-import { buildAnimationCatalog, buildProjectExport, createProjectPage, resolveLightDuration, ANIMATION_COLORS, DEFAULT_LIGHT_DURATION_SECONDS } from './projectCreatorModel.js';
+import { buildAnimationCatalog, buildProjectExport, createProjectPage } from './projectCreatorModel.js';
 import { animations, releaseAnimation, triggerAnimation } from './lights.js';
+import { resolveLightDuration } from './animationData.js';
+import { webColorMap, getPadElement, updatePageButtonHighlight } from './webInterface.js';
+import { audioEngine } from './audio.js';
+import { setPadSource, triggerPad, releasePad, updatePhysicalPageLights, syncPerformancePageButtons } from './interaction.js';
+import { currentPage } from './app.js';
+import { 
+    LAUNCHPAD_COLS, 
+    LAUNCHPAD_PADS, 
+    MAX_PROJECT_PAGES, 
+    MIN_LIGHT_DURATION_SEC, 
+    MAX_LIGHT_DURATION_SEC, 
+    DEFAULT_LIGHT_DURATION_SEC,
+    ANIMATION_COLORS
+} from './constants.js';
 
 const LIGHT_COLOR_SWATCHES = {
-    red: '#ff554f',
-    green: '#52d273',
-    amber: '#ffbb45',
-    yellow: '#e4e94b',
-    orange: '#ff8a38'
+    red: webColorMap.red.full,
+    green: webColorMap.green.full,
+    amber: webColorMap.amber.full,
+    yellow: webColorMap.yellow.full,
+    orange: webColorMap.orange.full
 };
 
 const LIGHT_CATEGORY_KEYS = ['all', 'basic', 'geometric', 'directional', 'multicolor', 'characters', 'special', 'text'];
@@ -28,11 +42,37 @@ let draft = null;
 let activePageIndex = 0;
 let activePadIndex = null;
 let editorActive = false;
-let previewAudio = null;
-let previewUrl = null;
 let activeLightCategory = 'all';
 let pendingTextAnimation = null;
 let allAnimationGroups = null;
+let studioSubMode = 'edit';
+let activeMomentaryPreview = null;
+
+let lastRenderedCategory = null;
+let lastRenderedSearch = null;
+
+const creatorPadSource = {
+    getPadConfig: (index) => {
+        const page = getCurrentPage();
+        if (!page) return null;
+        return {
+            soundIndex: undefined,
+            soundBuffer: page.soundBuffers[index],
+            soundKey: `draft:${activePageIndex}:${index}`,
+            animationName: page.lights[index] || null,
+            syncToSound: page.lightSyncToSound[index] ?? true,
+            manualDuration: getManualLightDuration(page, index)
+        };
+    },
+    onPadPress: (index) => {
+        if (studioSubMode === 'edit') {
+            selectProjectPad(index, false);
+        }
+    },
+    onPageChange: (pageIndex, updateVisuals) => {
+        selectProjectPage(pageIndex, updateVisuals);
+    }
+};
 
 function getAnimationGroups() {
     if (!allAnimationGroups) {
@@ -60,27 +100,31 @@ function getCurrentPage() {
     return draft?.pages[activePageIndex] || null;
 }
 
-function supportsAnimationDuration(animationName) {
-    if (!animationName) return false;
-    if (animationName.startsWith('text_') || animationName.startsWith('scroll_')) return true;
-    return getAnimationGroups().some(group => group.variants.some(variant =>
-        variant.animation === animationName && variant.supportsDuration
-    ));
+function getManualLightDuration(page, padIndex) {
+    return page.lightDurations[padIndex] ?? DEFAULT_LIGHT_DURATION_SEC;
 }
 
-function getManualLightDuration(page, padIndex) {
-    return page.lightDurations[padIndex] ?? DEFAULT_LIGHT_DURATION_SECONDS;
-}
-function stopPreview() {
-    if (previewAudio) {
-        previewAudio.pause();
-        previewAudio.currentTime = 0;
-        previewAudio.src = '';
-        previewAudio = null;
+function isSwatchSelected(selectedLight, isDynamic, template, color, animationName) {
+    if (!selectedLight && !pendingTextAnimation) return false;
+    if (isDynamic) {
+        const hasDirectionPrefix = DYNAMIC_TEXT_PRESETS
+            .filter(preset => preset.template.startsWith('scroll_'))
+            .some(preset => selectedLight.startsWith(`${preset.template}_`));
+        const matchesDynamicTemplate = template === 'scroll'
+            ? selectedLight.startsWith('scroll_') && !hasDirectionPrefix
+            : selectedLight.startsWith(`${template}_`);
+        const savedDynamicMatch = matchesDynamicTemplate && selectedLight.endsWith(`_${color}`);
+        return (pendingTextAnimation?.template === template && pendingTextAnimation.color === color) || savedDynamicMatch;
     }
-    if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-        previewUrl = null;
+    return selectedLight === animationName;
+}
+
+
+function stopPreview() {
+    audioEngine.stopSound('preview');
+    if (activeMomentaryPreview) {
+        releaseAnimation(activeMomentaryPreview.animation, activeMomentaryPreview.x, activeMomentaryPreview.y);
+        activeMomentaryPreview = null;
     }
 }
 
@@ -103,14 +147,18 @@ function renderPageTabs() {
         tabs.appendChild(button);
     });
 
-    document.getElementById('creator-add-page').disabled = draft.pages.length >= 8;
+    document.getElementById('creator-add-page').disabled = draft.pages.length >= MAX_PROJECT_PAGES;
     document.getElementById('creator-remove-page').disabled = draft.pages.length <= 1;
 }
 
 function renderPadGrid() {
     const page = getCurrentPage();
+    if (!page) return;
 
-    document.querySelectorAll('#Launchpad .grid-item').forEach((pad, index) => {
+    for (let index = 0; index < LAUNCHPAD_PADS; index++) {
+        const pad = getPadElement(index);
+        if (!pad) continue;
+
         const sample = page.samples[index];
         const led = page.lights[index];
         pad.classList.toggle('creator-pad-assigned', !!sample || !!led);
@@ -129,7 +177,40 @@ function renderPadGrid() {
             delete pad.dataset.creatorLed;
             pad.style.removeProperty('--creator-led-color');
         }
-    });
+    }
+}
+
+function getAnimationDisplayName(animationName) {
+    if (!animationName) return '';
+    if (animationName.startsWith('scroll_')) {
+        const parts = animationName.split('_');
+        return `Scroll "${parts.slice(1, -1).join(' ')}"`;
+    }
+    if (animationName.startsWith('text_')) {
+        const parts = animationName.split('_');
+        return `Text "${parts.slice(1, -1).join(' ')}"`;
+    }
+    for (const group of getAnimationGroups()) {
+        const variant = group.variants.find(v => v.animation === animationName || group.id === animationName);
+        if (variant) {
+            const groupLabel = group.labelKey ? getTranslation(group.labelKey) : group.label;
+            const colorLabel = variant.color
+                ? getTranslation(`creator.led${variant.color[0].toUpperCase()}${variant.color.slice(1)}`)
+                : variant.sequence
+                    ? getTranslation(`creator.light.sequence.${variant.sequence}`)
+                    : '';
+            return colorLabel ? `${groupLabel} · ${colorLabel}` : groupLabel;
+        }
+    }
+    return animationName.replace(/_/g, ' ');
+}
+
+function stopAllDraftPads() {
+    audioEngine.stopSoundsWithPrefix('draft:');
+    for (let i = 0; i < LAUNCHPAD_PADS; i++) {
+        const pad = getPadElement(i);
+        if (pad) pad.classList.remove('active');
+    }
 }
 
 function renderSelectedPad() {
@@ -149,25 +230,67 @@ function renderSelectedPad() {
     if (activePadIndex === null) return;
 
     const sample = page.samples[activePadIndex];
+    const animation = page.lights[activePadIndex];
+    const isMomentary = !!(animation && animations[animation]?.type === 'momentary');
+
     document.getElementById('creator-selected-pad').textContent = translate('creator.pad', {
         pad: activePadIndex + 1
     });
     document.getElementById('creator-sample-name').textContent = sample
         ? translate('creator.sampleAssigned', { file: sample.name })
         : getTranslation('creator.sampleEmpty');
-    document.getElementById('creator-preview-pad').disabled = !sample && !page.lights[activePadIndex];
+
+    const previewBtn = document.getElementById('creator-preview-pad');
+    previewBtn.disabled = !sample && !animation;
+    if (isMomentary) {
+        previewBtn.textContent = translate('creator.playPadHold');
+        previewBtn.title = translate('creator.playPadHoldHint');
+    } else {
+        previewBtn.textContent = getTranslation('creator.playPad');
+        previewBtn.removeAttribute('title');
+    }
+    document.getElementById('creator-hold-hint').hidden = !isMomentary;
+
     document.getElementById('creator-remove-sample').disabled = !sample;
-    document.getElementById('creator-remove-light').disabled = !page.lights[activePadIndex];
-    const animation = page.lights[activePadIndex];
-    const durationSupported = supportsAnimationDuration(animation);
+
+    const assignedCard = document.getElementById('creator-assigned-light');
+    const assignedSwatch = document.getElementById('creator-assigned-swatch');
+    const assignedName = document.getElementById('creator-assigned-name');
+    const removeLightBtn = document.getElementById('creator-remove-light');
     const timingSection = document.getElementById('creator-light-timing');
     const syncCheckbox = document.getElementById('creator-light-sync');
-    timingSection.hidden = !animation;
-    syncCheckbox.checked = page.lightSyncToSound[activePadIndex] ?? true;
-    syncCheckbox.disabled = !durationSupported;
-    document.getElementById('creator-manual-light-duration').hidden = !durationSupported || syncCheckbox.checked;
-    document.getElementById('creator-light-duration-unsupported').hidden = !animation || durationSupported;
-    document.getElementById('creator-light-duration').value = String(getManualLightDuration(page, activePadIndex));
+
+    if (animation) {
+        assignedCard.hidden = false;
+        assignedName.textContent = getAnimationDisplayName(animation);
+        if (animation.includes('red_to_green')) {
+            assignedSwatch.style.background = `linear-gradient(135deg, ${LIGHT_COLOR_SWATCHES.red}, ${LIGHT_COLOR_SWATCHES.green})`;
+        } else if (animation.includes('green_to_red')) {
+            assignedSwatch.style.background = `linear-gradient(135deg, ${LIGHT_COLOR_SWATCHES.green}, ${LIGHT_COLOR_SWATCHES.red})`;
+        } else {
+            assignedSwatch.style.background = getAnimationColor(animation);
+        }
+        removeLightBtn.disabled = false;
+
+        if (isMomentary) {
+            timingSection.hidden = true;
+        } else {
+            timingSection.hidden = false;
+            const manualDurationInput = document.getElementById('creator-light-duration');
+            const manualDurationContainer = document.getElementById('creator-manual-light-duration');
+
+            syncCheckbox.checked = page.lightSyncToSound[activePadIndex];
+            syncCheckbox.disabled = !sample;
+
+            manualDurationInput.value = page.lightDurations[activePadIndex];
+            manualDurationContainer.hidden = Boolean(sample && syncCheckbox.checked);
+        }
+    } else {
+        assignedCard.hidden = true;
+        removeLightBtn.disabled = true;
+        timingSection.hidden = true;
+    }
+
     renderLightPresets();
 }
 
@@ -177,18 +300,40 @@ function renderEditor() {
     renderSelectedPad();
 }
 
-function closeCreator() {
+export function closeCreator() {
     editorActive = false;
-    document.querySelector('.layout').classList.remove('project-editor-active');
-    document.getElementById('Launchpad').classList.remove('project-editing');
-    document.getElementById('toggle-project-creator').classList.remove('active');
     stopPreview();
+    stopAllDraftPads();
+    setPadSource(null);
+    studioSubMode = 'edit';
+
+    const layout = document.querySelector('.layout');
+    if (layout) {
+        delete layout.dataset.studio;
+    }
+
+    const perfModeBtn = document.getElementById('mode-btn-performance');
+    const creatorModeBtn = document.getElementById('mode-btn-creator');
+    if (perfModeBtn) {
+        perfModeBtn.classList.add('active');
+        perfModeBtn.setAttribute('aria-selected', 'true');
+    }
+    if (creatorModeBtn) {
+        creatorModeBtn.classList.remove('active');
+        creatorModeBtn.setAttribute('aria-selected', 'false');
+    }
+
     activePadIndex = null;
     pendingTextAnimation = null;
     renderPadGrid();
+
+    // Restore performance page visuals and physical lights
+    syncPerformancePageButtons(currentPage);
 }
 
-function openCreator() {
+export function openCreator() {
+    if (editorActive) return;
+
     if (!draft) {
         draft = { name: '', pages: [createProjectPage(1)] };
     }
@@ -197,27 +342,104 @@ function openCreator() {
     activePageIndex = 0;
     activePadIndex = 0;
     pendingTextAnimation = null;
-    document.querySelector('.layout').classList.add('project-editor-active', 'sidebar-open');
-    document.getElementById('Launchpad').classList.add('project-editing');
-    document.getElementById('toggle-project-creator').classList.add('active');
+
+    setPadSource(creatorPadSource);
+
+    const layout = document.querySelector('.layout');
+    if (layout) {
+        layout.classList.remove('sidebar-open');
+    }
+
+    const perfModeBtn = document.getElementById('mode-btn-performance');
+    const creatorModeBtn = document.getElementById('mode-btn-creator');
+    if (perfModeBtn) {
+        perfModeBtn.classList.remove('active');
+        perfModeBtn.setAttribute('aria-selected', 'false');
+    }
+    if (creatorModeBtn) {
+        creatorModeBtn.classList.add('active');
+        creatorModeBtn.setAttribute('aria-selected', 'true');
+    }
+
+    setStudioSubMode('edit');
     renderEditor();
+    updatePhysicalPageLights(activePageIndex);
 }
 
-export function isProjectEditorActive() {
-    return editorActive;
+function updateLiveToolbar() {
+    const toolbar = document.getElementById('studio-live-toolbar');
+    if (!toolbar) return;
+    const isLive = (studioSubMode === 'live' && editorActive);
+    toolbar.hidden = !isLive;
+    if (isLive) {
+        const titleEl = document.getElementById('studio-live-project-name');
+        const pageEl = document.getElementById('studio-live-page-indicator');
+        if (titleEl) {
+            titleEl.textContent = draft?.name?.trim() || getTranslation('creator.untitledProject');
+        }
+        if (pageEl) {
+            pageEl.textContent = `${activePageIndex + 1} / ${draft?.pages?.length || 1}`;
+        }
+    }
 }
 
-export function selectProjectPad(index) {
-    if (!editorActive || !Number.isInteger(index) || index < 0 || index >= 64) return false;
-    if (activePadIndex === index) {
+export function setStudioSubMode(mode) {
+    if (mode !== 'edit' && mode !== 'live') return;
+    studioSubMode = mode;
+    stopPreview();
+    stopAllDraftPads();
+
+    const editBtn = document.getElementById('studio-mode-edit');
+    const liveBtn = document.getElementById('studio-mode-live');
+    const banner = document.getElementById('studio-live-banner');
+    const layout = document.querySelector('.layout');
+
+    if (editBtn) {
+        editBtn.classList.toggle('selected', mode === 'edit');
+        editBtn.setAttribute('aria-selected', String(mode === 'edit'));
+    }
+    if (liveBtn) {
+        liveBtn.classList.toggle('selected', mode === 'live');
+        liveBtn.setAttribute('aria-selected', String(mode === 'live'));
+    }
+    if (banner) {
+        banner.hidden = mode !== 'live';
+    }
+    if (layout) {
+        layout.dataset.studio = mode;
+    }
+
+    updateLiveToolbar();
+
+    if (mode === 'edit') {
+        if (activePadIndex === null) {
+            selectProjectPad(0, false);
+        } else {
+            renderPadGrid();
+            renderSelectedPad();
+        }
+    } else {
+        for (let i = 0; i < LAUNCHPAD_PADS; i++) {
+            const pad = getPadElement(i);
+            if (pad) pad.classList.remove('creator-pad-selected');
+        }
+    }
+}
+
+export function selectProjectPad(index, preview = false) {
+    if (!editorActive || !Number.isInteger(index) || index < 0 || index >= LAUNCHPAD_PADS) return false;
+    if (activePadIndex === index && preview) {
         previewPad(index);
         return true;
     }
-    stopPreview();
-    pendingTextAnimation = null;
+
     activePadIndex = index;
+    pendingTextAnimation = null;
     renderPadGrid();
     renderSelectedPad();
+    if (preview) {
+        previewPad(index);
+    }
     return true;
 }
 
@@ -226,21 +448,46 @@ function renderLightPresets() {
     const presetContainer = document.getElementById('creator-light-presets');
     const search = document.getElementById('creator-light-search').value.trim().toLowerCase();
     const selectedLight = activePadIndex === null ? '' : getCurrentPage().lights[activePadIndex];
-    const categories = document.createDocumentFragment();
 
-    LIGHT_CATEGORY_KEYS.forEach(category => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'creator-light-category';
-        button.classList.toggle('selected', activeLightCategory === category);
-        button.textContent = getTranslation(`creator.animationCategory.${category}`);
-        button.addEventListener('click', () => {
-            activeLightCategory = category;
-            renderLightPresets();
+    // Check if category tabs need rebuilding
+    if (categoryContainer.children.length === 0) {
+        const categories = document.createDocumentFragment();
+        LIGHT_CATEGORY_KEYS.forEach(category => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'creator-light-category';
+            button.dataset.category = category;
+            button.classList.toggle('selected', activeLightCategory === category);
+            button.textContent = getTranslation(`creator.animationCategory.${category}`);
+            button.addEventListener('click', () => {
+                activeLightCategory = category;
+                renderLightPresets();
+            });
+            categories.appendChild(button);
         });
-        categories.appendChild(button);
-    });
-    categoryContainer.replaceChildren(categories);
+        categoryContainer.replaceChildren(categories);
+    } else {
+        categoryContainer.querySelectorAll('.creator-light-category').forEach(btn => {
+            btn.classList.toggle('selected', btn.dataset.category === activeLightCategory);
+        });
+    }
+
+    // Optimization: if category and search have not changed and items are already rendered,
+    // only update the .selected state on swatches instead of recreating ~1,700 DOM nodes!
+    if (activeLightCategory === lastRenderedCategory && search === lastRenderedSearch && presetContainer.children.length > 0) {
+        presetContainer.querySelectorAll('.creator-animation-swatch').forEach(button => {
+            const isDynamic = button.dataset.isDynamic === 'true';
+            const template = button.dataset.template;
+            const color = button.dataset.color;
+            const animationName = button.dataset.animation;
+            const isSelected = isSwatchSelected(selectedLight, isDynamic, template, color, animationName);
+            button.classList.toggle('selected', isSelected);
+        });
+        return;
+    }
+
+    lastRenderedCategory = activeLightCategory;
+    lastRenderedSearch = search;
 
     const groups = getAnimationGroups().filter(group => {
         const groupLabel = group.labelKey ? getTranslation(group.labelKey) : group.label;
@@ -249,6 +496,7 @@ function renderLightPresets() {
             .toLowerCase().includes(search);
         return matchesCategory && matchesSearch;
     });
+
     const fragment = document.createDocumentFragment();
 
     groups.forEach(group => {
@@ -264,21 +512,25 @@ function renderLightPresets() {
         group.variants.forEach(variant => {
             const animationName = variant.animation || group.id;
             const isDynamic = !!group.dynamicTemplate;
-            const hasDirectionPrefix = DYNAMIC_TEXT_PRESETS
-                .filter(preset => preset.template.startsWith('scroll_'))
-                .some(preset => selectedLight.startsWith(`${preset.template}_`));
-            const matchesDynamicTemplate = group.dynamicTemplate === 'scroll'
-                ? selectedLight.startsWith('scroll_') && !hasDirectionPrefix
-                : selectedLight.startsWith(`${group.dynamicTemplate}_`);
-            const savedDynamicMatch = isDynamic && matchesDynamicTemplate &&
-                selectedLight.endsWith(`_${variant.color}`);
-            const isSelected = isDynamic
-                ? (pendingTextAnimation?.template === group.dynamicTemplate && pendingTextAnimation.color === variant.color) || savedDynamicMatch
-                : selectedLight === animationName;
+            const isSelected = isSwatchSelected(
+                selectedLight,
+                isDynamic,
+                group.dynamicTemplate,
+                variant.color,
+                animationName
+            );
+
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'creator-animation-swatch';
             button.classList.toggle('selected', isSelected);
+            button.dataset.isDynamic = String(isDynamic);
+            if (isDynamic) {
+                button.dataset.template = group.dynamicTemplate;
+                button.dataset.color = variant.color;
+            }
+            button.dataset.animation = animationName;
+
             const colorLabel = variant.color
                 ? getTranslation(`creator.led${variant.color[0].toUpperCase()}${variant.color.slice(1)}`)
                 : variant.sequence
@@ -313,6 +565,7 @@ function renderLightPresets() {
         card.appendChild(variants);
         fragment.appendChild(card);
     });
+
 
     if (!groups.length) {
         const empty = document.createElement('p');
@@ -353,20 +606,56 @@ export function clearProjectPadSelection() {
     return true;
 }
 
-export function selectProjectPage(index) {
+export function selectProjectPage(index, updateVisuals = true) {
     if (!editorActive || !Number.isInteger(index) || index < 0 || index >= draft.pages.length) return false;
     stopPreview();
+    stopAllDraftPads();
     pendingTextAnimation = null;
     activePageIndex = index;
-    activePadIndex = null;
-    renderEditor();
+    if (studioSubMode === 'edit') {
+        activePadIndex = null;
+        renderEditor();
+    } else {
+        renderPadGrid();
+        updateLiveToolbar();
+    }
+    if (updateVisuals) {
+        updatePageButtonHighlight(activePageIndex);
+        updatePhysicalPageLights(activePageIndex);
+    }
     return true;
 }
 
-function assignSample(file) {
-    if (!file || activePadIndex === null) return;
+async function assignSample(file) {
+    const targetIndex = activePadIndex;
+    const targetPage = getCurrentPage();
+    if (!file || targetIndex === null || !targetPage) return;
+
+    if (!targetPage.sampleTokens) {
+        targetPage.sampleTokens = Array(LAUNCHPAD_PADS).fill(0);
+    }
+    const token = ++targetPage.sampleTokens[targetIndex];
+
     stopPreview();
-    getCurrentPage().samples[activePadIndex] = file;
+    let buffer = null;
+    try {
+        buffer = await audioEngine.decodeAudioFile(file);
+    } catch (err) {
+        console.warn('[Creator] Audio decode failed:', err);
+    }
+
+    // Ignore if superseded by a subsequent file selection or removal
+    if (targetPage.sampleTokens[targetIndex] !== token) {
+        return;
+    }
+
+    if (!buffer) {
+        showNotification(getTranslation('creator.errorDecode'), 'error');
+        return;
+    }
+
+    targetPage.samples[targetIndex] = file;
+    targetPage.soundBuffers[targetIndex] = buffer;
     renderPadGrid();
     renderSelectedPad();
 }
@@ -375,46 +664,47 @@ function chooseSample() {
     document.getElementById('creator-sample-file').click();
 }
 
+function startHoldPreview(index = activePadIndex) {
+    if (index === null || !getCurrentPage()) return;
+    stopPreview();
+    const page = getCurrentPage();
+    const buffer = page.soundBuffers[index];
+    const animation = page.lights[index];
+    const x = index % LAUNCHPAD_COLS;
+    const y = Math.floor(index / LAUNCHPAD_COLS);
+
+    if (buffer) {
+        audioEngine.playBuffer(buffer, 'preview');
+    }
+    if (animation) {
+        activeMomentaryPreview = { animation, x, y };
+        triggerAnimation(animation, x, y);
+    }
+}
+
 function previewPad(index = activePadIndex) {
     if (index === null || !getCurrentPage()) return;
     stopPreview();
     const page = getCurrentPage();
+    const buffer = page.soundBuffers[index];
     const animation = page.lights[index];
-    const sample = page.samples[index];
+    const x = index % LAUNCHPAD_COLS;
+    const y = Math.floor(index / LAUNCHPAD_COLS);
     const manualDuration = getManualLightDuration(page, index);
-    const durationSupported = supportsAnimationDuration(animation);
-    const playAnimation = soundDuration => {
-        if (!animation) return;
-        const duration = resolveLightDuration(
-            page.lightSyncToSound[index] && durationSupported,
-            soundDuration,
+
+    let duration = 0;
+    if (buffer) {
+        duration = audioEngine.playBuffer(buffer, 'preview');
+    }
+
+    if (animation) {
+        const syncToSound = page.lightSyncToSound[index] ?? true;
+        const animDuration = resolveLightDuration(
+            syncToSound,
+            duration,
             manualDuration
         );
-        triggerAnimation(animation, index % 8, Math.floor(index / 8), duration);
-    };
-
-    if (sample) {
-        previewUrl = URL.createObjectURL(sample);
-        previewAudio = new Audio(previewUrl);
-        if (page.lightSyncToSound[index] && durationSupported) {
-            if (Number.isFinite(previewAudio.duration) && previewAudio.duration > 0) {
-                playAnimation(previewAudio.duration);
-            } else {
-                previewAudio.addEventListener('loadedmetadata', () => {
-                    if (previewAudio) playAnimation(previewAudio.duration);
-                }, { once: true });
-                previewAudio.addEventListener('error', () => playAnimation(0), { once: true });
-            }
-        } else {
-            playAnimation(0);
-        }
-        previewAudio.addEventListener('ended', stopPreview, { once: true });
-        previewAudio.play().catch(() => {
-            stopPreview();
-            showNotification(getTranslation('creator.errorPreview'), 'error');
-        });
-    } else {
-        playAnimation(0);
+        triggerAnimation(animation, x, y, animDuration);
     }
 }
 
@@ -454,8 +744,6 @@ async function exportProject() {
             return;
         }
         const exportData = buildProjectExport(draft);
-        const validation = validateProject(exportData.project);
-        if (!validation.isValid) throw new Error(validation.errors.join('; '));
 
         const parentDirectory = await window.showDirectoryPicker({
             id: 'launchpad-project-export',
@@ -497,99 +785,169 @@ export function initializeProjectCreator() {
 
     if (!document.getElementById('project-inspector')) return;
 
-    document.getElementById('toggle-project-creator').addEventListener('click', () => {
+    // Top mode selector buttons
+    document.getElementById('mode-btn-performance')?.addEventListener('click', () => {
         if (editorActive) closeCreator();
-        else openCreator();
     });
+
+    // Studio sub-mode buttons
+    document.getElementById('studio-mode-edit')?.addEventListener('click', () => {
+        setStudioSubMode('edit');
+    });
+    document.getElementById('studio-mode-live')?.addEventListener('click', () => {
+        setStudioSubMode('live');
+    });
+
+    document.getElementById('studio-exit-live')?.addEventListener('click', () => {
+        setStudioSubMode('edit');
+    });
+
     document.getElementById('creator-close').addEventListener('click', closeCreator);
     document.getElementById('creator-project-settings').addEventListener('click', clearProjectPadSelection);
     window.addEventListener('keydown', event => {
-        if (event.key === 'Escape' && editorActive) closeCreator();
+        if (event.key === 'Escape' && editorActive) {
+            if (studioSubMode === 'live') {
+                setStudioSubMode('edit');
+            } else {
+                closeCreator();
+            }
+        }
     });
 
     document.getElementById('project-creator-name').addEventListener('input', event => {
-        if (draft) draft.name = event.target.value;
+        if (draft) {
+            draft.name = event.target.value;
+            updateLiveToolbar();
+        }
     });
     document.getElementById('creator-page-name').addEventListener('input', event => {
         const page = getCurrentPage();
-        if (page) {
-            page.name = event.target.value;
-            renderPageTabs();
-        }
+        if (page) page.name = event.target.value;
     });
+
     document.getElementById('creator-add-page').addEventListener('click', () => {
-        if (draft.pages.length >= 8) return;
-        stopPreview();
+        if (!draft || draft.pages.length >= MAX_PROJECT_PAGES) return;
         draft.pages.push(createProjectPage(draft.pages.length + 1));
-        activePageIndex = draft.pages.length - 1;
-        activePadIndex = null;
-        renderEditor();
+        selectProjectPage(draft.pages.length - 1);
     });
+
     document.getElementById('creator-remove-page').addEventListener('click', () => {
-        if (draft.pages.length <= 1) return;
-        stopPreview();
+        if (!draft || draft.pages.length <= 1) return;
         draft.pages.splice(activePageIndex, 1);
-        activePageIndex = Math.min(activePageIndex, draft.pages.length - 1);
-        activePadIndex = null;
-        renderEditor();
+        activePageIndex = Math.max(0, activePageIndex - 1);
+        selectProjectPage(activePageIndex);
     });
 
     document.getElementById('creator-import-sound').addEventListener('click', chooseSample);
-    document.getElementById('creator-light-search').addEventListener('input', renderLightPresets);
-    document.getElementById('creator-assign-text-animation').addEventListener('click', assignTextAnimation);
     document.getElementById('creator-sample-file').addEventListener('change', event => {
         const file = event.target.files?.[0];
         if (!file) return;
         assignSample(file);
         event.target.value = '';
     });
-    document.getElementById('creator-preview-pad').addEventListener('click', () => previewPad());
+
+    const previewBtn = document.getElementById('creator-preview-pad');
+    previewBtn.addEventListener('pointerdown', (e) => {
+        if (previewBtn.disabled || e.button !== 0) return;
+        const page = getCurrentPage();
+        const animation = page?.lights[activePadIndex];
+        if (animation && animations[animation]?.type === 'momentary') {
+            e.preventDefault();
+            startHoldPreview(activePadIndex);
+        }
+    });
+
+    const handleHoldRelease = () => {
+        if (activeMomentaryPreview) {
+            stopPreview();
+        }
+    };
+
+    previewBtn.addEventListener('pointerup', handleHoldRelease);
+    previewBtn.addEventListener('pointerleave', handleHoldRelease);
+    previewBtn.addEventListener('pointercancel', handleHoldRelease);
+
+    previewBtn.addEventListener('click', () => {
+        const page = getCurrentPage();
+        const animation = page?.lights[activePadIndex];
+        if (animation && animations[animation]?.type === 'momentary') {
+            return;
+        }
+        previewPad(activePadIndex);
+    });
+
+    previewBtn.addEventListener('keydown', (e) => {
+        if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) {
+            const page = getCurrentPage();
+            const animation = page?.lights[activePadIndex];
+            if (animation && animations[animation]?.type === 'momentary') {
+                e.preventDefault();
+                startHoldPreview(activePadIndex);
+            }
+        }
+    });
+
+    previewBtn.addEventListener('keyup', (e) => {
+        if (e.key === ' ' || e.key === 'Enter') {
+            handleHoldRelease();
+        }
+    });
+
     document.getElementById('creator-remove-sample').addEventListener('click', () => {
-        if (activePadIndex === null) return;
+        if (activePadIndex === null || !getCurrentPage()) return;
         stopPreview();
-        getCurrentPage().samples[activePadIndex] = null;
+        const page = getCurrentPage();
+        if (!page.sampleTokens) {
+            page.sampleTokens = Array(LAUNCHPAD_PADS).fill(0);
+        }
+        page.sampleTokens[activePadIndex]++;
+        page.samples[activePadIndex] = null;
+        page.soundBuffers[activePadIndex] = null;
         renderPadGrid();
         renderSelectedPad();
     });
+
     document.getElementById('creator-remove-light').addEventListener('click', () => {
         if (activePadIndex === null) return;
+        stopPreview();
         getCurrentPage().lights[activePadIndex] = '';
         renderPadGrid();
         renderSelectedPad();
     });
-    const syncCheckbox = document.getElementById('creator-light-sync');
-    syncCheckbox.addEventListener('change', () => {
+
+    document.getElementById('creator-light-sync').addEventListener('change', event => {
         if (activePadIndex === null) return;
         const page = getCurrentPage();
-        if (!page) return;
-        page.lightSyncToSound[activePadIndex] = syncCheckbox.checked;
-        const animation = page.lights[activePadIndex];
-        const durationSupported = supportsAnimationDuration(animation);
-        document.getElementById('creator-manual-light-duration').hidden = !durationSupported || syncCheckbox.checked;
+        if (page) {
+            page.lightSyncToSound[activePadIndex] = event.target.checked;
+        }
+        renderSelectedPad();
     });
 
     const durationInput = document.getElementById('creator-light-duration');
-    const updateManualDuration = () => {
+    durationInput.addEventListener('input', event => {
         if (activePadIndex === null) return;
         const page = getCurrentPage();
         if (!page) return;
-        const val = parseFloat(durationInput.value);
-        if (Number.isFinite(val) && val >= 0.1 && val <= 60) {
-            page.lightDurations[activePadIndex] = Math.round(val * 10) / 10;
+        const value = Number.parseFloat(event.target.value);
+        if (Number.isFinite(value) && value >= MIN_LIGHT_DURATION_SEC && value <= MAX_LIGHT_DURATION_SEC) {
+            page.lightDurations[activePadIndex] = Math.round(value * 10) / 10;
         }
-    };
-    durationInput.addEventListener('input', updateManualDuration);
+    });
     durationInput.addEventListener('change', () => {
         if (activePadIndex === null) return;
         const page = getCurrentPage();
         if (!page) return;
-        const val = parseFloat(durationInput.value);
-        if (Number.isFinite(val) && val >= 0.1 && val <= 60) {
-            page.lightDurations[activePadIndex] = Math.round(val * 10) / 10;
+        const value = Number.parseFloat(durationInput.value);
+        if (Number.isFinite(value) && value >= MIN_LIGHT_DURATION_SEC && value <= MAX_LIGHT_DURATION_SEC) {
+            page.lightDurations[activePadIndex] = Math.round(value * 10) / 10;
         } else {
             durationInput.value = String(getManualLightDuration(page, activePadIndex));
         }
     });
+
+    document.getElementById('creator-light-search').addEventListener('input', renderLightPresets);
+    document.getElementById('creator-assign-text-animation').addEventListener('click', assignTextAnimation);
 
     document.getElementById('creator-export').addEventListener('click', exportProject);
 }
@@ -601,9 +959,9 @@ function getAnimationColor(animationName) {
 
 function previewAnimation(animationName, index) {
     const page = getCurrentPage();
-    const duration = page ? getManualLightDuration(page, index) : DEFAULT_LIGHT_DURATION_SECONDS;
-    const x = index % 8;
-    const y = Math.floor(index / 8);
+    const duration = page ? getManualLightDuration(page, index) : DEFAULT_LIGHT_DURATION_SEC;
+    const x = index % LAUNCHPAD_COLS;
+    const y = Math.floor(index / LAUNCHPAD_COLS);
     triggerAnimation(animationName, x, y, duration);
     if (animations[animationName]?.type === 'momentary') {
         window.setTimeout(() => releaseAnimation(animationName, x, y), 900);

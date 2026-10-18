@@ -149,10 +149,6 @@
             <!-- Project items will be populated dynamically -->
           </div>
         </div>
-        <div class="menu-item">
-          <button class="menu-toggle" type="button" id="toggle-project-creator"
-            data-i18n="menu.projectCreator.toggle">Editor / Crea progetto</button>
-        </div>
 
         <!--
           BACKGROUND MENU
@@ -405,6 +401,31 @@
       Contains the button to open the sidebar and the Launchpad itself.
     -->
     <div class="body">
+      <div id="app-mode-bar" class="app-mode-bar">
+        <div class="mode-switcher" role="tablist" aria-label="Modalità applicazione">
+          <button type="button" id="mode-btn-performance" class="mode-tab active" role="tab" aria-selected="true">
+            <span class="mode-icon">▶</span>
+            <span data-i18n="mode.performance">Performance</span>
+          </button>
+          <button type="button" id="mode-btn-creator" class="mode-tab" role="tab" aria-selected="false">
+            <span class="mode-icon">✦</span>
+            <span data-i18n="mode.creator">Studio Creator</span>
+          </button>
+        </div>
+      </div>
+      <div id="studio-live-toolbar" class="studio-live-toolbar" hidden>
+        <div class="studio-live-toolbar-content">
+          <div class="studio-live-info">
+            <span class="studio-live-badge" data-i18n="creator.liveTestBadge">PROVA LIVE</span>
+            <strong id="studio-live-project-name" class="studio-live-title"></strong>
+            <span id="studio-live-page-indicator" class="studio-live-page-badge"></span>
+          </div>
+          <button type="button" id="studio-exit-live" class="studio-exit-live-btn">
+            <span class="studio-btn-icon">✏️</span>
+            <span data-i18n="creator.backToEdit">Torna alla modifica</span>
+          </button>
+        </div>
+      </div>
       <button id="openSidebar"><span class="icon">☰</span></button>
       <main>
         <!--
@@ -573,6 +594,19 @@
         </div>
         <button type="button" class="inspector-close" id="creator-close" aria-label="Close editor">×</button>
       </header>
+      <div class="studio-submode-bar">
+        <div class="studio-submode-toggle" role="tablist" aria-label="Modalità Studio">
+          <button type="button" id="studio-mode-edit" class="studio-submode-btn selected" role="tab" aria-selected="true">
+            <span class="studio-btn-icon">✏️</span>
+            <span data-i18n="creator.studioMode.edit">Modifica pad</span>
+          </button>
+          <button type="button" id="studio-mode-live" class="studio-submode-btn" role="tab" aria-selected="false">
+            <span class="studio-btn-icon">▶</span>
+            <span data-i18n="creator.studioMode.live">Prova live</span>
+          </button>
+        </div>
+        <p id="studio-live-banner" class="studio-live-banner" hidden data-i18n="creator.studioMode.liveHint">Suona i pad della tua bozza in tempo reale</p>
+      </div>
       <section id="creator-project-details" class="inspector-section">
         <label for="project-creator-name" data-i18n="creator.projectName">Nome progetto</label>
         <input type="text" id="project-creator-name" maxlength="60" autocomplete="off">
@@ -603,9 +637,30 @@
           <button type="button" class="inspector-action" id="creator-preview-pad" data-i18n="creator.playPad">Play</button>
           <button type="button" class="inspector-action" id="creator-remove-sample" data-i18n="creator.removeSample">Rimuovi</button>
         </div>
+        <p id="creator-hold-hint" class="creator-duration-note" hidden data-i18n="creator.playPadHoldHint">Effetto continuo: tieni premuto per la durata desiderata</p>
         <input type="file" id="creator-sample-file" class="file-input-hidden" accept="audio/*">
         <div class="inspector-page-heading">
           <span data-i18n="creator.lightCatalog">LUCE / ANIMAZIONE</span>
+        </div>
+        <div id="creator-assigned-light" class="creator-assigned-light" hidden>
+          <div class="creator-assigned-light-row">
+            <div class="creator-assigned-light-info">
+              <span id="creator-assigned-swatch" class="creator-light-swatch"></span>
+              <strong id="creator-assigned-name"></strong>
+            </div>
+            <button type="button" class="inspector-action creator-action-sm" id="creator-remove-light"
+              data-i18n="creator.removeLight">Rimuovi luce</button>
+          </div>
+          <section id="creator-light-timing" class="creator-light-timing" hidden>
+            <label class="creator-sync-toggle">
+              <input type="checkbox" id="creator-light-sync" checked>
+              <span data-i18n="creator.syncLight">Sincronizza alla durata del suono</span>
+            </label>
+            <div id="creator-manual-light-duration" class="creator-manual-light-duration" hidden>
+              <label for="creator-light-duration" data-i18n="creator.lightDuration">Durata luce (secondi)</label>
+              <input type="number" id="creator-light-duration" min="0.1" max="60" step="0.1" value="2.5">
+            </div>
+          </section>
         </div>
         <label for="creator-light-search" data-i18n="creator.searchAnimations">Cerca animazione</label>
         <input type="search" id="creator-light-search" autocomplete="off">
@@ -617,20 +672,6 @@
           <button type="button" class="inspector-action" id="creator-assign-text-animation"
             data-i18n="creator.assignAnimation">Assegna animazione</button>
         </section>
-        <section id="creator-light-timing" class="creator-light-timing" hidden>
-          <label class="creator-sync-toggle">
-            <input type="checkbox" id="creator-light-sync" checked>
-            <span data-i18n="creator.syncLight">Sincronizza alla durata del suono</span>
-          </label>
-          <div id="creator-manual-light-duration" class="creator-manual-light-duration" hidden>
-            <label for="creator-light-duration" data-i18n="creator.lightDuration">Durata luce (secondi)</label>
-            <input type="number" id="creator-light-duration" min="0.1" max="60" step="0.1" value="2.5">
-          </div>
-          <p id="creator-light-duration-unsupported" class="creator-duration-note" hidden
-            data-i18n="creator.lightDurationUnsupported">Questa animazione ha durata fissa.</p>
-        </section>
-        <button type="button" class="inspector-action" id="creator-remove-light"
-          data-i18n="creator.removeLight">Rimuovi luce</button>
       </section>
       <footer class="inspector-footer">
         <span id="creator-sample-count" aria-live="polite"></span>

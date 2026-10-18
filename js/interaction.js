@@ -1,82 +1,105 @@
 import { audioEngine } from './audio.js';
 import { currentPage, currentProject, projectLights, activePageButton, setCurrentPage, setActivePageButton, activeModeButton, setCurrentMode, setActiveModeButton, getProjectStateSnapshot } from './app.js';
 import { triggerAnimation, releaseAnimation } from './lights.js';
+import { resolveLightDuration } from './animationData.js';
 import { setPhysicalColor, getLpColor, flushPhysicalColors } from './physicalInterface.js';
-import { getPadElement } from './webInterface.js';
+import { getPadElement, updatePageButtonHighlight } from './webInterface.js';
 import { registerListener } from './eventCleanup.js';
 import { isProjectReady } from './projectLoadingState.js';
-import { isProjectEditorActive, selectProjectPad, selectProjectPage } from './projectCreator.js';
-import { resolveLightDuration } from './projectCreatorModel.js';
-import { LAUNCHPAD_COLS, LAUNCHPAD_PADS, SCENE_BUTTONS_X, AUTOMAP_BUTTONS_Y, ERROR_SHAKE_DURATION_MS, TOTAL_PAGES, TOTAL_MODES, FIRST_MODE_INDEX, TOTAL_AUTOMAP_BUTTONS } from './constants.js';
+import { 
+    LAUNCHPAD_COLS, 
+    LAUNCHPAD_PADS, 
+    SCENE_BUTTONS_X, 
+    AUTOMAP_BUTTONS_Y, 
+    ERROR_SHAKE_DURATION_MS, 
+    TOTAL_PAGES, 
+    TOTAL_MODES, 
+    FIRST_MODE_INDEX, 
+    TOTAL_AUTOMAP_BUTTONS, 
+    DEFAULT_LIGHT_DURATION_SEC
+} from './constants.js';
 
 let interactionInitialized = false; // Track if listeners have been set up
 let shakeTimeoutId = null; // Track error shake timeout to prevent stacking
 
+let currentPadSource = null;
+
 /**
- * Activates a pad programmatically (e.g., via MIDI input).
- * @param {number} index - The index of the pad to activate (0-63).
+ * Registers an active pad configuration source provider (e.g. Studio Creator).
+ * Pass null to revert to standard Performance project mode.
+ * @param {object|null} provider
  */
-export function triggerPad(index) {
-    if (isProjectEditorActive()) {
-        selectProjectPad(index);
-        return;
-    }
+export function setPadSource(provider) {
+    currentPadSource = provider;
+}
 
-    const pad = getPadElement(index);
-    if (pad) {
-        // Get a consistent snapshot to avoid race conditions during project loading
-        const state = getProjectStateSnapshot();
-        
-        const soundIndex = state.page * LAUNCHPAD_PADS + index;
+export function getPadSource() {
+    return currentPadSource;
+}
 
-        // Play audio
-        const duration = audioEngine.playPadSound(soundIndex);
-
-        // Trigger light animation ONLY if project is ready
-        // This prevents race conditions where projectLights might be incomplete
-        if (isProjectReady() && state.lights && state.lights[soundIndex]) {
-            const animationName = state.lights[soundIndex];
-            const x = index % LAUNCHPAD_COLS;
-            const y = Math.floor(index / LAUNCHPAD_COLS);
-            const syncToSound = state.lightSyncToSound?.[soundIndex] ?? true;
-            const manualDuration = state.lightDurations?.[soundIndex] ?? 2.5;
-            const animationDuration = resolveLightDuration(syncToSound, duration, manualDuration);
-            triggerAnimation(animationName, x, y, animationDuration);
-        } else if (!isProjectReady()) {
-            console.log(`[Interaction] Project not ready, skipping light animation for pad ${index}`);
-        }
-
-        pad.classList.add('active');
-        // Note: For MIDI, release is handled separately in midi.js
-    }
+function getDefaultPadConfig(index) {
+    const state = getProjectStateSnapshot();
+    if (!state.project) return null;
+    const soundIndex = state.page * LAUNCHPAD_PADS + index;
+    const isReady = isProjectReady();
+    return {
+        soundIndex,
+        soundBuffer: null,
+        animationName: isReady && state.lights ? state.lights[soundIndex] : null,
+        syncToSound: state.lightSyncToSound?.[soundIndex] ?? true,
+        manualDuration: state.lightDurations?.[soundIndex] ?? DEFAULT_LIGHT_DURATION_SEC
+    };
 }
 
 /**
- * Deactivates a pad programmatically (e.g., via MIDI input).
+ * Activates a pad programmatically (e.g., via MIDI input or click).
+ * @param {number} index - The index of the pad to activate (0-63).
+ */
+export function triggerPad(index) {
+    const pad = getPadElement(index);
+    if (!pad) return;
+
+    if (currentPadSource?.onPadPress) {
+        currentPadSource.onPadPress(index);
+    }
+
+    const config = currentPadSource ? currentPadSource.getPadConfig(index) : getDefaultPadConfig(index);
+    if (!config) return;
+
+    let duration = 0;
+    if (config.soundBuffer) {
+        const soundKey = config.soundKey !== undefined ? config.soundKey : `draft:${index}`;
+        duration = audioEngine.playBuffer(config.soundBuffer, soundKey);
+    } else if (config.soundIndex !== undefined) {
+        duration = audioEngine.playPadSound(config.soundIndex);
+    }
+
+    if (config.animationName) {
+        const x = index % LAUNCHPAD_COLS;
+        const y = Math.floor(index / LAUNCHPAD_COLS);
+        const animationDuration = resolveLightDuration(config.syncToSound, duration, config.manualDuration);
+        triggerAnimation(config.animationName, x, y, animationDuration);
+    }
+
+    pad.classList.add('active');
+}
+
+/**
+ * Deactivates a pad programmatically (e.g., via MIDI input or mouse release).
  * @param {number} index - The index of the pad to deactivate (0-63).
  */
 export function releasePad(index) {
-    if (isProjectEditorActive()) return;
-
     const pad = getPadElement(index);
-    if (pad) {
-        // Get a consistent snapshot to avoid race conditions during project loading
-        const state = getProjectStateSnapshot();
-        
-        const soundIndex = state.page * LAUNCHPAD_PADS + index;
+    if (!pad) return;
 
-        // Stop light animation ONLY if project is ready
-        if (isProjectReady() && state.lights && state.lights[soundIndex]) {
-            const animationName = state.lights[soundIndex];
-            const x = index % LAUNCHPAD_COLS;
-            const y = Math.floor(index / LAUNCHPAD_COLS);
-            releaseAnimation(animationName, x, y);
-        } else if (!isProjectReady()) {
-            console.log(`[Interaction] Project not ready, skipping light release for pad ${index}`);
-        }
-
-        pad.classList.remove('active');
+    const config = currentPadSource ? currentPadSource.getPadConfig(index) : getDefaultPadConfig(index);
+    if (config?.animationName) {
+        const x = index % LAUNCHPAD_COLS;
+        const y = Math.floor(index / LAUNCHPAD_COLS);
+        releaseAnimation(config.animationName, x, y);
     }
+
+    pad.classList.remove('active');
 }
 
 /**
@@ -168,7 +191,7 @@ export function initInteraction() {
  * Updates the lights for the page buttons on the physical Launchpad.
  * @param {number} activeIndex - The index of the currently active page.
  */
-function updatePhysicalPageLights(activeIndex) {
+export function updatePhysicalPageLights(activeIndex) {
     const orange = getLpColor('orange');
     const off = getLpColor('off');
 
@@ -183,6 +206,25 @@ function updatePhysicalPageLights(activeIndex) {
 }
 
 /**
+ * Synchronizes the visual state and physical lights of Launchpad side page buttons
+ * with the active performance page.
+ * @param {number} pageIndex
+ */
+export function syncPerformancePageButtons(pageIndex = currentPage) {
+    if (pageIndex === null || pageIndex === undefined) return;
+    updatePageButtonHighlight(pageIndex);
+    const pageButtons = document.querySelectorAll('.grid-item-menu[data-page]');
+    if (activePageButton) {
+        activePageButton.classList.remove('selected');
+    }
+    if (pageButtons[pageIndex]) {
+        setActivePageButton(pageButtons[pageIndex]);
+        activePageButton.classList.add('selected');
+    }
+    updatePhysicalPageLights(pageIndex);
+}
+
+/**
  * Changes the current sound page.
  * 
  * IMPORTANT: Pages are PROJECT-DEPENDENT
@@ -194,8 +236,8 @@ function updatePhysicalPageLights(activeIndex) {
  * @param {boolean} updateVisuals - Whether to update the visual state (default: true).
  */
 export function changeSoundSet(index, updateVisuals = true) {
-    if (isProjectEditorActive()) {
-        selectProjectPage(index);
+    if (currentPadSource?.onPageChange) {
+        currentPadSource.onPageChange(index, updateVisuals);
         return;
     }
 
@@ -218,17 +260,7 @@ export function changeSoundSet(index, updateVisuals = true) {
         }
 
         if (updateVisuals) {
-            const pageButtons = document.querySelectorAll('.grid-item-menu[data-page]');
-            if (activePageButton) {
-                activePageButton.classList.remove('selected');
-            }
-            setActivePageButton(pageButtons[index]);
-            if (activePageButton) {
-                activePageButton.classList.add('selected');
-            }
-
-            // Update physical Launchpad lights
-            updatePhysicalPageLights(index);
+            syncPerformancePageButtons(index);
         }
     } else {
         const launchpadElement = document.getElementById('Launchpad');

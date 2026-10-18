@@ -82,3 +82,15 @@ export function setWebColor(color, p) {
         }
     }
 }
+
+/**
+ * Updates the visual selection state of the side page buttons on the Launchpad.
+ * @param {number} pageIndex
+ */
+export function updatePageButtonHighlight(pageIndex) {
+    const sidePageButtons = document.querySelectorAll('#Launchpad .grid-item-menu[data-page]');
+    sidePageButtons.forEach((btn, i) => {
+        btn.classList.toggle('selected', i === pageIndex);
+    });
+}
+

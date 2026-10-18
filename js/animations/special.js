@@ -1,5 +1,5 @@
 import { activeAnimations } from '../animationEngine.js';
-import { PrecomputedAnimation, RealEQAnimation } from '../animationClasses.js';
+import { PrecomputedAnimation, RealEQAnimation, MatrixRainAnimation, StrobeBurstAnimation } from '../animationClasses.js';
 
 export function register(animations, colors) {
     // EQ_REAL: Multi-color realistic EQ (Green -> Amber -> Red)
@@ -11,6 +11,43 @@ export function register(animations, colors) {
     };
 
     colors.forEach(colorName => {
+        // MATRIX RAIN
+        animations[`matrix_rain_${colorName}`] = {
+            on: (x, y, duration) => {
+                activeAnimations.add(new MatrixRainAnimation(colorName, duration, 'down'));
+            },
+            type: 'fixed'
+        };
+
+        animations[`matrix_rain_up_${colorName}`] = {
+            on: (x, y, duration) => {
+                activeAnimations.add(new MatrixRainAnimation(colorName, duration, 'up'));
+            },
+            type: 'fixed'
+        };
+
+        animations[`matrix_rain_left_${colorName}`] = {
+            on: (x, y, duration) => {
+                activeAnimations.add(new MatrixRainAnimation(colorName, duration, 'left'));
+            },
+            type: 'fixed'
+        };
+
+        animations[`matrix_rain_right_${colorName}`] = {
+            on: (x, y, duration) => {
+                activeAnimations.add(new MatrixRainAnimation(colorName, duration, 'right'));
+            },
+            type: 'fixed'
+        };
+
+        // STROBE_BURST
+        animations[`strobe_burst_${colorName}`] = {
+            on: (x, y, duration) => {
+                activeAnimations.add(new StrobeBurstAnimation(colorName, duration));
+            },
+            type: 'fixed'
+        };
+
         // SNAKE: Spiral pattern covering the grid
         animations[`snake_${colorName}`] = {
             on: (x, y, duration) => {
