@@ -4,6 +4,7 @@
     "test": "node --test"
   },
   "dependencies": {
+    "jszip": "^3.10.2",
     "launchpad-webmidi": "^1.2.0"
   }
 }

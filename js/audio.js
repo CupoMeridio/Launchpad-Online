@@ -367,6 +367,15 @@ class AudioEngine {
     }
 
     /**
+     * Stops all currently playing sounds across all keys.
+     */
+    stopAllSounds() {
+        for (const key of Array.from(this.activeSources.keys())) {
+            this.stopSound(key);
+        }
+    }
+
+    /**
      * Decodes an audio File or Blob into an AudioBuffer using the active AudioContext.
      * Initializes AudioContext if not already initialized.
      * @param {Blob|File} file - The file/blob to decode.

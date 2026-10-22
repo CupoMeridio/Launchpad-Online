@@ -1,8 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildProjectExport, createProjectId, createProjectPage } from '../js/projectCreatorModel.js';
+import { 
+    buildProjectExport, 
+    createProjectId, 
+    createProjectPage, 
+    isDraftDirty, 
+    buildDraftFromProject 
+} from '../js/projectCreatorModel.js';
+import { exportProjectToZip, importProjectFromZip } from '../js/projectZip.js';
 import { resolveLightDuration } from '../js/animationData.js';
 import { validateProject } from '../js/projectValidator.js';
+import JSZip from 'jszip';
 
 test('creates a project with schema-compatible pages and stable sample paths', () => {
     const firstPage = createProjectPage(1);
@@ -54,4 +62,76 @@ test('resolves synchronized and manual light durations', () => {
     assert.equal(resolveLightDuration(true, -1, 2.5), 2.5);
     assert.equal(resolveLightDuration(true, null, 2.5), 2.5);
     assert.equal(resolveLightDuration(true, Number.NaN, 2.5), 2.5);
+});
+
+test('isDraftDirty correctly detects modified or untouched drafts', () => {
+    assert.equal(isDraftDirty(null), false);
+    assert.equal(isDraftDirty({ name: '', pages: [createProjectPage(1)] }), false);
+    assert.equal(isDraftDirty({ name: '   ', pages: [createProjectPage(1)] }), false);
+
+    assert.equal(isDraftDirty({ name: 'New Beat', pages: [createProjectPage(1)] }), true);
+    assert.equal(isDraftDirty({ name: '', pages: [createProjectPage(1), createProjectPage(2)] }), true);
+
+    const pageWithSample = createProjectPage(1);
+    pageWithSample.samples[5] = { name: 'clap.wav' };
+    assert.equal(isDraftDirty({ name: '', pages: [pageWithSample] }), true);
+
+    const pageWithLight = createProjectPage(1);
+    pageWithLight.lights[12] = 'fade_amber';
+    assert.equal(isDraftDirty({ name: '', pages: [pageWithLight] }), true);
+});
+
+test('buildDraftFromProject reconstructs editor draft from project schema and file map', () => {
+    const project = {
+        id: 'test-project',
+        name: 'Test Project',
+        pages: [
+            {
+                name: 'Page 1',
+                sounds: ['samples/page-1/pad-01.wav', ...new Array(63).fill('')],
+                lights: ['wave_green', ...new Array(63).fill('')],
+                lightSyncToSound: [false, ...new Array(63).fill(true)],
+                lightDurations: [4.2, ...new Array(63).fill(2.5)]
+            }
+        ]
+    };
+
+    const fileMap = new Map([
+        ['samples/page-1/pad-01.wav', { name: 'pad-01.wav', size: 100 }]
+    ]);
+
+    const draft = buildDraftFromProject(project, fileMap);
+    assert.equal(draft.name, 'Test Project');
+    assert.equal(draft.pages.length, 1);
+    assert.equal(draft.pages[0].samples[0]?.name, 'pad-01.wav');
+    assert.equal(draft.pages[0].samples[1], null);
+    assert.equal(draft.pages[0].lights[0], 'wave_green');
+    assert.equal(draft.pages[0].lightSyncToSound[0], false);
+    assert.equal(draft.pages[0].lightDurations[0], 4.2);
+});
+
+test('projectZip roundtrips draft export to zip and import from zip', async () => {
+    const page = createProjectPage(1);
+    const fakeAudioContent = Buffer.from('RIFF1234WAVEfmt ');
+    page.samples[0] = { name: 'kick.wav', data: fakeAudioContent };
+    page.lights[0] = 'fade_red';
+    page.lightSyncToSound[0] = false;
+    page.lightDurations[0] = 3.0;
+
+    const originalDraft = {
+        name: 'Roundtrip Zip Project',
+        pages: [page]
+    };
+
+    const exportResult = await exportProjectToZip(originalDraft, JSZip);
+    assert.ok(exportResult.blob);
+    assert.equal(exportResult.filename, 'roundtrip-zip-project.zip');
+
+    const importResult = await importProjectFromZip(exportResult.blob, JSZip);
+    assert.equal(importResult.draft.name, 'Roundtrip Zip Project');
+    assert.equal(importResult.draft.pages.length, 1);
+    assert.ok(importResult.draft.pages[0].samples[0]);
+    assert.equal(importResult.draft.pages[0].lights[0], 'fade_red');
+    assert.equal(importResult.draft.pages[0].lightSyncToSound[0], false);
+    assert.equal(importResult.draft.pages[0].lightDurations[0], 3.0);
 });

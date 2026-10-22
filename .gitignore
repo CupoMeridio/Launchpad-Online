@@ -1,2 +1,5 @@
 # Ignora il file settings.local.json
 settings.local.json
+
+# Dipendenze Node
+node_modules/

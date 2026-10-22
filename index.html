@@ -57,6 +57,7 @@
   <script src="js/ui.js" type="module" defer></script>
   <script src="js/video.js" type="module" defer></script>
   <script src="js/visualizer-controls.js" type="module" defer></script>
+  <script src="js/vendor/jszip.min.js" defer></script>
   <script src="js/project.js" type="module" defer></script>
   <script src="js/app.js" type="module" defer></script>
 
@@ -73,7 +74,7 @@
         if (overlay) {
           overlay.innerHTML = `
             <div style="text-align: center; padding: 20px;">
-              <h3>⚠️ Browser Non Supportato</h3>
+              <h3>Browser Non Supportato</h3>
               <p>Il tuo browser non supporta l'API Web Audio richiesta da questa applicazione.</p>
               <p><strong>Browser supportati:</strong> Chrome, Firefox, Edge, Safari</p>
               <p>Per favore, usa uno di questi browser per accedere a Launchpad Online.</p>
@@ -148,6 +149,10 @@
           <div class="menu-dropdown" id="project-menu">
             <!-- Project items will be populated dynamically -->
           </div>
+        </div>
+        <div class="menu-item">
+          <button class="menu-toggle" type="button" id="toggle-project-creator"
+            data-i18n="menu.projectCreator.toggle">Studio Creator</button>
         </div>
 
         <!--
@@ -401,18 +406,6 @@
       Contains the button to open the sidebar and the Launchpad itself.
     -->
     <div class="body">
-      <div id="app-mode-bar" class="app-mode-bar">
-        <div class="mode-switcher" role="tablist" aria-label="Modalità applicazione">
-          <button type="button" id="mode-btn-performance" class="mode-tab active" role="tab" aria-selected="true">
-            <span class="mode-icon">▶</span>
-            <span data-i18n="mode.performance">Performance</span>
-          </button>
-          <button type="button" id="mode-btn-creator" class="mode-tab" role="tab" aria-selected="false">
-            <span class="mode-icon">✦</span>
-            <span data-i18n="mode.creator">Studio Creator</span>
-          </button>
-        </div>
-      </div>
       <div id="studio-live-toolbar" class="studio-live-toolbar" hidden>
         <div class="studio-live-toolbar-content">
           <div class="studio-live-info">
@@ -421,7 +414,6 @@
             <span id="studio-live-page-indicator" class="studio-live-page-badge"></span>
           </div>
           <button type="button" id="studio-exit-live" class="studio-exit-live-btn">
-            <span class="studio-btn-icon">✏️</span>
             <span data-i18n="creator.backToEdit">Torna alla modifica</span>
           </button>
         </div>
@@ -597,11 +589,9 @@
       <div class="studio-submode-bar">
         <div class="studio-submode-toggle" role="tablist" aria-label="Modalità Studio">
           <button type="button" id="studio-mode-edit" class="studio-submode-btn selected" role="tab" aria-selected="true">
-            <span class="studio-btn-icon">✏️</span>
             <span data-i18n="creator.studioMode.edit">Modifica pad</span>
           </button>
           <button type="button" id="studio-mode-live" class="studio-submode-btn" role="tab" aria-selected="false">
-            <span class="studio-btn-icon">▶</span>
             <span data-i18n="creator.studioMode.live">Prova live</span>
           </button>
         </div>
@@ -610,8 +600,10 @@
       <section id="creator-project-details" class="inspector-section">
         <label for="project-creator-name" data-i18n="creator.projectName">Nome progetto</label>
         <input type="text" id="project-creator-name" maxlength="60" autocomplete="off">
-        <label for="creator-page-name" data-i18n="creator.pageName">Nome pagina</label>
-        <input type="text" id="creator-page-name" maxlength="40">
+        <div class="inspector-actions" style="margin-top: 8px;">
+          <button type="button" class="inspector-action" id="creator-import-project" data-i18n="creator.import">Importa progetto</button>
+        </div>
+        <input type="file" id="creator-project-zip-input" class="file-input-hidden" accept=".zip,application/zip,application/x-zip-compressed">
       </section>
       <section id="creator-bank-details" class="inspector-section">
         <div class="inspector-page-heading">
@@ -624,13 +616,11 @@
           <button type="button" class="inspector-action" id="creator-remove-page" data-i18n="creator.removePage">Rimuovi pagina</button>
         </div>
       </section>
-      <section id="creator-pad-inspector" class="inspector-section" hidden>
+      <section id="creator-pad-inspector" class="inspector-section">
         <div class="inspector-page-heading">
           <span data-i18n="creator.selectedPad">PAD SELEZIONATO</span>
           <strong id="creator-selected-pad">Pad 1</strong>
         </div>
-        <button type="button" class="inspector-action" id="creator-project-settings"
-          data-i18n="creator.projectSettings">Dettagli progetto</button>
         <p id="creator-sample-name" class="creator-sample-name"></p>
         <div class="inspector-actions">
           <button type="button" class="inspector-action" id="creator-import-sound" data-i18n="creator.importSound">Carica file</button>
@@ -679,6 +669,17 @@
       </footer>
     </aside>
   </div>
+  <dialog id="creator-unsaved-dialog" class="creator-dialog">
+    <div class="creator-dialog-content">
+      <h3 data-i18n="creator.unsavedTitle">Modifiche non salvate</h3>
+      <p data-i18n="creator.unsavedMessage">Tornando alla modalità Performance perderai tutte le modifiche non salvate della sessione Studio. Vuoi salvare ed esportare il progetto prima di uscire?</p>
+      <div class="creator-dialog-actions">
+        <button type="button" id="creator-unsaved-save" class="inspector-action primary" data-i18n="creator.saveAndExit">Salva ed esci</button>
+        <button type="button" id="creator-unsaved-discard" class="inspector-action danger" data-i18n="creator.discardAndExit">Esci senza salvare</button>
+        <button type="button" id="creator-unsaved-cancel" class="inspector-action" data-i18n="creator.cancel">Annulla</button>
+      </div>
+    </div>
+  </dialog>
 </body>
 
 </html>

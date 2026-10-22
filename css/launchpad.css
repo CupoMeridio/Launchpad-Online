@@ -24,12 +24,14 @@
   display: grid;
   grid-template-columns: repeat(10, 1fr);
   grid-template-rows: repeat(10, 1fr);
-  gap: 10px;
-  max-width: 550px;
+  gap: clamp(4px, 1.8%, 10px);
+  width: 100%;
+  max-width: min(550px, calc(100vh - 90px), 92vw);
+  max-height: min(550px, calc(100vh - 90px), 92vw);
   aspect-ratio: 1 / 1;
-  padding: 15px;
+  padding: clamp(8px, 2.7%, 15px);
   background-color: #111;
-  border-radius: 10px;
+  border-radius: clamp(6px, 2%, 10px);
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
   /* Shadow to give a depth effect. */
   margin: 0 auto;
@@ -39,6 +41,7 @@
   background-repeat: no-repeat;
   justify-items: stretch;
   align-items: stretch;
+  container-type: inline-size;
 }
 
 /*
@@ -58,7 +61,7 @@
   /* Keeps pads square to avoid distortion. */
   background-color: #d3d3d3;
   /* Light gray by default. */
-  border-radius: 5px;
+  border-radius: 12%;
   cursor: pointer;
   transition: background-color 0.1s ease;
   /* Quick transition for color change. */
@@ -143,7 +146,7 @@
   width: 85%;
   height: 85%;
   background-color: black;
-  border-radius: 5px;
+  border-radius: 12%;
   /* Same rounding as the pad. */
   pointer-events: none;
   /* Allows clicks to pass through the sticker and reach the button. */
@@ -192,8 +195,13 @@
   justify-content: center;
   align-items: center;
   color: #eee;
-  font-size: 0.8em;
+  font-size: 11px;
+  font-size: clamp(3px, 2.4cqi, 12px);
+  white-space: nowrap;
+  line-height: 1;
   text-align: center;
+  user-select: none;
+  pointer-events: none;
 }
 
 /* Logo positioning in the top right corner. */
@@ -217,7 +225,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 5px;
+  border-radius: 12%;
 }
 
 /*

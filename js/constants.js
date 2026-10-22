@@ -97,5 +97,5 @@ export const DEFAULT_LIGHT_DURATION_SEC = 2.5;
 export const MIN_LIGHT_DURATION_SEC = 0.1;
 export const MAX_LIGHT_DURATION_SEC = 60.0;
 
-export const ANIMATION_COLORS = ['red', 'green', 'amber', 'yellow', 'orange'];
+export const ANIMATION_COLORS = ['red', 'orange', 'amber', 'yellow', 'green'];
 

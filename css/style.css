@@ -23,8 +23,19 @@
     --bg-panel: #292e32;
     --bg-input: #343a3e;
     --border-dark: #454b4f;
+    --border-subtle: #383e42;
     --text-primary: #f0f0f0;
     --text-muted: #98a3a8;
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 10px;
+    --radius-pill: 20px;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
 }
 
 [hidden] {
@@ -216,7 +227,7 @@ main {
 .video-controls {
     background-color: #252525;
     /* Slightly different background from menu to distinguish it. */
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     margin-top: 5px;
     padding: 0 15px;
     max-height: 0;
@@ -262,8 +273,6 @@ main {
     /* Adds ... if text is too long */
     max-width: 100%;
     /* Limits maximum width */
-    box-sizing: border-box;
-    /* Includes padding in width calculation */
 }
 
 .input-group {
@@ -281,8 +290,8 @@ main {
     display: flex;
     align-items: center;
     background: #333;
-    border: 1px solid #555;
-    border-radius: 4px;
+    border: 1px solid var(--border-dark);
+    border-radius: var(--radius-sm);
     padding: 0 6px;
     height: 24px;
     transition: border-color 0.2s ease;
@@ -380,8 +389,8 @@ main {
     height: 20px;
     background-color: transparent;
     /* Removes default background */
-    border: 1px solid #555;
-    border-radius: 4px;
+    border: 1px solid var(--border-dark);
+    border-radius: var(--radius-sm);
     cursor: pointer;
     padding: 0;
 }
@@ -401,28 +410,17 @@ main {
 .control-group select {
     background-color: #333;
     color: #ccc;
-    border: 1px solid #555;
-    border-radius: 4px;
+    border: 1px solid var(--border-dark);
+    border-radius: var(--radius-sm);
     padding: 4px 8px;
     font-size: 12px;
     width: 100%;
     /* Occupies all available width */
-    box-sizing: border-box;
 }
 
 .control-group select:focus {
     outline: none;
     border-color: var(--accent-blue);
-}
-
-
-/*
-  STYLES FOR MAIN CONTENT (BODY)
-*/
-.body {
-    position: relative;
-    z-index: 2;
-    /* Positioned above visualizer and background. */
 }
 
 /*
@@ -452,8 +450,6 @@ main {
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease, visibility 0.3s ease;
-    box-sizing: border-box;
-    /* Ensures padding is included in height calculation */
 }
 
 /* The `.sidebar-open` class on layout makes the sidebar visible. */
@@ -484,7 +480,7 @@ main {
     color: white;
     border: none;
     padding: 12px 15px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     text-align: left;
     font-size: 14px;
@@ -495,8 +491,6 @@ main {
     /* Adds ... if text is too long */
     width: 100%;
     /* Ensures button occupies all available width */
-    box-sizing: border-box;
-    /* Includes padding in width calculation */
 }
 
 .menu-toggle:hover {
@@ -520,12 +514,10 @@ main {
     overflow: hidden;
     transition: max-height 0.3s ease;
     background: #252525;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     margin-top: 5px;
     max-width: 100%;
     /* Limits maximum width to parent container */
-    box-sizing: border-box;
-    /* Includes padding in width calculation */
 }
 
 /* The `.open` class is added via JS to open the dropdown. */
@@ -556,8 +548,6 @@ main {
     overflow: hidden;
     text-overflow: ellipsis;
     /* Adds ... if text is too long */
-    box-sizing: border-box;
-    /* Includes padding in width calculation */
 }
 
 .menu-dropdown button:hover,
@@ -603,14 +593,14 @@ main {
 .project-inspector::-webkit-scrollbar-track,
 .creator-light-categories::-webkit-scrollbar-track {
     background: var(--scrollbar-track);
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
 }
 
 .menu-dropdown::-webkit-scrollbar-thumb,
 .project-inspector::-webkit-scrollbar-thumb,
 .creator-light-categories::-webkit-scrollbar-thumb {
     background: var(--scrollbar-thumb);
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
 }
 
 .menu-dropdown::-webkit-scrollbar-thumb:hover,
@@ -631,8 +621,8 @@ main {
     /* Blue color. */
     border: none;
     color: white;
-    padding: 10px 10px;
-    border-radius: 3px;
+    padding: 10px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     z-index: 3;
     /* Positioned above almost everything. */
@@ -673,6 +663,7 @@ main {
     align-items: center;
     min-height: 100vh;
     position: relative;
+    z-index: 2;
 }
 
 /*
@@ -758,7 +749,7 @@ main {
 
 .notification {
     padding: 10px 15px;
-    border-radius: 5px;
+    border-radius: var(--radius-sm);
     color: white;
     opacity: 0;
     transition: opacity 0.5s ease-in-out;
@@ -796,9 +787,7 @@ main {
     background-color: rgba(0, 0, 0, 0.3);
     /* Semi-transparent background to improve readability */
     padding: 8px 12px;
-    border-radius: 4px;
-    box-sizing: border-box;
-    /* Includes padding in width calculation */
+    border-radius: var(--radius-sm);
 }
 
 .midi-status-dot {
@@ -837,8 +826,7 @@ main {
     grid-row: 1;
     min-width: 0;
     height: 100%;
-    padding: 18px 16px 14px;
-    box-sizing: border-box;
+    padding: 16px;
     flex-direction: column;
     gap: 16px;
     overflow-y: auto;
@@ -853,7 +841,6 @@ main {
 }
 
 .inspector-header,
-.inspector-page-heading,
 .inspector-footer {
     display: flex;
     align-items: center;
@@ -862,7 +849,7 @@ main {
 }
 
 .inspector-header {
-    padding-bottom: 14px;
+    padding-bottom: 12px;
     border-bottom: 1px solid var(--border-dark);
 }
 
@@ -883,23 +870,25 @@ main {
     height: 34px;
     color: #e9edef;
     background: transparent;
-    border: 1px solid #555d62;
-    border-radius: 4px;
+    border: 1px solid var(--border-dark);
+    border-radius: var(--radius-sm);
     cursor: pointer;
     font-size: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .inspector-section {
     display: grid;
-    gap: 9px;
+    gap: 8px;
 }
 
 .inspector-section[hidden] {
     display: none;
 }
 
-.inspector-section label,
-.inspector-page-heading {
+.inspector-section label {
     color: #c5cdd1;
     font-size: 12px;
 }
@@ -911,18 +900,21 @@ main {
     width: 100%;
     min-width: 0;
     min-height: 36px;
-    padding: 7px 9px;
-    box-sizing: border-box;
+    padding: 8px 10px;
     color: #f0f2f3;
     background: #151719;
-    border: 1px solid #50575b;
-    border-radius: 4px;
+    border: 1px solid var(--border-dark);
+    border-radius: var(--radius-sm);
 }
 
 .inspector-page-heading {
-    margin-top: 6px;
-    color: #89949a;
-    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 4px;
+    color: var(--text-muted);
+    font-size: 11px;
     font-weight: 700;
 }
 
@@ -937,21 +929,32 @@ main {
     gap: 6px;
 }
 
-.creator-page-tab,
+.creator-page-tab {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #e9edef;
+    background: var(--bg-input);
+    border: 1px solid var(--border-dark);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+}
+
 .inspector-action,
 .inspector-export {
     min-height: 34px;
-    padding: 7px 9px;
+    padding: 8px 10px;
     color: #e9edef;
-    background: #343a3e;
-    border: 1px solid #51595e;
-    border-radius: 4px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-dark);
+    border-radius: var(--radius-sm);
     cursor: pointer;
-}
-
-.creator-page-tab {
-    width: 36px;
-    padding: 5px;
+    font-size: 12px;
 }
 
 .creator-page-tab.selected {
@@ -968,7 +971,7 @@ main {
 .inspector-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 7px;
+    gap: 8px;
 }
 
 .inspector-actions .inspector-action:last-child:nth-child(odd) {
@@ -1001,7 +1004,7 @@ main {
     color: #cbd2d5;
     background: var(--bg-panel);
     border: 1px solid var(--border-dark);
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     font-size: 10px;
 }
@@ -1014,9 +1017,9 @@ main {
 
 .creator-animation-group {
     display: grid;
-    gap: 6px;
+    gap: 8px;
     padding-top: 8px;
-    border-top: 1px solid #3b4145;
+    border-top: 1px solid var(--border-subtle);
 }
 
 .creator-animation-group h4 {
@@ -1040,7 +1043,7 @@ main {
     padding: 0;
     background: var(--bg-panel);
     border: 1px solid var(--border-dark);
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
 }
 
@@ -1060,11 +1063,11 @@ main {
 
 .creator-text-animation {
     display: grid;
-    gap: 7px;
-    padding: 9px;
+    gap: 8px;
+    padding: 10px;
     background: var(--bg-panel);
     border: 1px solid var(--border-dark);
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
 }
 
 .creator-animation-empty {
@@ -1075,7 +1078,7 @@ main {
 
 .inspector-footer {
     margin-top: auto;
-    padding-top: 14px;
+    padding-top: 12px;
     border-top: 1px solid var(--border-dark);
 }
 
@@ -1093,7 +1096,7 @@ main {
 
 .layout[data-studio="edit"] #Launchpad .grid-item {
     background-color: var(--bg-input);
-    box-shadow: inset 0 0 0 1px #51595e;
+    box-shadow: inset 0 0 0 1px var(--border-dark);
 }
 
 .layout[data-studio="edit"] #Launchpad .grid-item.creator-pad-assigned {
@@ -1102,10 +1105,10 @@ main {
 
 .layout[data-studio="edit"] #Launchpad .grid-item.creator-pad-assigned::after {
     position: absolute;
-    right: 5px;
-    bottom: 5px;
-    width: 7px;
-    height: 7px;
+    right: clamp(2px, 10%, 5px);
+    bottom: clamp(2px, 10%, 5px);
+    width: clamp(4px, 16%, 7px);
+    height: clamp(4px, 16%, 7px);
     content: '';
     background: var(--accent-studio);
     border: 1px solid #d8fff2;
@@ -1129,7 +1132,7 @@ main {
     padding: 10px;
     background: var(--bg-panel);
     border: 1px solid var(--border-dark);
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
 }
 
 .creator-sync-toggle {
@@ -1159,54 +1162,72 @@ main {
     font-size: 11px;
 }
 
-/* App Mode Bar (Top Selector: Performance vs Studio) */
-.app-mode-bar {
-    position: fixed;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 10;
-}
-
-.mode-switcher {
-    display: inline-flex;
-    background: rgba(21, 23, 25, 0.88);
-    backdrop-filter: blur(8px);
+/* Studio Dialog (Unsaved changes confirmation) */
+.creator-dialog {
     border: 1px solid var(--border-dark);
-    border-radius: 20px;
-    padding: 3px;
-    gap: 3px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+    border-radius: var(--radius-card);
+    background: rgba(21, 23, 25, 0.95);
+    backdrop-filter: blur(12px);
+    color: #e5ebed;
+    padding: 0;
+    max-width: 440px;
+    width: 90vw;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65);
+    margin: auto;
 }
 
-.mode-tab {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    font-size: 12px;
-    font-weight: 600;
-    color: #aab3b8;
-    background: transparent;
-    border: none;
-    border-radius: 16px;
-    cursor: pointer;
-    transition: all 0.2s ease;
+.creator-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
 }
 
-.mode-tab:hover {
+.creator-dialog-content {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.creator-dialog-content h3 {
+    margin: 0;
+    font-size: 16px;
     color: #ffffff;
-    background: rgba(255, 255, 255, 0.06);
 }
 
-.mode-tab.active {
-    color: #101416;
+.creator-dialog-content p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #aab3b8;
+}
+
+.creator-dialog-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.inspector-action.primary {
     background: var(--accent-studio);
-    box-shadow: 0 0 10px var(--accent-studio-glow);
+    color: #101416;
+    font-weight: 600;
+    border-color: transparent;
 }
 
-.mode-icon {
-    font-size: 11px;
+.inspector-action.primary:hover {
+    background: var(--accent-studio-hover);
+}
+
+.inspector-action.danger {
+    background: rgba(230, 60, 60, 0.15);
+    color: #ff6b6b;
+    border-color: rgba(230, 60, 60, 0.4);
+}
+
+.inspector-action.danger:hover {
+    background: rgba(230, 60, 60, 0.3);
+    border-color: #ff6b6b;
 }
 
 .layout[data-studio="edit"] #openSidebar,
@@ -1218,7 +1239,7 @@ main {
     display: grid;
     gap: 6px;
     padding-bottom: 8px;
-    border-bottom: 1px solid #3b4145;
+    border-bottom: 1px solid var(--border-subtle);
 }
 
 .studio-submode-toggle {
@@ -1226,7 +1247,7 @@ main {
     grid-template-columns: 1fr 1fr;
     background: #151719;
     border: 1px solid var(--border-dark);
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     padding: 2px;
     gap: 2px;
 }
@@ -1242,7 +1263,7 @@ main {
     color: var(--text-muted);
     background: transparent;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     transition: all 0.15s ease;
 }
@@ -1256,16 +1277,12 @@ main {
     background: var(--accent-studio);
 }
 
-.studio-btn-icon {
-    font-size: 11px;
-}
-
 .studio-live-banner {
     margin: 0;
     padding: 8px 10px;
     background: var(--accent-studio-dim);
     border: 1px solid var(--accent-studio-glow);
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     color: var(--accent-studio-hover);
     font-size: 11px;
     text-align: center;
@@ -1277,7 +1294,7 @@ main {
     padding: 8px 10px;
     background: var(--bg-panel);
     border: 1px solid var(--border-dark);
-    border-radius: 6px;
+    border-radius: var(--radius-md);
 }
 
 .creator-assigned-light-row {
@@ -1330,10 +1347,6 @@ main {
     gap: 0;
 }
 
-.layout[data-studio="live"] .app-mode-bar {
-    display: none;
-}
-
 .layout[data-studio="live"] #Launchpad .grid-item {
     cursor: pointer;
     outline: none;
@@ -1360,8 +1373,8 @@ main {
     background: rgba(21, 23, 25, 0.92);
     backdrop-filter: blur(12px);
     border: 1px solid var(--border-dark);
-    border-radius: 24px;
-    padding: 6px 14px 6px 18px;
+    border-radius: var(--radius-pill);
+    padding: 8px 16px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
 }
 
@@ -1377,7 +1390,7 @@ main {
     font-size: 10px;
     font-weight: 700;
     padding: 3px 8px;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     letter-spacing: 0.5px;
 }
 
@@ -1407,7 +1420,7 @@ main {
     color: #101416;
     background: var(--accent-studio);
     border: none;
-    border-radius: 16px;
+    border-radius: var(--radius-pill);
     cursor: pointer;
     box-shadow: 0 0 10px var(--accent-studio-glow);
     transition: all 0.2s ease;

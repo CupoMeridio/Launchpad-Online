@@ -34,8 +34,11 @@ test('project editor uses the existing Launchpad grid and a separate inspector',
 
     assert.equal((html.match(/id="Launchpad"/g) || []).length, 1);
     assert.match(html, /id="project-inspector"/);
-    assert.match(html, /id="mode-btn-performance"/);
-    assert.match(html, /id="mode-btn-creator"/);
+    assert.match(html, /id="toggle-project-creator"/);
+    assert.doesNotMatch(html, /id="app-mode-bar"/);
+    assert.match(html, /id="creator-import-project"/);
+    assert.match(html, /id="creator-project-zip-input"/);
+    assert.match(html, /id="creator-unsaved-dialog"/);
     assert.match(html, /id="studio-mode-edit"/);
     assert.match(html, /id="studio-mode-live"/);
     assert.match(html, /id="creator-hold-hint"/);
@@ -58,3 +61,9 @@ test('every project editor DOM id exists in the application shell', () => {
         assert.ok(html.includes(`id="${elementId}"`), `Missing project editor element: ${elementId}`);
     }
 });
+
+test('application shell contains no emoji pictographs', () => {
+    const html = readFileSync(path.join(workspaceRoot, 'index.html'), 'utf8');
+    const emojiRegex = /\p{RGI_Emoji}/v;
+    assert.equal(emojiRegex.test(html), false, 'index.html should not contain any emoji characters');
+});

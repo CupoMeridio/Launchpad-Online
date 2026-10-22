@@ -23,6 +23,7 @@ test('catalog groups every registered animation without dropping color variants'
     const fadeGroup = catalog.find(group => group.id === 'fade');
     assert.ok(fadeGroup);
     assert.ok(fadeGroup.variants.every(variant => variant.supportsDuration));
+    assert.deepEqual(fadeGroup.variants.map(variant => variant.color), ['red', 'orange', 'amber', 'yellow', 'green']);
 
     const holdGroup = catalog.find(group => group.id === 'hold');
     assert.ok(holdGroup);

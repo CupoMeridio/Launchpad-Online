@@ -1,11 +1,11 @@
 import { getTranslation, showNotification } from './ui.js';
-import { validateProject } from './projectValidator.js';
-import { buildAnimationCatalog, buildProjectExport, createProjectPage } from './projectCreatorModel.js';
+import { buildAnimationCatalog, createProjectPage, isDraftDirty } from './projectCreatorModel.js';
+import { exportProjectToZip, importProjectFromZip } from './projectZip.js';
 import { animations, releaseAnimation, triggerAnimation } from './lights.js';
 import { resolveLightDuration } from './animationData.js';
 import { webColorMap, getPadElement, updatePageButtonHighlight } from './webInterface.js';
 import { audioEngine } from './audio.js';
-import { setPadSource, triggerPad, releasePad, updatePhysicalPageLights, syncPerformancePageButtons } from './interaction.js';
+import { setPadSource, updatePhysicalPageLights, syncPerformancePageButtons } from './interaction.js';
 import { currentPage } from './app.js';
 import { 
     LAUNCHPAD_COLS, 
@@ -19,10 +19,10 @@ import {
 
 const LIGHT_COLOR_SWATCHES = {
     red: webColorMap.red.full,
-    green: webColorMap.green.full,
+    orange: webColorMap.orange.full,
     amber: webColorMap.amber.full,
     yellow: webColorMap.yellow.full,
-    orange: webColorMap.orange.full
+    green: webColorMap.green.full
 };
 
 const LIGHT_CATEGORY_KEYS = ['all', 'basic', 'geometric', 'directional', 'multicolor', 'characters', 'special', 'text'];
@@ -218,13 +218,11 @@ function renderSelectedPad() {
     const padInspector = document.getElementById('creator-pad-inspector');
     const sampleCount = page.samples.filter(Boolean).length;
     document.getElementById('project-creator-name').value = draft.name;
-    document.getElementById('creator-page-name').value = page.name;
     document.getElementById('creator-page-count').textContent = `${activePageIndex + 1} / ${draft.pages.length}`;
     document.getElementById('creator-sample-count').textContent = translate('creator.sampleCount', {
         count: sampleCount
     });
 
-    document.getElementById('creator-project-details').hidden = activePadIndex !== null;
     padInspector.hidden = activePadIndex === null;
     document.getElementById('creator-text-animation').hidden = !pendingTextAnimation;
     if (activePadIndex === null) return;
@@ -300,43 +298,84 @@ function renderEditor() {
     renderSelectedPad();
 }
 
-export function closeCreator() {
+export function requestCloseCreator() {
+    if (!editorActive) return;
+    if (!isDraftDirty(draft)) {
+        forceCloseCreator();
+        return;
+    }
+    const dialog = document.getElementById('creator-unsaved-dialog');
+    if (dialog) {
+        if (dialog.open) return;
+        if (typeof dialog.showModal === 'function') {
+            dialog.showModal();
+        } else {
+            dialog.setAttribute('open', '');
+        }
+    } else {
+        if (window.confirm(getTranslation('creator.unsavedMessage'))) {
+            forceCloseCreator();
+        }
+    }
+}
+
+export function closeUnsavedDialog() {
+    const dialog = document.getElementById('creator-unsaved-dialog');
+    if (dialog) {
+        if (typeof dialog.close === 'function') {
+            dialog.close();
+        } else {
+            dialog.removeAttribute('open');
+        }
+    }
+}
+
+export function forceCloseCreator() {
+    closeUnsavedDialog();
     editorActive = false;
     stopPreview();
     stopAllDraftPads();
     setPadSource(null);
     studioSubMode = 'edit';
 
+    // MEMORY PURGE: Release draft, AudioBuffers, and File objects immediately!
+    draft = null;
+    activePadIndex = null;
+    pendingTextAnimation = null;
+
     const layout = document.querySelector('.layout');
     if (layout) {
         delete layout.dataset.studio;
     }
 
-    const perfModeBtn = document.getElementById('mode-btn-performance');
-    const creatorModeBtn = document.getElementById('mode-btn-creator');
-    if (perfModeBtn) {
-        perfModeBtn.classList.add('active');
-        perfModeBtn.setAttribute('aria-selected', 'true');
+    // Clean up Launchpad pads visual classes
+    for (let index = 0; index < LAUNCHPAD_PADS; index++) {
+        const pad = getPadElement(index);
+        if (pad) {
+            pad.classList.remove('creator-pad-assigned', 'creator-pad-selected', 'active');
+            delete pad.dataset.creatorLed;
+            pad.style.removeProperty('--creator-led-color');
+            pad.removeAttribute('aria-pressed');
+            pad.removeAttribute('aria-label');
+        }
     }
-    if (creatorModeBtn) {
-        creatorModeBtn.classList.remove('active');
-        creatorModeBtn.setAttribute('aria-selected', 'false');
-    }
-
-    activePadIndex = null;
-    pendingTextAnimation = null;
-    renderPadGrid();
 
     // Restore performance page visuals and physical lights
     syncPerformancePageButtons(currentPage);
 }
 
+export function closeCreator() {
+    requestCloseCreator();
+}
+
 export function openCreator() {
     if (editorActive) return;
 
-    if (!draft) {
-        draft = { name: '', pages: [createProjectPage(1)] };
-    }
+    // Stop all audio playback from the performance session
+    audioEngine.stopAllSounds();
+
+    // Fresh new draft every session
+    draft = { name: '', pages: [createProjectPage(1)] };
 
     editorActive = true;
     activePageIndex = 0;
@@ -348,17 +387,6 @@ export function openCreator() {
     const layout = document.querySelector('.layout');
     if (layout) {
         layout.classList.remove('sidebar-open');
-    }
-
-    const perfModeBtn = document.getElementById('mode-btn-performance');
-    const creatorModeBtn = document.getElementById('mode-btn-creator');
-    if (perfModeBtn) {
-        perfModeBtn.classList.remove('active');
-        perfModeBtn.setAttribute('aria-selected', 'false');
-    }
-    if (creatorModeBtn) {
-        creatorModeBtn.classList.add('active');
-        creatorModeBtn.setAttribute('aria-selected', 'true');
     }
 
     setStudioSubMode('edit');
@@ -596,16 +624,6 @@ function assignTextAnimation() {
     assignLightAnimation(animationName);
 }
 
-export function clearProjectPadSelection() {
-    if (!editorActive) return false;
-    stopPreview();
-    pendingTextAnimation = null;
-    activePadIndex = null;
-    renderPadGrid();
-    renderSelectedPad();
-    return true;
-}
-
 export function selectProjectPage(index, updateVisuals = true) {
     if (!editorActive || !Number.isInteger(index) || index < 0 || index >= draft.pages.length) return false;
     stopPreview();
@@ -613,7 +631,9 @@ export function selectProjectPage(index, updateVisuals = true) {
     pendingTextAnimation = null;
     activePageIndex = index;
     if (studioSubMode === 'edit') {
-        activePadIndex = null;
+        if (activePadIndex === null) {
+            activePadIndex = 0;
+        }
         renderEditor();
     } else {
         renderPadGrid();
@@ -708,74 +728,87 @@ function previewPad(index = activePadIndex) {
     }
 }
 
-async function writeFile(directoryHandle, fileName, contents) {
-    const fileHandle = await directoryHandle.getFileHandle(fileName, { create: true });
-    const writable = await fileHandle.createWritable();
-    await writable.write(contents);
-    await writable.close();
-}
-
-async function writeProjectFiles(projectDirectory, files) {
-    for (const entry of files) {
-        const segments = entry.path.split('/');
-        const fileName = segments.pop();
-        let targetDirectory = projectDirectory;
-
-        for (const segment of segments) {
-            targetDirectory = await targetDirectory.getDirectoryHandle(segment, { create: true });
-        }
-
-        await writeFile(targetDirectory, fileName, entry.file);
-    }
-}
-
 async function exportProject() {
     const exportButton = document.getElementById('creator-export');
-    if (!window.showDirectoryPicker) {
-        showNotification(getTranslation('creator.errorUnsupported'), 'error');
-        return;
-    }
-    exportButton.disabled = true;
+    if (!draft) return false;
+    if (exportButton) exportButton.disabled = true;
 
     try {
-        draft.name = document.getElementById('project-creator-name').value;
-        if (!draft.name.trim()) {
+        const nameInput = document.getElementById('project-creator-name');
+        if (nameInput) {
+            draft.name = nameInput.value;
+        }
+        if (!draft.name || !draft.name.trim()) {
             showNotification(getTranslation('creator.errorName'), 'warning');
-            return;
-        }
-        const exportData = buildProjectExport(draft);
-
-        const parentDirectory = await window.showDirectoryPicker({
-            id: 'launchpad-project-export',
-            mode: 'readwrite'
-        });
-
-        let existingDirectory = false;
-        try {
-            await parentDirectory.getDirectoryHandle(exportData.folderName);
-            existingDirectory = true;
-        } catch (error) {
-            if (error.name !== 'NotFoundError') throw error;
+            return false;
         }
 
-        if (existingDirectory) {
-            const confirmation = translate('creator.confirmOverwrite', { folder: exportData.folderName });
-            if (!window.confirm(confirmation)) return;
-            await parentDirectory.removeEntry(exportData.folderName, { recursive: true });
-        }
+        const { blob, filename } = await exportProjectToZip(draft);
 
-        const projectDirectory = await parentDirectory.getDirectoryHandle(exportData.folderName, { create: true });
-        await writeProjectFiles(projectDirectory, exportData.files);
-        await writeFile(projectDirectory, exportData.configFileName, JSON.stringify(exportData.project, null, 2));
+        // Download the self-contained .zip project file
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
         showNotification(getTranslation('creator.exportSuccess'), 'success', 5000);
-        closeCreator();
-        draft = null;
+        return true;
     } catch (error) {
-        if (error.name !== 'AbortError') {
-            showNotification(translate('creator.errorExport', { error: error.message }), 'error', 6000);
-        }
+        console.error('[Creator] Export error:', error);
+        showNotification(translate('creator.errorExport', { error: error.message }), 'error', 6000);
+        return false;
     } finally {
-        exportButton.disabled = false;
+        if (exportButton) exportButton.disabled = false;
+    }
+}
+
+async function handleProjectZipFile(file) {
+    if (!file) return;
+
+    if (isDraftDirty(draft)) {
+        const confirmMsg = getTranslation('creator.confirmOverwriteDraft') || 'Importare un nuovo progetto sostituirà la bozza corrente. Continuare?';
+        if (!window.confirm(confirmMsg)) return;
+    }
+
+    showNotification(getTranslation('creator.importing') || 'Caricamento progetto...', 'info', 3000);
+
+    try {
+        const { draft: importedDraft } = await importProjectFromZip(file);
+
+        // Decode audio buffers for all imported samples
+        for (let pageIdx = 0; pageIdx < importedDraft.pages.length; pageIdx++) {
+            const page = importedDraft.pages[pageIdx];
+            for (let padIdx = 0; padIdx < LAUNCHPAD_PADS; padIdx++) {
+                const sampleFile = page.samples[padIdx];
+                if (sampleFile) {
+                    try {
+                        page.soundBuffers[padIdx] = await audioEngine.decodeAudioFile(sampleFile);
+                    } catch (err) {
+                        console.warn(`[Creator] Audio decode failed for page ${pageIdx + 1}, pad ${padIdx + 1}:`, err);
+                    }
+                }
+            }
+        }
+
+        stopPreview();
+        stopAllDraftPads();
+
+        draft = importedDraft;
+        activePageIndex = 0;
+        activePadIndex = 0;
+        pendingTextAnimation = null;
+
+        setStudioSubMode('edit');
+        renderEditor();
+        updatePhysicalPageLights(activePageIndex);
+        showNotification(translate('creator.importSuccess', { name: draft.name }), 'success', 5000);
+    } catch (error) {
+        console.error('[Creator] Import error:', error);
+        showNotification(translate('creator.errorImport', { error: error.message }), 'error', 6000);
     }
 }
 
@@ -785,10 +818,56 @@ export function initializeProjectCreator() {
 
     if (!document.getElementById('project-inspector')) return;
 
-    // Top mode selector buttons
-    document.getElementById('mode-btn-performance')?.addEventListener('click', () => {
-        if (editorActive) closeCreator();
+    // Unsaved changes dialog actions
+    document.getElementById('creator-unsaved-save')?.addEventListener('click', async () => {
+        const ok = await exportProject();
+        if (ok) {
+            forceCloseCreator();
+        }
     });
+
+    document.getElementById('creator-unsaved-discard')?.addEventListener('click', () => {
+        forceCloseCreator();
+    });
+
+    document.getElementById('creator-unsaved-cancel')?.addEventListener('click', () => {
+        closeUnsavedDialog();
+    });
+
+    // Import project button and file input
+    const importBtn = document.getElementById('creator-import-project');
+    const zipInput = document.getElementById('creator-project-zip-input');
+
+    importBtn?.addEventListener('click', () => {
+        zipInput?.click();
+    });
+
+    zipInput?.addEventListener('change', event => {
+        const file = event.target.files?.[0];
+        if (file) {
+            handleProjectZipFile(file);
+        }
+        event.target.value = '';
+    });
+
+    // Drag and Drop project .zip files onto the inspector
+    const inspectorEl = document.getElementById('project-inspector');
+    if (inspectorEl) {
+        ['dragenter', 'dragover'].forEach(eventName => {
+            inspectorEl.addEventListener(eventName, e => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+        });
+        inspectorEl.addEventListener('drop', e => {
+            e.preventDefault();
+            e.stopPropagation();
+            const file = e.dataTransfer?.files?.[0];
+            if (file && (file.name.endsWith('.zip') || file.type.includes('zip'))) {
+                handleProjectZipFile(file);
+            }
+        });
+    }
 
     // Studio sub-mode buttons
     document.getElementById('studio-mode-edit')?.addEventListener('click', () => {
@@ -803,7 +882,6 @@ export function initializeProjectCreator() {
     });
 
     document.getElementById('creator-close').addEventListener('click', closeCreator);
-    document.getElementById('creator-project-settings').addEventListener('click', clearProjectPadSelection);
     window.addEventListener('keydown', event => {
         if (event.key === 'Escape' && editorActive) {
             if (studioSubMode === 'live') {
@@ -819,10 +897,6 @@ export function initializeProjectCreator() {
             draft.name = event.target.value;
             updateLiveToolbar();
         }
-    });
-    document.getElementById('creator-page-name').addEventListener('input', event => {
-        const page = getCurrentPage();
-        if (page) page.name = event.target.value;
     });
 
     document.getElementById('creator-add-page').addEventListener('click', () => {

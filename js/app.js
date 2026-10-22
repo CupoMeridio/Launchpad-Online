@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         return creatorModulePromise;
     };
 
-    document.getElementById('mode-btn-creator')?.addEventListener('click', async () => {
+    document.getElementById('toggle-project-creator')?.addEventListener('click', async () => {
         try {
             const creator = await loadProjectCreator();
             creator.openCreator();
