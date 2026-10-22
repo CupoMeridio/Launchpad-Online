@@ -30,6 +30,7 @@
     --radius-md: 6px;
     --radius-lg: 10px;
     --radius-pill: 20px;
+    --radius-card: 12px;
 }
 
 *,
@@ -1429,4 +1430,4 @@ main {
 .studio-exit-live-btn:hover {
     background: var(--accent-studio-hover);
     box-shadow: 0 0 14px var(--accent-studio-glow);
-}
+}

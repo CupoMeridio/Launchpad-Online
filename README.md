@@ -3,6 +3,7 @@
 [![PWA](https://img.shields.io/badge/PWA-Ready-brightgreen.svg)](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps)
 [![Web MIDI](https://img.shields.io/badge/Web_MIDI-Supported-blue.svg)](https://developer.mozilla.org/en-US/docs/Web/API/Web_MIDI_API)
 [![Web Audio](https://img.shields.io/badge/Web_Audio-API-orange.svg)](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
+<img width="1253" height="314" alt="7606f975-ccbb-4f80-a0a7-71dee76af1a9 clean" src="https://github.com/user-attachments/assets/6cec6802-7741-411d-a07b-5900a5490693" />
 
 **Launchpad Online** is a Progressive Web App (PWA) designed for performing with Novation Launchpad controllers. It provides both a virtual emulator and hardware integration, supported by a built-in project library.
 
