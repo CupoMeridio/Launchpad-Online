@@ -92,19 +92,23 @@ Launchpad-Online/
 │   ├── launchpad.css       # Launchpad-specific styles
 │   └── style.css           # General application styles
 ├── js/                     # Application logic
-│   ├── vendor/             # Third-party libraries
-│   │   └── launchpad-webmidi.js
+│   ├── midi-profiles/      # Hardware drivers (Legacy, RGB, Registry)
+│   ├── vendor/             # Third-party utilities (JSZip)
 │   ├── animationClasses.js # Animation class definitions
 │   ├── animationData.js    # Animation data and structures
 │   ├── animationEngine.js  # Core animation rendering engine
 │   ├── animationLibrary.js # Registry of available animations
 │   ├── app.js              # Main application entry point
 │   ├── audio.js            # Web Audio API engine
+│   ├── constants.js        # Global constants and grid definitions
 │   ├── interaction.js      # User interaction handling
-│   ├── lights.js           # Legacy light management (refactored)
-│   ├── midi.js             # MIDI hardware integration
-│   ├── physicalInterface.js # Physical Launchpad mapping
+│   ├── lights.js           # Light animation engine and presets
+│   ├── midi.js             # Native Web MIDI hardware integration
+│   ├── physicalInterface.js # Physical Launchpad mapping & batching
 │   ├── project.js          # Project and page management
+│   ├── projectCreator.js   # Studio Creator workspace
+│   ├── projectCreatorModel.js # Creator data model & validation
+│   ├── projectZip.js       # Standalone project .zip import/export
 │   ├── static-data.json    # Static configuration data
 │   ├── ui.js               # UI components and DOM management
 │   ├── video.js            # Video background controller

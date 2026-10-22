@@ -7,7 +7,7 @@
 import { LAUNCHPAD_COLS } from './constants.js';
 
 /**
- * Map launchpad-webmidi colors to CSS colors for the web UI.
+ * Map Launchpad hardware colors to CSS colors for the web UI.
  */
 export const webColorMap = {
     // HSL: Hue (colore), Saturation (intensità), Lightness (chiarezza)

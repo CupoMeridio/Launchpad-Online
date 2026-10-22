@@ -18,7 +18,7 @@
 // CUSTOMIZATION: When you make changes to App Shell files, update this timestamp.
 // This invalidates the old cache and forces the Service Worker to download new files.
 // Example: 'launchpad-pwa-cache-2026-03-21-1430' → update to → 'launchpad-pwa-cache-2026-03-21-1505'
-const CACHE_NAME = 'launchpad-pwa-cache-2026-10-22-1915';
+const CACHE_NAME = 'launchpad-pwa-cache-2026-10-22-2145';
 
 // Get the base path dynamically to support both local dev and GitHub Pages
 const basePath = self.registration.scope.replace(self.location.origin, '');
@@ -48,6 +48,10 @@ const APP_SHELL_FILES = [
     `${basePath}js/interaction.js`,
     `${basePath}js/lights.js`,
     `${basePath}js/midi.js`,
+    `${basePath}js/midi-profiles/DeviceProfile.js`,
+    `${basePath}js/midi-profiles/LaunchpadLegacy.js`,
+    `${basePath}js/midi-profiles/LaunchpadRGB.js`,
+    `${basePath}js/midi-profiles/ProfileRegistry.js`,
     `${basePath}js/physicalInterface.js`,
     `${basePath}js/project.js`,
     `${basePath}js/projectCreator.js`,
@@ -64,7 +68,6 @@ const APP_SHELL_FILES = [
     `${basePath}js/eventCleanup.js`,
     `${basePath}js/projectLoadingState.js`,
     `${basePath}js/webInterface.js`,
-    `${basePath}js/vendor/launchpad-webmidi.js`,
     `${basePath}js/vendor/jszip.js`,
     `${basePath}js/vendor/jszip.min.js`,
     `${basePath}js/static-data.json`,

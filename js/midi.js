@@ -2,21 +2,14 @@
  * MIDI MODULE (midi.js)
  *
  * This module handles interaction with physical MIDI controllers, specifically
- * the Novation Launchpad, using the launchpad-webmidi library.
- * This is an advanced feature that requires:
- * 1. A browser that supports Web MIDI API (e.g., Chrome, Edge, Opera).
- * 2. A connected Launchpad controller (or compatible device).
- *
- * Its responsibilities are:
- * - Detect and connect to the Launchpad device via launchpad-webmidi.
- * - Map incoming MIDI signals (pad presses) to application actions.
- * - Handle dynamic connection/disconnection (hot-plugging) of the device.
+ * the Novation Launchpad family, using native Web MIDI API and Device Profiles.
+ * Supports Legacy Launchpads (Mk1/S/Mini) and modern RGB Launchpads (Mk2/Mk3/X/Pro)
+ * without third-party dependencies.
  */
 
-// Import launchpad-webmidi library
-import Launchpad from './vendor/launchpad-webmidi.js';
+import { ProfileRegistry } from './midi-profiles/ProfileRegistry.js';
 import { getTranslation, showNotification } from './ui.js';
-import { setLaunchpadInstance } from './physicalInterface.js';
+import { setDeviceProfile } from './physicalInterface.js';
 import { triggerPad, releasePad, changeSoundSet, changeMode } from './interaction.js';
 import { getProjectStateSnapshot } from './app.js';
 import { registerListener, cleanup, removeListener } from './eventCleanup.js';
@@ -24,21 +17,13 @@ import { onVisibilityChange } from './visibilityManager.js';
 import { isProjectReady, waitForProjectReady } from './projectLoadingState.js';
 import { SCENE_BUTTONS_X, AUTOMAP_BUTTONS_Y, LAUNCHPAD_COLS, LAUNCHPAD_ROWS } from './constants.js';
 
-// Launchpad instance
-let launchpad = null;
+// Active DeviceProfile and MIDI Access instances
+let activeProfile = null;
 let midiAccessRef = null;
 
 /**
  * MIDI State Machine - Centralized state management to prevent race conditions
  * and ensure state consistency across all operations.
- * 
- * States:
- * - UNINITIALIZED: initMidi() has not been called
- * - INITIALIZED: initMidi() called, midiAccessRef acquired, listeners set up
- * - CONNECTING: connectToLaunchpad() in progress
- * - CONNECTED: Launchpad device is connected and ready
- * - SUSPENDED: Page visibility hidden (auto-disconnects to release MIDI resources)
- * - DISPOSED: disposeMidi() called, cleaning up
  */
 const MIDI_STATE = {
     UNINITIALIZED: 'UNINITIALIZED',
@@ -55,6 +40,14 @@ let visibilityUnsubscribe = null; // Store visibility change unsubscribe functio
 let hardwareLayoutListener = null; // Store hardware layout listener reference for cleanup
 
 export let isMidiConnected = false;
+
+/**
+ * Gets the currently active device profile.
+ * @returns {import('./midi-profiles/DeviceProfile.js').DeviceProfile|null}
+ */
+export function getActiveDeviceProfile() {
+    return activeProfile;
+}
 
 /**
  * Safely transitions to a new state, validating transitions and updating related flags.
@@ -86,7 +79,7 @@ function setMidiState(newState) {
 }
 
 /**
- * Updates the MIDI connection status indicator.
+ * Updates the MIDI connection status indicator in the UI.
  * @param {boolean} isConnected - True if Launchpad is connected, false otherwise.
  */
 function updateMidiStatus(isConnected) {
@@ -113,77 +106,64 @@ function updateMidiStatus(isConnected) {
 }
 
 /**
- * Sets up event handlers for the Launchpad using the library.
- * Only called once when transitioning to CONNECTED state.
+ * Sets up incoming MIDI message handler on the active DeviceProfile's input port.
  */
 function setupLaunchpadEvents() {
-    if (!launchpad) return;
+    if (!activeProfile || !activeProfile.midiIn) return;
 
-    // Handler for key events (press and release)
-    launchpad.on('key', (event) => {
-        const { x, y, pressed } = event;
+    activeProfile.midiIn.onmidimessage = (event) => {
+        const parsed = activeProfile.parseMessage(event.data);
+        if (!parsed) return;
 
-        // Side buttons (Scene) have x=SCENE_BUTTONS_X
+        const { x, y, pressed } = parsed;
+
+        // Side buttons (Scene / Pages) have x=SCENE_BUTTONS_X
         if (x === SCENE_BUTTONS_X && y < LAUNCHPAD_ROWS) {
-            // Page change - only on press
             if (pressed) {
-                const pageIndex = y;
-                changeSoundSet(pageIndex);
+                changeSoundSet(y);
             }
         } else if (x < LAUNCHPAD_COLS && y < LAUNCHPAD_ROWS) {
-            // Main grid pads (excluding Automap buttons which have y=AUTOMAP_BUTTONS_Y)
+            // Main playable 8x8 grid pads
             const padIndex = y * LAUNCHPAD_COLS + x;
-
             if (pressed) {
-                // Trigger sound and light on press
                 triggerPad(padIndex);
             } else {
-                // Stop sound and light on release
                 releasePad(padIndex);
             }
-        }
-        // Handler for top automap buttons (y=AUTOMAP_BUTTONS_Y)
-        else if (y === AUTOMAP_BUTTONS_Y && x < LAUNCHPAD_COLS) {
-            // Mode change - only on press
+        } else if (y === AUTOMAP_BUTTONS_Y && x < LAUNCHPAD_COLS) {
+            // Top Automap / Mode buttons
             if (pressed) {
-                const modeIndex = x;
-                changeMode(modeIndex);
+                changeMode(x);
             }
         }
-    });
+    };
 }
 
-function getLayoutCodeFromMode(modeIndex) {
-    if (modeIndex === 4 || modeIndex === 7) return 0x00;
-    if (modeIndex === 5) return 0x01;
-    if (modeIndex === 6) return 0x02;
-    return 0x01;
-}
-
+/**
+ * Handles layout changes for controllers supporting hardware layout switching (e.g. User 1 mode).
+ * @param {CustomEvent} event
+ */
 function handleHardwareLayoutChange(event) {
     const modeIndex = event?.detail?.mode;
     if (modeIndex === undefined || modeIndex === null) return;
-    if (!launchpad || !launchpad.midiOut) return;
+    if (!activeProfile) return;
 
-    const layoutCode = getLayoutCodeFromMode(modeIndex);
-    try {
-        launchpad.sendRaw([0xb0, 0x00, layoutCode]);
-        console.log(`[MIDI] Hardware layout switched to ${layoutCode} (Mode ${modeIndex})`);
-    } catch (e) {
-        console.warn("[MIDI] Failed to change hardware layout:", e);
+    if (typeof activeProfile.setLayout === 'function') {
+        try {
+            activeProfile.setLayout(modeIndex);
+            console.log(`[MIDI] Hardware layout switched for mode ${modeIndex}`);
+        } catch (e) {
+            console.warn("[MIDI] Failed to change hardware layout:", e);
+        }
     }
 }
 
 /**
- * Clears Launchpad instance and its event handlers.
- * Called whenever we need to reset the device state.
+ * Resets active controller event handlers.
  */
 function resetLaunchpadState() {
-    if (launchpad && launchpad.observers) {
-        launchpad.observers = {};
-    }
-    if (launchpad && launchpad.midiIn) {
-        launchpad.midiIn.onmidimessage = null;
+    if (activeProfile && activeProfile.midiIn) {
+        activeProfile.midiIn.onmidimessage = null;
     }
 }
 
@@ -213,30 +193,30 @@ async function connectToLaunchpad() {
     setMidiState(MIDI_STATE.CONNECTING);
 
     try {
-        // Check if library is available
-        if (!Launchpad) {
-            throw new Error("launchpad-webmidi library not loaded correctly");
+        if (!midiAccessRef) {
+            throw new Error("Web MIDI API access not available");
         }
 
-        const input = findPort(midiAccessRef.inputs.values());
-        const output = findPort(midiAccessRef.outputs.values());
+        const { input, output, deviceName } = ProfileRegistry.findLaunchpadPorts(
+            midiAccessRef.inputs.values(),
+            midiAccessRef.outputs.values()
+        );
 
         if (!input || !output) {
             console.log("[MIDI] No Launchpad found during scan.");
-            // Return to INITIALIZED state if connection fails
             setMidiState(MIDI_STATE.INITIALIZED);
             updateMidiStatus(false);
             return;
         }
 
-        // Connect to Launchpad
+        // Initialize active profile
         resetLaunchpadState();
-        launchpad = new Launchpad();
-        launchpad.attach(input, output);
+        activeProfile = ProfileRegistry.getProfile(deviceName, output, input);
+        await activeProfile.initialize();
 
-        // If connection is successful, assign it to the main variable
-        setLaunchpadInstance(launchpad);
-        console.log(`[MIDI] ${launchpad.name || ''} connected`);
+        // Connect physical interface system
+        setDeviceProfile(activeProfile);
+        console.log(`[MIDI] ${activeProfile.name} connected`);
 
         // Transition to CONNECTED state
         setMidiState(MIDI_STATE.CONNECTED);
@@ -249,7 +229,6 @@ async function connectToLaunchpad() {
         setupLaunchpadEvents();
 
         // Always sync the current mode and hardware layout immediately
-        // This forces the hardware into the correct layout (e.g. User 1)
         const state = getProjectStateSnapshot();
         if (state.mode !== null) {
             console.log(`[MIDI] Initial hardware layout sync to mode ${state.mode}`);
@@ -257,7 +236,6 @@ async function connectToLaunchpad() {
         }
 
         // Refresh physical lights for the current page
-        // Wait briefly for project to be ready if it's loading, but don't block forever
         console.log("[MIDI] Syncing project lights for connected Launchpad...");
         if (!isProjectReady()) {
             console.log("[MIDI] Project not yet ready, waiting up to 3 seconds...");
@@ -269,28 +247,17 @@ async function connectToLaunchpad() {
         
         // Sync project lights if available
         if (isProjectReady()) {
-            const state = getProjectStateSnapshot();
-            console.log(`[MIDI] Syncing to page ${state.page}`);
-            changeSoundSet(state.page, true);   // Force visual update (lights)
+            const currentState = getProjectStateSnapshot();
+            console.log(`[MIDI] Syncing to page ${currentState.page}`);
+            changeSoundSet(currentState.page, true);
         }
 
     } catch (error) {
         console.error("[MIDI] Connection error:", error);
         updateMidiStatus(false);
-        // Return to INITIALIZED state on error
         setMidiState(MIDI_STATE.INITIALIZED);
     }
 }
-
-function findPort(iterator) {
-    let item = iterator.next();
-    while (!item.done) {
-        if (item.value.name.includes('Launchpad')) return item.value;
-        item = iterator.next();
-    }
-    return null;
-}
-
 
 /**
  * Initializes the MIDI system and sets up hot-plugging.
@@ -312,22 +279,25 @@ export async function initMidi() {
     initializingPromise = (async () => {
         console.log("[MIDI] Initializing MIDI system...");
         try {
-            // Request MIDI access from the browser
-            midiAccessRef = await navigator.requestMIDIAccess();
-            console.log("[MIDI] Web MIDI API access granted.");
+            // Request MIDI access with SysEx capability for RGB Programmer Mode
+            try {
+                midiAccessRef = await navigator.requestMIDIAccess({ sysex: true });
+                console.log("[MIDI] Web MIDI API access granted (SysEx enabled).");
+            } catch (_) {
+                midiAccessRef = await navigator.requestMIDIAccess({ sysex: false });
+                console.log("[MIDI] Web MIDI API access granted (standard mode).");
+            }
 
             // Transition to INITIALIZED state
             setMidiState(MIDI_STATE.INITIALIZED);
 
             // Set up the handler for device state changes (hot-plugging)
             midiAccessRef.onstatechange = (event) => {
-                // A port change can trigger multiple times (once for input, once for output)
-                // Only one of them is processed to avoid duplicate notifications
                 if (event.port.type !== 'input') return;
 
                 console.log(`[MIDI] Port state change: ${event.port.name}, ${event.port.state}`);
 
-                const isLaunchpad = event.port.name.includes('Launchpad');
+                const isLaunchpad = (event.port.name || '').toLowerCase().includes('launchpad');
 
                 if (event.port.state === 'disconnected' && isLaunchpad) {
                     console.log("[MIDI] Launchpad disconnected via onstatechange.");
@@ -335,7 +305,6 @@ export async function initMidi() {
                     showNotification(getTranslation('midi.status.disconnected'), 'error');
                     disposeMidi({ releaseAccess: false });
                 } else if (event.port.state === 'connected' && isLaunchpad) {
-                    // Only attempt connection if not already connecting/connected
                     if (midiState !== MIDI_STATE.CONNECTING && midiState !== MIDI_STATE.CONNECTED) {
                         console.log(`[MIDI] New Launchpad detected: ${event.port.name}`);
                         connectToLaunchpad();
@@ -350,19 +319,15 @@ export async function initMidi() {
             if (hardwareLayoutListener) {
                 removeListener(window, 'midi:setHardwareLayout', hardwareLayoutListener);
             }
-            // Store listener reference for cleanup
             hardwareLayoutListener = handleHardwareLayoutChange;
             registerListener(window, 'midi:setHardwareLayout', hardwareLayoutListener);
 
             // Clean up previous visibility callback before registering a new one
-            // This prevents callback accumulation in the Set
             if (visibilityUnsubscribe) {
                 visibilityUnsubscribe();
             }
 
-            // Handle visibility change (e.g., browser minimized/restored)
-            // When page is hidden: fully dispose MIDI to avoid stale references
-            // When page is visible: reinitialize MIDI from scratch for robustness
+            // Handle visibility change (e.g. browser minimized/restored)
             visibilityUnsubscribe = onVisibilityChange((isVisible) => {
                 if (!isVisible) {
                     console.log("[MIDI] Page hidden, fully disposing MIDI system...");
@@ -371,8 +336,6 @@ export async function initMidi() {
                 }
 
                 console.log("[MIDI] Page visible, reinitializing MIDI system...");
-                // If MIDI was disposed or uninitialized, reinitialize from scratch
-                // This ensures midiAccessRef is fresh and avoids stale references
                 if (midiState === MIDI_STATE.UNINITIALIZED || midiState === MIDI_STATE.DISPOSED) {
                     setTimeout(() => {
                         console.log("[MIDI] Attempting full MIDI reinitialization...");
@@ -385,7 +348,6 @@ export async function initMidi() {
             console.error("[MIDI] Web MIDI API not supported or access denied.", error);
             updateMidiStatus(false);
             showNotification(getTranslation('midi.notSupported'), 'error');
-            // Keep state as UNINITIALIZED so user can retry
             throw error;
         } finally {
             initializingPromise = null;
@@ -397,11 +359,10 @@ export async function initMidi() {
 
 /**
  * Cleanly disposes of the MIDI system and disconnects the Launchpad.
- * @param {Object} options - Configuration options
- * @param {boolean} options.releaseAccess - If true, releases midiAccessRef and removes listeners
+ * @param {Object} options
+ * @param {boolean} [options.releaseAccess=false]
  */
 export async function disposeMidi({ releaseAccess = false } = {}) {
-    // Prevent concurrent dispose calls
     if (midiState === MIDI_STATE.DISPOSED) {
         console.log("[MIDI] Already disposed");
         return;
@@ -410,27 +371,18 @@ export async function disposeMidi({ releaseAccess = false } = {}) {
     console.log("[MIDI] Disposing MIDI system...");
     setMidiState(MIDI_STATE.DISPOSED);
 
-    // Do NOT unsubscribe from visibility changes here!
-    // The callback must remain registered so initMidi() can be called
-    // when the page becomes visible again.
-    // The callback itself will check midiState and skip dispose if already DISPOSED.
-
     try {
-        if (launchpad) {
+        if (activeProfile) {
             resetLaunchpadState();
-            try {
-                launchpad.reset(0);
-            } catch (e) {
-                // Reset may fail if device is unplugged, ignore
-            }
-            launchpad = null;
+            await activeProfile.dispose();
+            activeProfile = null;
+            setDeviceProfile(null);
             updateMidiStatus(false);
         }
 
         if (releaseAccess && midiAccessRef) {
             midiAccessRef.onstatechange = null;
             midiAccessRef = null;
-            // Return to uninitialized state when fully disposed
             setMidiState(MIDI_STATE.UNINITIALIZED);
         }
     } catch (e) {
