@@ -132,48 +132,19 @@ self.addEventListener('fetch', event => {
     const { request } = event;
     const url = new URL(request.url);
 
-    // Inietta Permissions-Policy header nelle risposte di navigazione (HTML)
+    // NAVIGATION REQUESTS (HTML): Network-first with offline App Shell fallback
     if (request.mode === 'navigate') {
         event.respondWith(
             fetch(request)
-                .then(response => {
-                    const headers = new Headers(response.headers);
-                    headers.set('Permissions-Policy', 'midi=(self)');
-                    // Rimuoviamo Feature-Policy perché obsoleto e causa warning se usato con Permissions-Policy
-                    
-                    // Clona la risposta originale *prima* di usarne il body
-                    const responseToCache = response.clone();
-                    
-                    const newResponse = new Response(response.body, {
-                        status: response.status,
-                        statusText: response.statusText,
-                        headers
+                .then(networkResponse => {
+                    return caches.open(CACHE_NAME).then(cache => {
+                        cache.put(request, networkResponse.clone());
+                        return networkResponse;
                     });
-                    
-                    // Crea un'altra risposta con gli header modificati da mettere in cache
-                    const responseForCache = new Response(responseToCache.body, {
-                        status: responseToCache.status,
-                        statusText: responseToCache.statusText,
-                        headers
-                    });
-
-                    // Aggiorna la cache con la risposta che include i nuovi header
-                    caches.open(CACHE_NAME).then(cache => cache.put(request, responseForCache));
-                    return newResponse;
                 })
                 .catch(async () => {
                     const cached = await caches.match(request);
-                    if (cached) {
-                        const clonedCached = cached.clone();
-                        // Ricostruisci la risposta cached con i nuovi header
-                        const headers = new Headers(clonedCached.headers);
-                        headers.set('Permissions-Policy', 'midi=(self)');
-                        return new Response(clonedCached.body, {
-                            status: clonedCached.status,
-                            statusText: clonedCached.statusText,
-                            headers
-                        });
-                    }
+                    return cached || caches.match(`${basePath}index.html`);
                 })
         );
         return;
