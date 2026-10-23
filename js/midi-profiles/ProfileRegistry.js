@@ -8,6 +8,15 @@
 import { LaunchpadLegacy } from './LaunchpadLegacy.js';
 import { LaunchpadRGB } from './LaunchpadRGB.js';
 
+/**
+ * Checks whether a (lower-cased) device name identifies a Mk3-generation device.
+ * @param {string} name
+ * @returns {boolean}
+ */
+function isMk3Name(name) {
+    return name.includes('mk3') || name.includes('mk 3') || name.includes('lpminimk3');
+}
+
 export class ProfileRegistry {
     /**
      * Finds and pairs the best input and output ports for a Launchpad.
@@ -61,7 +70,7 @@ export class ProfileRegistry {
 
         // Mini Mk1 and Mini Mk2 are Legacy bicolor! Only Mini Mk3 is RGB.
         const isMini = name.includes('mini');
-        const isMk3OrNewer = name.includes('mk3') || name.includes('mk 3') || name.includes('lpminimk3');
+        const isMk3OrNewer = isMk3Name(name);
         if (isMini && !isMk3OrNewer) {
             return new LaunchpadLegacy(outputPort, inputPort, portName);
         }
@@ -79,5 +88,22 @@ export class ProfileRegistry {
 
         // Default: Legacy Launchpad (Mk1, S, Classic)
         return new LaunchpadLegacy(outputPort, inputPort, portName);
+    }
+
+    /**
+     * Determines the physical layout/view model type for a device name.
+     * @param {string} portName
+     * @returns {'classic' | 'mk3' | 'pro' | 'pro-mk3'}
+     */
+    static getModelType(portName) {
+        const name = (portName || '').toLowerCase();
+        if (name.includes('pro')) {
+            return isMk3Name(name) ? 'pro-mk3' : 'pro';
+        }
+        // 'Launchpad X' reports as plain "Launchpad X", so fall back to the letter check.
+        if (isMk3Name(name) || (name.includes('launchpad') && name.includes('x'))) {
+            return 'mk3';
+        }
+        return 'classic';
     }
 }

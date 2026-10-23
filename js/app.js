@@ -17,6 +17,7 @@ import { stopAnimationLoop, startAnimationLoop } from './lights.js';
 import { setVisualizer } from './visualizerManager.js';
 import { registerListener, cleanup, removeListener } from './eventCleanup.js';
 import { initVisibilityManager, onVisibilityChange } from './visibilityManager.js';
+import { initLaunchpadView } from './launchpadView.js';
 
 // ----------------------------------------------------------------------------
 // APPLICATION GLOBAL STATE
@@ -93,6 +94,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     // --- 1. Interaction Setup ---
     initInteraction();
     bindStaticUIEvents();  // Bind all sidebar/menu listeners (replaces onclick HTML attributes)
+    initLaunchpadView();    // Initialize virtual Launchpad model layout and preference
 
     let creatorModulePromise = null;
     const loadProjectCreator = () => {

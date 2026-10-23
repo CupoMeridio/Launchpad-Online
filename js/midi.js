@@ -16,6 +16,7 @@ import { registerListener, cleanup, removeListener } from './eventCleanup.js';
 import { onVisibilityChange } from './visibilityManager.js';
 import { isProjectReady, waitForProjectReady } from './projectLoadingState.js';
 import { SCENE_BUTTONS_X, AUTOMAP_BUTTONS_Y, LAUNCHPAD_COLS, LAUNCHPAD_ROWS } from './constants.js';
+import { setDetectedHardwareModel } from './launchpadView.js';
 
 // Active DeviceProfile and MIDI Access instances
 let activeProfile = null;
@@ -216,6 +217,7 @@ async function connectToLaunchpad() {
 
         // Connect physical interface system
         setDeviceProfile(activeProfile);
+        setDetectedHardwareModel(ProfileRegistry.getModelType(deviceName));
         console.log(`[MIDI] ${activeProfile.name} connected`);
 
         // Transition to CONNECTED state
@@ -377,6 +379,7 @@ export async function disposeMidi({ releaseAccess = false } = {}) {
             await activeProfile.dispose();
             activeProfile = null;
             setDeviceProfile(null);
+            setDetectedHardwareModel(null);
             updateMidiStatus(false);
         }
 

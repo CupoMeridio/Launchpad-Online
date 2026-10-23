@@ -41,6 +41,13 @@ export const webColorMap = {
 let cachedPads = null;
 
 /**
+ * Clears the cached pad DOM elements so that subsequent queries re-read the DOM.
+ */
+export function invalidatePadCache() {
+    cachedPads = null;
+}
+
+/**
  * Initializes the pad cache for the web UI.
  */
 function ensurePadCache() {
@@ -91,6 +98,18 @@ export function updatePageButtonHighlight(pageIndex) {
     const sidePageButtons = document.querySelectorAll('#Launchpad .grid-item-menu[data-page]');
     sidePageButtons.forEach((btn, i) => {
         btn.classList.toggle('selected', i === pageIndex);
+    });
+}
+
+/**
+ * Updates the visual selection state of the mode buttons on the Launchpad.
+ * @param {number} modeIndex
+ */
+export function updateModeButtonHighlight(modeIndex) {
+    const modeButtons = document.querySelectorAll('#Launchpad .grid-item-menu[data-mode]');
+    modeButtons.forEach((btn) => {
+        const btnMode = parseInt(btn.dataset.mode, 10);
+        btn.classList.toggle('selected', btnMode === modeIndex);
     });
 }
 

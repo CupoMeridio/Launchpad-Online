@@ -58,6 +58,16 @@ test('ProfileRegistry resolves Legacy vs RGB profile based on device name', () =
     const proDevice = ProfileRegistry.getProfile('Launchpad Pro MK3', null, null);
     assert.ok(proDevice instanceof LaunchpadRGB);
     assert.equal(proDevice.isPro, true);
+
+    // Test getModelType classification
+    assert.equal(ProfileRegistry.getModelType('Launchpad S'), 'classic');
+    assert.equal(ProfileRegistry.getModelType('Launchpad Mini'), 'classic');
+    assert.equal(ProfileRegistry.getModelType('Launchpad Mini MK2'), 'classic');
+    assert.equal(ProfileRegistry.getModelType('Launchpad MK2'), 'classic');
+    assert.equal(ProfileRegistry.getModelType('Launchpad Mini MK3 MIDI'), 'mk3');
+    assert.equal(ProfileRegistry.getModelType('Launchpad X LPX MIDI'), 'mk3');
+    assert.equal(ProfileRegistry.getModelType('Launchpad Pro'), 'pro');
+    assert.equal(ProfileRegistry.getModelType('Launchpad Pro MK3'), 'pro-mk3');
 });
 
 test('LaunchpadLegacy maps notes, CCs and colors accurately', () => {

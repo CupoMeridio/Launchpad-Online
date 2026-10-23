@@ -5,8 +5,8 @@ import { animations, releaseAnimation, triggerAnimation } from './lights.js';
 import { resolveLightDuration } from './animationData.js';
 import { webColorMap, getPadElement, updatePageButtonHighlight } from './webInterface.js';
 import { audioEngine } from './audio.js';
-import { setPadSource, updatePhysicalPageLights, syncPerformancePageButtons } from './interaction.js';
-import { currentPage } from './app.js';
+import { setPadSource, updatePhysicalPageLights, syncPerformancePageButtons, syncPerformanceModeButtons } from './interaction.js';
+import { currentPage, currentMode } from './app.js';
 import { 
     LAUNCHPAD_COLS, 
     LAUNCHPAD_PADS, 
@@ -362,6 +362,7 @@ export function forceCloseCreator() {
 
     // Restore performance page visuals and physical lights
     syncPerformancePageButtons(currentPage);
+    syncPerformanceModeButtons(currentMode);
 }
 
 export function closeCreator() {

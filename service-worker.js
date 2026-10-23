@@ -18,7 +18,7 @@
 // CUSTOMIZATION: When you make changes to App Shell files, update this timestamp.
 // This invalidates the old cache and forces the Service Worker to download new files.
 // Example: 'launchpad-pwa-cache-2026-03-21-1430' → update to → 'launchpad-pwa-cache-2026-03-21-1505'
-const CACHE_NAME = 'launchpad-pwa-cache-2026-10-22-2145';
+const CACHE_NAME = 'launchpad-pwa-cache-2026-10-23-2352';
 
 // Get the base path dynamically to support both local dev and GitHub Pages
 const basePath = self.registration.scope.replace(self.location.origin, '');
@@ -46,6 +46,7 @@ const APP_SHELL_FILES = [
     `${basePath}js/constants.js`,
     `${basePath}js/formControls.js`,
     `${basePath}js/interaction.js`,
+    `${basePath}js/launchpadView.js`,
     `${basePath}js/lights.js`,
     `${basePath}js/midi.js`,
     `${basePath}js/midi-profiles/DeviceProfile.js`,

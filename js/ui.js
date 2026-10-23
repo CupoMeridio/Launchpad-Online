@@ -1,6 +1,7 @@
 import { updateVideoControlsVisibility } from './video.js';
 import { syncInputSlider } from './formControls.js';
 import { LAUNCHPAD_ROTATION_MIN, LAUNCHPAD_ROTATION_MAX, LAUNCHPAD_SIZE_MIN, LAUNCHPAD_SIZE_MAX } from './constants.js';
+import { setModelPreference } from './launchpadView.js';
 
 export { syncInputSlider };
 
@@ -332,6 +333,21 @@ export function bindStaticUIEvents() {
         btn.addEventListener('click', () => toggleMenu(btn.dataset.menu));
     });
 
+    // Launchpad Model selection dropdown
+    const modelSelect = document.getElementById('launchpad-model-select');
+    if (modelSelect) {
+        modelSelect.addEventListener('change', (e) => {
+            setModelPreference(e.target.value);
+        });
+    }
+
+    // Preserve custom icon when Launchpad model view switches
+    window.addEventListener('launchpad-view-changed', () => {
+        if (currentIconUrl) {
+            setTopRightIconFile(currentIconUrl, currentIconIsVideo);
+        }
+    });
+
     // "Show Stickers" checkbox
     const stickersCheckbox = document.getElementById('toggle-stickers');
     if (stickersCheckbox) {
@@ -417,39 +433,58 @@ export function initializeModeMenu() {
 }
 
 let currentIconUrl = null;
+let currentIconIsVideo = false;
+
+/**
+ * Returns the currently active top-right icon URL, if any.
+ * @returns {string|null}
+ */
+export function getCurrentIconUrl() {
+    return currentIconUrl;
+}
 
 /**
  * Sets the top-right icon from a File object or a URL string.
  * @param {File|string} fileOrUrl - The file object or URL to set as the icon.
+ * @param {boolean|null} [isExplicitVideo=null] - Optional override if known to be a video.
  * @returns {Promise<void>}
  */
-export function setTopRightIconFile(fileOrUrl) {
-    const container = document.getElementById('image-container');
-    if (!container || !fileOrUrl) return Promise.resolve();
+export function setTopRightIconFile(fileOrUrl, isExplicitVideo = null) {
+    if (!fileOrUrl) return Promise.resolve();
 
-    if (currentIconUrl && currentIconUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(currentIconUrl);
-    }
+    let url;
+    let isVideo = isExplicitVideo !== null ? isExplicitVideo : false;
 
-    return new Promise((resolve) => {
-        let url;
-        let isVideo = false;
-
-        if (typeof fileOrUrl === 'string') {
-            url = fileOrUrl;
+    if (typeof fileOrUrl === 'string') {
+        url = fileOrUrl;
+        if (isExplicitVideo === null) {
             // Check extension for video
             const ext = url.split('.').pop().toLowerCase();
             if (['mp4', 'webm', 'ogg'].includes(ext)) {
                 isVideo = true;
             }
-        } else {
-            url = URL.createObjectURL(fileOrUrl);
-            currentIconUrl = url;
-            if (fileOrUrl.type.startsWith('video/')) {
-                isVideo = true;
-            }
         }
+    } else {
+        url = URL.createObjectURL(fileOrUrl);
+        if (fileOrUrl.type.startsWith('video/')) {
+            isVideo = true;
+        }
+    }
 
+    const previousIconUrl = currentIconUrl;
+    currentIconUrl = url;
+    currentIconIsVideo = isVideo;
+
+    // Release the previous blob URL only when it is actually replaced,
+    // so re-applying the same icon (e.g. after a view re-render) keeps working.
+    if (previousIconUrl && previousIconUrl.startsWith('blob:') && previousIconUrl !== url) {
+        URL.revokeObjectURL(previousIconUrl);
+    }
+
+    const container = document.getElementById('image-container');
+    if (!container) return Promise.resolve();
+
+    return new Promise((resolve) => {
         let el;
         if (isVideo) {
             el = document.createElement('video');
@@ -483,14 +518,16 @@ export function setTopRightIconFile(fileOrUrl) {
  * @returns {Promise<void>}
  */
 export function resetTopRightIcon() {
-    const container = document.getElementById('image-container');
-    if (!container) return Promise.resolve();
     if (currentIconUrl && currentIconUrl.startsWith('blob:')) {
         URL.revokeObjectURL(currentIconUrl);
     }
     currentIconUrl = null;
+    currentIconIsVideo = false;
     const input = document.getElementById('logo-file-input');
     if (input) input.value = '';
+
+    const container = document.getElementById('image-container');
+    if (!container) return Promise.resolve();
 
     return new Promise((resolve) => {
         const img = document.createElement('img');

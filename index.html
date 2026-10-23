@@ -356,6 +356,18 @@
             data-i18n="menu.launchpad.toggle">Personalize Launchpad</button>
           <div class="menu-dropdown" id="personalize-launchpad-menu">
             <div class="control-group">
+              <label for="launchpad-model-select" data-i18n="launchpad.model.label">Modello Launchpad</label>
+              <div class="input-group">
+                <select id="launchpad-model-select">
+                  <option value="auto" data-i18n="launchpad.model.auto">Automatico (da MIDI)</option>
+                  <option value="classic" data-i18n="launchpad.model.classic">Launchpad Classic / MK2</option>
+                  <option value="mk3" data-i18n="launchpad.model.mk3">Launchpad MK3 / X</option>
+                  <option value="pro" data-i18n="launchpad.model.pro">Launchpad Pro (2015)</option>
+                  <option value="pro-mk3" data-i18n="launchpad.model.proMk3">Launchpad Pro MK3</option>
+                </select>
+              </div>
+            </div>
+            <div class="control-group">
               <label for="toggle-stickers">
                 <input type="checkbox" id="toggle-stickers">
                 <span data-i18n="launchpad.stickers.show">Mostra Adesivi</span>
@@ -427,153 +439,10 @@
         <div class="Launchpad" id="Launchpad">
 
           <!--
-            DECORATIVE ELEMENTS OF THE LAUNCHPAD
-            These elements (triangles, texts, logo) are purely aesthetic.
-            Their visibility can be controlled via CSS or JavaScript (e.g., 'toggleLaunchpadStickers').
-            - CUSTOMIZATION: You can change images, texts, or styles by
-              editing CSS in 'launchpad.css' or replacing images in 'assets/icons/'.
+            The Launchpad layout (pads, control buttons, decorations, logo) is generated at
+            runtime by js/launchpadView.js (renderLaunchpad), called on DOMContentLoaded.
+            Edit the builders there to change the pads/buttons markup.
           -->
-          <div class="grid-item-triangle"><img src="assets/icons/triangle.png" class="triangolo"></div>
-          <div class="grid-item-triangle"><img style="transform: rotate(180deg);" src="assets/icons/triangle.png"
-              class="triangolo"></div>
-          <div class="grid-item-triangle"><img style="transform: rotate(270deg);" src="assets/icons/triangle.png"
-              class="triangolo"></div>
-          <div class="grid-item-triangle"><img style="transform: rotate(90deg);" src="assets/icons/triangle.png"
-              class="triangolo"></div>
-          <div class="testo_su_launchpad">Session</div>
-          <div class="testo_su_launchpad">User 1</div>
-          <div class="testo_su_launchpad">User 2</div>
-          <div class="testo_su_launchpad">Mixer</div>
-          <div id="image-container"><img src="assets/icons/Logo.png" alt="immagine" class="square-image"></div>
-
-          <!--
-            TOP CONTROL BUTTONS (Row 'a')
-            These buttons are currently empty with no associated functions.
-            They may be used in the future for global functions.
-          -->
-          <div id="a1" class="grid-item-menu"></div>
-          <div id="a2" class="grid-item-menu"></div>
-          <div id="a3" class="grid-item-menu"></div>
-          <div id="a4" class="grid-item-menu"></div>
-          <div id="a5" class="grid-item-menu"></div>
-          <div id="a6" class="grid-item-menu"></div>
-          <div id="a7" class="grid-item-menu"></div>
-          <div id="a8" class="grid-item-menu"></div>
-
-          <!--
-            8x8 PAD GRID (Rows 'b' to 'i')
-            Each pad has:
-            - A unique ID (e.g., "b1", "c2", ...).
-            - The "grid-item" class for styling.
-            - Interaction is handled via event delegation in 'js/interaction.js'.
-              - The 'data-index' attribute is assigned dynamically to identify the pad (0-63).
-            The playback logic is in 'js/audio.js'.
-            The assignment of sounds to pads is defined in the JSON project files (e.g., 'projects/Virtual Riot - Idols.json').
-          -->
-          <div id="b1" class="grid-item"></div>
-          <div id="b2" class="grid-item"></div>
-          <!-- ... other pads from b3 to b8 ... -->
-          <div id="b3" class="grid-item"></div>
-          <div id="b4" class="grid-item"></div>
-          <div id="b5" class="grid-item"></div>
-          <div id="b6" class="grid-item"></div>
-          <div id="b7" class="grid-item"></div>
-          <div id="b8" class="grid-item"></div>
-
-          <!--
-            SIDE CONTROL BUTTONS (column 'm')
-            These buttons (m1-m8) change the sound "page" or "set".
-            - Interaction is handled via event delegation in 'js/interaction.js'.
-              - The 'data-page' attribute is assigned dynamically to identify the page (0-7).
-            Logic is handled in 'js/app.js' and 'js/audio.js'.
-            The texts next to these buttons (Volume, Pan, etc.) are purely decorative.
-          -->
-          <div id="m1" class="grid-item-menu"></div>
-          <div class="testo_su_launchpad">Volume</div>
-
-          <div id="c1" class="grid-item"></div>
-          <div id="c2" class="grid-item"></div>
-          <div id="c3" class="grid-item"></div>
-          <div id="c4" class="grid-item"></div>
-          <div id="c5" class="grid-item"></div>
-          <div id="c6" class="grid-item"></div>
-          <div id="c7" class="grid-item"></div>
-          <div id="c8" class="grid-item"></div>
-
-          <div id="m2" class="grid-item-menu"></div>
-          <div class="testo_su_launchpad">Pan</div>
-
-          <div id="d1" class="grid-item"></div>
-          <div id="d2" class="grid-item"></div>
-          <div id="d3" class="grid-item"></div>
-          <div id="d4" class="grid-item"></div>
-          <div id="d5" class="grid-item"></div>
-          <div id="d6" class="grid-item"></div>
-          <div id="d7" class="grid-item"></div>
-          <div id="d8" class="grid-item"></div>
-
-          <div id="m3" class="grid-item-menu"></div>
-          <div class="testo_su_launchpad">Send A</div>
-
-          <div id="e1" class="grid-item"></div>
-          <div id="e2" class="grid-item"></div>
-          <div id="e3" class="grid-item"></div>
-          <div id="e4" class="grid-item"></div>
-          <div id="e5" class="grid-item"></div>
-          <div id="e6" class="grid-item"></div>
-          <div id="e7" class="grid-item"></div>
-          <div id="e8" class="grid-item"></div>
-
-          <div id="m4" class="grid-item-menu"></div>
-          <div class="testo_su_launchpad">Send B</div>
-
-          <div id="f1" class="grid-item"></div>
-          <div id="f2" class="grid-item"></div>
-          <div id="f3" class="grid-item"></div>
-          <div id="f4" class="grid-item"></div>
-          <div id="f5" class="grid-item"></div>
-          <div id="f6" class="grid-item"></div>
-          <div id="f7" class="grid-item"></div>
-          <div id="f8" class="grid-item"></div>
-
-          <div id="m5" class="grid-item-menu"></div>
-          <div class="testo_su_launchpad">Stop</div>
-
-          <div id="g1" class="grid-item"></div>
-          <div id="g2" class="grid-item"></div>
-          <div id="g3" class="grid-item"></div>
-          <div id="g4" class="grid-item"></div>
-          <div id="g5" class="grid-item"></div>
-          <div id="g6" class="grid-item"></div>
-          <div id="g7" class="grid-item"></div>
-          <div id="g8" class="grid-item"></div>
-
-          <div id="m6" class="grid-item-menu"></div>
-          <div class="testo_su_launchpad">Mute</div>
-
-          <div id="h1" class="grid-item"></div>
-          <div id="h2" class="grid-item"></div>
-          <div id="h3" class="grid-item"></div>
-          <div id="h4" class="grid-item"></div>
-          <div id="h5" class="grid-item"></div>
-          <div id="h6" class="grid-item"></div>
-          <div id="h7" class="grid-item"></div>
-          <div id="h8" class="grid-item"></div>
-
-          <div id="m7" class="grid-item-menu"></div>
-          <div class="testo_su_launchpad">Solo</div>
-
-          <div id="i1" class="grid-item"></div>
-          <div id="i2" class="grid-item"></div>
-          <div id="i3" class="grid-item"></div>
-          <div id="i4" class="grid-item"></div>
-          <div id="i5" class="grid-item"></div>
-          <div id="i6" class="grid-item"></div>
-          <div id="i7" class="grid-item"></div>
-          <div id="i8" class="grid-item"></div>
-          
-          <div id="m8" class="grid-item-menu"></div>
-          <div class="testo_su_launchpad">Record</div>
         </div>
         <div id="notification-container"></div>
       </main>

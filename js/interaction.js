@@ -1,9 +1,9 @@
 import { audioEngine } from './audio.js';
-import { currentPage, currentProject, projectLights, activePageButton, setCurrentPage, setActivePageButton, activeModeButton, setCurrentMode, setActiveModeButton, getProjectStateSnapshot } from './app.js';
+import { currentPage, currentProject, projectLights, activePageButton, setCurrentPage, setActivePageButton, currentMode, setCurrentMode, setActiveModeButton, getProjectStateSnapshot } from './app.js';
 import { triggerAnimation, releaseAnimation } from './lights.js';
 import { resolveLightDuration } from './animationData.js';
 import { setPhysicalColor, getLpColor, flushPhysicalColors } from './physicalInterface.js';
-import { getPadElement, updatePageButtonHighlight } from './webInterface.js';
+import { getPadElement, updatePageButtonHighlight, updateModeButtonHighlight } from './webInterface.js';
 import { registerListener } from './eventCleanup.js';
 import { isProjectReady } from './projectLoadingState.js';
 import { 
@@ -117,29 +117,6 @@ export function initInteraction() {
     const launchpad = document.getElementById('Launchpad');
     if (!launchpad) return;
 
-    // Initialize pads: set data-index for delegation
-    const pads = launchpad.querySelectorAll('.grid-item');
-    pads.forEach((pad, index) => {
-        pad.dataset.index = index;
-    });
-
-    // Initialize menu buttons: set data-page for side buttons
-    const menuButtons = launchpad.querySelectorAll('.grid-item-menu');
-    menuButtons.forEach(btn => {
-        if (btn.id.startsWith('m')) {
-            btn.dataset.page = parseInt(btn.id.substring(1), 10) - 1;
-        } else if (btn.id.startsWith('a')) {
-            const modeIndex = parseInt(btn.id.substring(1), 10) - 1;
-            // Only assign data-mode to official modes (4-7)
-            if (modeIndex >= FIRST_MODE_INDEX && modeIndex < FIRST_MODE_INDEX + TOTAL_MODES) {
-                btn.dataset.mode = modeIndex;
-            } else {
-                // Tasti 0-3 (Navigation) - Al momento non hanno una funzione specifica
-                btn.classList.add('navigation-button');
-            }
-        }
-    });
-
     // Handle Press (mousedown and touchstart)
     const handlePress = (e) => {
         if (e.type === 'touchstart') {
@@ -183,6 +160,11 @@ export function initInteraction() {
     registerListener(launchpad, 'touchcancel', handleRelease);
 
     registerListener(launchpad, 'mouseout', handleMouseOut);
+
+    registerListener(window, 'launchpad-view-changed', () => {
+        syncPerformancePageButtons();
+        syncPerformanceModeButtons();
+    });
 
     console.log("[Interaction] Interaction listeners initialized");
 }
@@ -300,6 +282,20 @@ export function updatePhysicalModeLights(activeIndex) {
 }
 
 /**
+ * Synchronizes the visual state and physical lights of Launchpad mode buttons
+ * with the active mode.
+ * @param {number} modeIndex
+ */
+export function syncPerformanceModeButtons(modeIndex = currentMode) {
+    if (modeIndex === null || modeIndex === undefined) return;
+    updateModeButtonHighlight(modeIndex);
+    const modeButtons = document.querySelectorAll('#Launchpad .grid-item-menu[data-mode]');
+    const newButton = Array.from(modeButtons).find(btn => parseInt(btn.dataset.mode, 10) === modeIndex);
+    setActiveModeButton(newButton || null);
+    updatePhysicalModeLights(modeIndex);
+}
+
+/**
  * Changes the current Launchpad mode.
  * 
  * IMPORTANT: Modes are HARDWARE-DEPENDENT and FIXED
@@ -332,20 +328,6 @@ export function changeMode(index, updateVisuals = true) {
     }));
 
     if (updateVisuals) {
-        const modeButtons = document.querySelectorAll('.grid-item-menu[data-mode]');
-        if (activeModeButton) {
-            activeModeButton.classList.remove('selected');
-        }
-        
-        // Find the button with the correct data-mode attribute
-        const newButton = Array.from(modeButtons).find(btn => parseInt(btn.dataset.mode, 10) === index);
-        setActiveModeButton(newButton);
-        
-        if (activeModeButton) {
-            activeModeButton.classList.add('selected');
-        }
-
-        // Update physical Launchpad lights
-        updatePhysicalModeLights(index);
+        syncPerformanceModeButtons(index);
     }
 }
