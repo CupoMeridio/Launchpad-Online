@@ -4,6 +4,7 @@ import {
     buildProjectExport, 
     createProjectId, 
     createProjectPage, 
+    createDraft,
     isDraftDirty, 
     buildDraftFromProject 
 } from '../js/projectCreatorModel.js';
@@ -64,21 +65,27 @@ test('resolves synchronized and manual light durations', () => {
     assert.equal(resolveLightDuration(true, Number.NaN, 2.5), 2.5);
 });
 
-test('isDraftDirty correctly detects modified or untouched drafts', () => {
+test('createDraft initializes draft and isDraftDirty detects modified or untouched drafts', () => {
     assert.equal(isDraftDirty(null), false);
-    assert.equal(isDraftDirty({ name: '', pages: [createProjectPage(1)] }), false);
-    assert.equal(isDraftDirty({ name: '   ', pages: [createProjectPage(1)] }), false);
 
-    assert.equal(isDraftDirty({ name: 'New Beat', pages: [createProjectPage(1)] }), true);
-    assert.equal(isDraftDirty({ name: '', pages: [createProjectPage(1), createProjectPage(2)] }), true);
+    const freshDraft = createDraft();
+    assert.equal(freshDraft.name, '');
+    assert.equal(freshDraft.pages.length, 1);
+    assert.equal(freshDraft.changeCount, 0);
+    assert.equal(freshDraft.savedChangeCount, 0);
+    assert.equal(isDraftDirty(freshDraft), false);
 
-    const pageWithSample = createProjectPage(1);
-    pageWithSample.samples[5] = { name: 'clap.wav' };
-    assert.equal(isDraftDirty({ name: '', pages: [pageWithSample] }), true);
+    // Increment change count -> dirty
+    freshDraft.changeCount++;
+    assert.equal(isDraftDirty(freshDraft), true);
 
-    const pageWithLight = createProjectPage(1);
-    pageWithLight.lights[12] = 'fade_amber';
-    assert.equal(isDraftDirty({ name: '', pages: [pageWithLight] }), true);
+    // Save changes (sync change counts) -> clean
+    freshDraft.savedChangeCount = freshDraft.changeCount;
+    assert.equal(isDraftDirty(freshDraft), false);
+
+    // Explicit custom drafts
+    assert.equal(isDraftDirty({ changeCount: 5, savedChangeCount: 5 }), false);
+    assert.equal(isDraftDirty({ changeCount: 6, savedChangeCount: 5 }), true);
 });
 
 test('buildDraftFromProject reconstructs editor draft from project schema and file map', () => {
@@ -92,19 +99,28 @@ test('buildDraftFromProject reconstructs editor draft from project schema and fi
                 lights: ['wave_green', ...new Array(63).fill('')],
                 lightSyncToSound: [false, ...new Array(63).fill(true)],
                 lightDurations: [4.2, ...new Array(63).fill(2.5)]
+            },
+            {
+                name: 'Page 2',
+                sounds: ['samples/page-2/pad-01.wav', ...new Array(63).fill('')],
+                lights: new Array(64).fill(''),
+                lightSyncToSound: new Array(64).fill(true),
+                lightDurations: new Array(64).fill(2.5)
             }
         ]
     };
 
+    // Notice: only page-1 has pad-01.wav. page-2/pad-01.wav is missing!
     const fileMap = new Map([
         ['samples/page-1/pad-01.wav', { name: 'pad-01.wav', size: 100 }]
     ]);
 
     const draft = buildDraftFromProject(project, fileMap);
     assert.equal(draft.name, 'Test Project');
-    assert.equal(draft.pages.length, 1);
+    assert.equal(draft.pages.length, 2);
     assert.equal(draft.pages[0].samples[0]?.name, 'pad-01.wav');
-    assert.equal(draft.pages[0].samples[1], null);
+    // Page 2 must NOT fall back to page 1's pad-01.wav!
+    assert.equal(draft.pages[1].samples[0], null, 'Missing sample in page 2 must not fall back to page 1 sample');
     assert.equal(draft.pages[0].lights[0], 'wave_green');
     assert.equal(draft.pages[0].lightSyncToSound[0], false);
     assert.equal(draft.pages[0].lightDurations[0], 4.2);

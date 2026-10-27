@@ -20,29 +20,7 @@ export function setDeviceProfile(profile) {
     pendingUpdates.clear();
 }
 
-/**
- * Backward compatibility alias for setDeviceProfile.
- * @param {object|null} profile
- */
-export function setLaunchpadInstance(profile) {
-    setDeviceProfile(profile);
-}
 
-/**
- * Gets the current active device profile.
- * @returns {import('./midi-profiles/DeviceProfile.js').DeviceProfile|null}
- */
-export function getDeviceProfile() {
-    return activeProfile;
-}
-
-/**
- * Backward compatibility alias for getDeviceProfile.
- * @returns {object|null}
- */
-export function getLaunchpad() {
-    return activeProfile;
-}
 
 /**
  * Sets color on the physical Launchpad using a batching system.

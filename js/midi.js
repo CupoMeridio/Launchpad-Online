@@ -7,7 +7,7 @@
  * without third-party dependencies.
  */
 
-import { ProfileRegistry } from './midi-profiles/ProfileRegistry.js';
+import { ProfileRegistry, detectModel } from './midi-profiles/ProfileRegistry.js';
 import { getTranslation, showNotification } from './ui.js';
 import { setDeviceProfile } from './physicalInterface.js';
 import { triggerPad, releasePad, changeSoundSet, changeMode } from './interaction.js';
@@ -60,7 +60,7 @@ function setMidiState(newState) {
         [MIDI_STATE.UNINITIALIZED]: [MIDI_STATE.INITIALIZED, MIDI_STATE.DISPOSED],
         [MIDI_STATE.INITIALIZED]: [MIDI_STATE.CONNECTING, MIDI_STATE.SUSPENDED, MIDI_STATE.DISPOSED, MIDI_STATE.INITIALIZED],
         [MIDI_STATE.CONNECTING]: [MIDI_STATE.CONNECTED, MIDI_STATE.INITIALIZED, MIDI_STATE.SUSPENDED, MIDI_STATE.DISPOSED],
-        [MIDI_STATE.CONNECTED]: [MIDI_STATE.SUSPENDED, MIDI_STATE.CONNECTING, MIDI_STATE.DISPOSED],
+        [MIDI_STATE.CONNECTED]: [MIDI_STATE.SUSPENDED, MIDI_STATE.CONNECTING, MIDI_STATE.DISPOSED, MIDI_STATE.INITIALIZED],
         [MIDI_STATE.SUSPENDED]: [MIDI_STATE.CONNECTING, MIDI_STATE.INITIALIZED, MIDI_STATE.DISPOSED],
         [MIDI_STATE.DISPOSED]: [MIDI_STATE.UNINITIALIZED]
     }[midiState] || [];
@@ -299,14 +299,14 @@ export async function initMidi() {
 
                 console.log(`[MIDI] Port state change: ${event.port.name}, ${event.port.state}`);
 
-                const isLaunchpad = (event.port.name || '').toLowerCase().includes('launchpad');
+                const modelInfo = detectModel(event.port.name);
 
-                if (event.port.state === 'disconnected' && isLaunchpad) {
+                if (event.port.state === 'disconnected' && modelInfo.isLaunchpad) {
                     console.log("[MIDI] Launchpad disconnected via onstatechange.");
                     updateMidiStatus(false);
                     showNotification(getTranslation('midi.status.disconnected'), 'error');
                     disposeMidi({ releaseAccess: false });
-                } else if (event.port.state === 'connected' && isLaunchpad) {
+                } else if (event.port.state === 'connected' && modelInfo.isLaunchpad) {
                     if (midiState !== MIDI_STATE.CONNECTING && midiState !== MIDI_STATE.CONNECTED) {
                         console.log(`[MIDI] New Launchpad detected: ${event.port.name}`);
                         connectToLaunchpad();
@@ -371,7 +371,6 @@ export async function disposeMidi({ releaseAccess = false } = {}) {
     }
 
     console.log("[MIDI] Disposing MIDI system...");
-    setMidiState(MIDI_STATE.DISPOSED);
 
     try {
         if (activeProfile) {
@@ -383,10 +382,16 @@ export async function disposeMidi({ releaseAccess = false } = {}) {
             updateMidiStatus(false);
         }
 
-        if (releaseAccess && midiAccessRef) {
-            midiAccessRef.onstatechange = null;
-            midiAccessRef = null;
+        if (releaseAccess) {
+            setMidiState(MIDI_STATE.DISPOSED);
+            if (midiAccessRef) {
+                midiAccessRef.onstatechange = null;
+                midiAccessRef = null;
+            }
             setMidiState(MIDI_STATE.UNINITIALIZED);
+        } else {
+            // Keep Web MIDI access alive and ready for hot-reconnection
+            setMidiState(MIDI_STATE.INITIALIZED);
         }
     } catch (e) {
         console.error("[MIDI] Error during disposal:", e);

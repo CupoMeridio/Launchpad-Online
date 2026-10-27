@@ -1,5 +1,5 @@
 import { audioEngine } from './audio.js';
-import { currentPage, currentProject, projectLights, activePageButton, setCurrentPage, setActivePageButton, currentMode, setCurrentMode, setActiveModeButton, getProjectStateSnapshot } from './app.js';
+import { currentPage, setCurrentPage, currentMode, setCurrentMode, getProjectStateSnapshot } from './app.js';
 import { triggerAnimation, releaseAnimation } from './lights.js';
 import { resolveLightDuration } from './animationData.js';
 import { setPhysicalColor, getLpColor, flushPhysicalColors } from './physicalInterface.js';
@@ -162,6 +162,7 @@ export function initInteraction() {
     registerListener(launchpad, 'mouseout', handleMouseOut);
 
     registerListener(window, 'launchpad-view-changed', () => {
+        if (currentPadSource) return;
         syncPerformancePageButtons();
         syncPerformanceModeButtons();
     });
@@ -193,16 +194,9 @@ export function updatePhysicalPageLights(activeIndex) {
  * @param {number} pageIndex
  */
 export function syncPerformancePageButtons(pageIndex = currentPage) {
+    if (currentPadSource) return; // Prevent highlighting performance page during Creator editing
     if (pageIndex === null || pageIndex === undefined) return;
     updatePageButtonHighlight(pageIndex);
-    const pageButtons = document.querySelectorAll('.grid-item-menu[data-page]');
-    if (activePageButton) {
-        activePageButton.classList.remove('selected');
-    }
-    if (pageButtons[pageIndex]) {
-        setActivePageButton(pageButtons[pageIndex]);
-        activePageButton.classList.add('selected');
-    }
     updatePhysicalPageLights(pageIndex);
 }
 
@@ -289,9 +283,6 @@ export function updatePhysicalModeLights(activeIndex) {
 export function syncPerformanceModeButtons(modeIndex = currentMode) {
     if (modeIndex === null || modeIndex === undefined) return;
     updateModeButtonHighlight(modeIndex);
-    const modeButtons = document.querySelectorAll('#Launchpad .grid-item-menu[data-mode]');
-    const newButton = Array.from(modeButtons).find(btn => parseInt(btn.dataset.mode, 10) === modeIndex);
-    setActiveModeButton(newButton || null);
     updatePhysicalModeLights(modeIndex);
 }
 

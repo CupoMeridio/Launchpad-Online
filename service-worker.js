@@ -18,7 +18,7 @@
 // CUSTOMIZATION: When you make changes to App Shell files, update this timestamp.
 // This invalidates the old cache and forces the Service Worker to download new files.
 // Example: 'launchpad-pwa-cache-2026-03-21-1430' → update to → 'launchpad-pwa-cache-2026-03-21-1505'
-const CACHE_NAME = 'launchpad-pwa-cache-2026-10-23-2352';
+const CACHE_NAME = 'launchpad-pwa-cache-2026-10-27-0010';
 
 // Get the base path dynamically to support both local dev and GitHub Pages
 const basePath = self.registration.scope.replace(self.location.origin, '');
@@ -138,14 +138,23 @@ self.addEventListener('fetch', event => {
         event.respondWith(
             fetch(request)
                 .then(networkResponse => {
-                    return caches.open(CACHE_NAME).then(cache => {
-                        cache.put(request, networkResponse.clone());
-                        return networkResponse;
-                    });
+                    if (networkResponse && networkResponse.ok) {
+                        const clone = networkResponse.clone();
+                        // Cache the App Shell page under canonical URLs without blocking navigation response
+                        event.waitUntil(
+                            caches.open(CACHE_NAME).then(cache => {
+                                return Promise.all([
+                                    cache.put(`${basePath}`, clone.clone()),
+                                    cache.put(`${basePath}index.html`, clone)
+                                ]);
+                            })
+                        );
+                    }
+                    return networkResponse;
                 })
                 .catch(async () => {
-                    const cached = await caches.match(request);
-                    return cached || caches.match(`${basePath}index.html`);
+                    return (await caches.match(`${basePath}index.html`)) ||
+                           (await caches.match(`${basePath}`));
                 })
         );
         return;

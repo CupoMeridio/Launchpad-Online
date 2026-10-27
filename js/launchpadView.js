@@ -19,6 +19,7 @@ const STORAGE_KEY = 'launchpad_model_preference';
 
 let currentPreference = LAUNCHPAD_MODELS.AUTO;
 let detectedHardwareModel = null;
+let currentRenderedModel = null;
 
 const ROW_LETTERS = ['b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'];
 const CLASSIC_SIDE_LABELS = ['Volume', 'Pan', 'Send A', 'Send B', 'Stop', 'Mute', 'Solo', 'Record Arm'];
@@ -73,6 +74,35 @@ const PRO_MK3_BOTTOM_BUTTONS = [
 ];
 
 /**
+ * Shared helper to render an arrow SVG icon rotated to the given direction.
+ * @param {'right' | 'left' | 'up' | 'down'} [dir='right']
+ * @param {string} [className='mk3-icon']
+ * @returns {string}
+ */
+export function renderArrowSvg(dir = 'right', className = 'mk3-icon') {
+    let rot = '';
+    if (dir === 'up') rot = ' style="transform: rotate(-90deg);"';
+    else if (dir === 'down') rot = ' style="transform: rotate(90deg);"';
+    else if (dir === 'left') rot = ' style="transform: rotate(180deg);"';
+    return `<svg viewBox="0 0 24 24" class="${className}"${rot}><polygon fill="currentColor" points="7,5 19,12 7,19"/></svg>`;
+}
+
+/**
+ * Shared helper to render a single row of 8 central Launchpad grid pads.
+ * @param {number} r - Row index 0..7
+ * @returns {string}
+ */
+export function renderPadRow(r) {
+    const letter = ROW_LETTERS[r];
+    let row = '';
+    for (let c = 1; c <= 8; c++) {
+        const index = r * 8 + (c - 1);
+        row += `      <div id="${letter}${c}" class="grid-item" data-index="${index}"></div>\n`;
+    }
+    return row;
+}
+
+/**
  * Builds the Classic / MK2 layout HTML (10x10 with vintage silkscreens, triangles and round buttons).
  * @returns {string}
  */
@@ -99,11 +129,7 @@ export function buildClassicHtml() {
 `;
 
     for (let r = 0; r < 8; r++) {
-        const letter = ROW_LETTERS[r];
-        for (let c = 1; c <= 8; c++) {
-            const index = r * 8 + (c - 1);
-            html += `      <div id="${letter}${c}" class="grid-item" data-index="${index}"></div>\n`;
-        }
+        html += renderPadRow(r);
         html += `      <div id="m${r + 1}" class="grid-item-menu" data-page="${r}"></div>\n`;
         html += `      <div class="testo_su_launchpad">${CLASSIC_SIDE_LABELS[r]}</div>\n`;
     }
@@ -118,10 +144,10 @@ export function buildClassicHtml() {
 export function buildMk3Html() {
     let html = `
       <!-- Top header row (8 control buttons + corner badge) -->
-      <div id="a1" class="grid-item-menu" title="Up"><svg viewBox="0 0 24 24" class="mk3-icon" style="transform: rotate(-90deg);"><polygon fill="currentColor" points="7,5 19,12 7,19"/></svg></div>
-      <div id="a2" class="grid-item-menu" title="Down"><svg viewBox="0 0 24 24" class="mk3-icon" style="transform: rotate(90deg);"><polygon fill="currentColor" points="7,5 19,12 7,19"/></svg></div>
-      <div id="a3" class="grid-item-menu" title="Left"><svg viewBox="0 0 24 24" class="mk3-icon" style="transform: rotate(180deg);"><polygon fill="currentColor" points="7,5 19,12 7,19"/></svg></div>
-      <div id="a4" class="grid-item-menu" title="Right"><svg viewBox="0 0 24 24" class="mk3-icon"><polygon fill="currentColor" points="7,5 19,12 7,19"/></svg></div>
+      <div id="a1" class="grid-item-menu" title="Up">${renderArrowSvg('up', 'mk3-icon')}</div>
+      <div id="a2" class="grid-item-menu" title="Down">${renderArrowSvg('down', 'mk3-icon')}</div>
+      <div id="a3" class="grid-item-menu" title="Left">${renderArrowSvg('left', 'mk3-icon')}</div>
+      <div id="a4" class="grid-item-menu" title="Right">${renderArrowSvg('right', 'mk3-icon')}</div>
       <div id="a5" class="grid-item-menu"><span class="mk3-btn-text">Session</span></div>
       <div id="a6" class="grid-item-menu"><span class="mk3-btn-text">Drums</span></div>
       <div id="a7" class="grid-item-menu"><span class="mk3-btn-text">Keys</span></div>
@@ -130,12 +156,8 @@ export function buildMk3Html() {
 `;
 
     for (let r = 0; r < 8; r++) {
-        const letter = ROW_LETTERS[r];
-        for (let c = 1; c <= 8; c++) {
-            const index = r * 8 + (c - 1);
-            html += `      <div id="${letter}${c}" class="grid-item" data-index="${index}"></div>\n`;
-        }
-        html += `      <div id="m${r + 1}" class="grid-item-menu" data-page="${r}" title="Scene ${r + 1}"><svg viewBox="0 0 24 24" class="mk3-icon"><polygon fill="currentColor" points="7,5 19,12 7,19"/></svg></div>\n`;
+        html += renderPadRow(r);
+        html += `      <div id="m${r + 1}" class="grid-item-menu" data-page="${r}" title="Scene ${r + 1}">${renderArrowSvg('right', 'mk3-icon')}</div>\n`;
     }
 
     return html;
@@ -161,13 +183,13 @@ export function buildProHtml({ isMk3 = false } = {}) {
     for (let i = 0; i < 8; i++) {
         let topContent = '';
         if (i === 0) {
-            topContent = '<svg viewBox="0 0 24 24" class="pro-icon" style="transform: rotate(-90deg);"><polygon fill="currentColor" points="7,5 19,12 7,19"/></svg>';
+            topContent = renderArrowSvg('up', 'pro-icon');
         } else if (i === 1) {
-            topContent = '<svg viewBox="0 0 24 24" class="pro-icon" style="transform: rotate(90deg);"><polygon fill="currentColor" points="7,5 19,12 7,19"/></svg>';
+            topContent = renderArrowSvg('down', 'pro-icon');
         } else if (i === 2) {
-            topContent = '<svg viewBox="0 0 24 24" class="pro-icon" style="transform: rotate(180deg);"><polygon fill="currentColor" points="7,5 19,12 7,19"/></svg>';
+            topContent = renderArrowSvg('left', 'pro-icon');
         } else if (i === 3) {
-            topContent = '<svg viewBox="0 0 24 24" class="pro-icon"><polygon fill="currentColor" points="7,5 19,12 7,19"/></svg>';
+            topContent = renderArrowSvg('right', 'pro-icon');
         } else {
             topContent = `<span class="pro-btn-text">${PRO_TOP_LABELS[i]}</span>`;
         }
@@ -177,18 +199,9 @@ export function buildProHtml({ isMk3 = false } = {}) {
 
     // Rows 2..9: Left button + 8 central pads + Right scene button
     for (let r = 0; r < 8; r++) {
-        const letter = ROW_LETTERS[r];
-        // Col 1: Left auxiliary button (Shift, Click, Undo, Delete, Quantise, Duplicate, Double, Record)
         html += `      <div class="grid-item-pro-aux grid-item-pro-left ${btnShapeClass}"><span class="pro-btn-text">${PRO_LEFT_LABELS[r]}</span></div>\n`;
-
-        // Cols 2..9: 8 central pads
-        for (let c = 1; c <= 8; c++) {
-            const index = r * 8 + (c - 1);
-            html += `      <div id="${letter}${c}" class="grid-item" data-index="${index}"></div>\n`;
-        }
-
-        // Col 10: Right scene button
-        html += `      <div id="m${r + 1}" class="grid-item-menu ${btnShapeClass}" data-page="${r}" title="Scene ${r + 1}"><svg viewBox="0 0 24 24" class="pro-icon"><polygon fill="currentColor" points="7,5 19,12 7,19"/></svg></div>\n`;
+        html += renderPadRow(r);
+        html += `      <div id="m${r + 1}" class="grid-item-menu ${btnShapeClass}" data-page="${r}" title="Scene ${r + 1}">${renderArrowSvg('right', 'pro-icon')}</div>\n`;
     }
 
     // Row 10: Bottom-left corner + 8 bottom buttons + bottom-right corner
@@ -203,16 +216,7 @@ export function buildProHtml({ isMk3 = false } = {}) {
 
 /**
  * Builds the Launchpad Pro MK3 (2020) layout HTML (10x10 with squircle buttons).
- * Accurately models the physical hardware:
- * - Top-left corner: Shift button
- * - 8 Top buttons (a1..a8): Left, Right, Session, Note, Chord, Custom, Sequencer, Projects (Save)
- * - Top-right corner: Logo container
- * - 8 Left buttons: Up, Down, Clear, Duplicate (Double), Quantise (Record Quantise), Fixed Length, Play (▷), Record (○ Capture MIDI)
- * - 64 Central pads: 8x8 matrix
- * - 8 Right scene buttons: m1..m8 with '>' arrow and scene subtext
- * - Bottom-left corner: Setup button
- * - 8 Bottom columns: Dual split per column (upper slim track-select strip + lower function button with subtext)
- * - Bottom-right corner: Blank chassis corner
+ * Accurately models the physical hardware.
  * @returns {string}
  */
 export function buildProMk3Html() {
@@ -226,8 +230,7 @@ export function buildProMk3Html() {
         const item = PRO_MK3_TOP_BUTTONS[i];
         let content = '';
         if (item.type === 'icon') {
-            const rot = item.dir === 'left' ? 'style="transform: rotate(180deg);"' : '';
-            content = `<svg viewBox="0 0 24 24" class="pro-icon" ${rot}><polygon fill="currentColor" points="7,5 19,12 7,19"/></svg>`;
+            content = renderArrowSvg(item.dir, 'pro-icon');
         } else if (item.subtext) {
             content = `<span class="pro-btn-text">${item.text}</span><span class="pro-subtext">${item.subtext}</span>`;
         } else {
@@ -240,12 +243,10 @@ export function buildProMk3Html() {
 
     // Rows 2..9: Left button + 8 central pads + Right scene button
     for (let r = 0; r < 8; r++) {
-        const letter = ROW_LETTERS[r];
         const leftItem = PRO_MK3_LEFT_BUTTONS[r];
         let leftContent = '';
         if (leftItem.type === 'icon') {
-            const rot = leftItem.dir === 'up' ? 'style="transform: rotate(-90deg);"' : 'style="transform: rotate(90deg);"';
-            leftContent = `<svg viewBox="0 0 24 24" class="pro-icon" ${rot}><polygon fill="currentColor" points="7,5 19,12 7,19"/></svg>`;
+            leftContent = renderArrowSvg(leftItem.dir, 'pro-icon');
         } else if (leftItem.type === 'play') {
             leftContent = `<svg viewBox="0 0 24 24" class="pro-icon"><polygon fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" points="8,6 18,12 8,18"/></svg>`;
         } else if (leftItem.type === 'record') {
@@ -259,10 +260,7 @@ export function buildProMk3Html() {
         html += `      <div class="grid-item-pro-aux grid-item-pro-left pro-squircle-btn" title="${leftTitle}">${leftContent}</div>\n`;
 
         // 8 central pads
-        for (let c = 1; c <= 8; c++) {
-            const index = r * 8 + (c - 1);
-            html += `      <div id="${letter}${c}" class="grid-item" data-index="${index}"></div>\n`;
-        }
+        html += renderPadRow(r);
 
         // Right scene button
         const sceneItem = PRO_MK3_SCENE_BUTTONS[r];
@@ -311,7 +309,10 @@ export function setModelPreference(preference) {
     } catch (e) {
         // localStorage may fail in restricted/private contexts
     }
-    renderLaunchpad(getEffectiveModel());
+    const effective = getEffectiveModel();
+    if (effective !== currentRenderedModel) {
+        renderLaunchpad(effective);
+    }
     syncModelSelectUI();
 }
 
@@ -322,17 +323,26 @@ export function setModelPreference(preference) {
 export function setDetectedHardwareModel(hardwareModel) {
     detectedHardwareModel = hardwareModel;
     if (currentPreference === LAUNCHPAD_MODELS.AUTO) {
-        renderLaunchpad(getEffectiveModel());
+        const effective = getEffectiveModel();
+        if (effective !== currentRenderedModel) {
+            renderLaunchpad(effective);
+        }
     }
 }
 
 /**
  * Renders the chosen model layout into the #Launchpad container.
+ * Avoids redundant redraws if the requested model is already displayed.
  * @param {'classic' | 'mk3' | 'pro' | 'pro-mk3'} model
  */
 export function renderLaunchpad(model) {
     const launchpad = document.getElementById('Launchpad');
     if (!launchpad) return;
+
+    if (currentRenderedModel === model) {
+        return;
+    }
+    currentRenderedModel = model;
 
     let html = '';
     if (model === LAUNCHPAD_MODELS.MK3) {

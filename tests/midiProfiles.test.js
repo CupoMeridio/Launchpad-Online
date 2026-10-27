@@ -55,6 +55,10 @@ test('ProfileRegistry resolves Legacy vs RGB profile based on device name', () =
     assert.ok(xDevice instanceof LaunchpadRGB);
     assert.equal(xDevice.productId, 0x0C);
 
+    const plainXDevice = ProfileRegistry.getProfile('Launchpad X', null, null);
+    assert.ok(plainXDevice instanceof LaunchpadRGB, 'Launchpad X without LPX in string must resolve to RGB profile');
+    assert.equal(plainXDevice.productId, 0x0C);
+
     const proDevice = ProfileRegistry.getProfile('Launchpad Pro MK3', null, null);
     assert.ok(proDevice instanceof LaunchpadRGB);
     assert.equal(proDevice.isPro, true);
@@ -65,7 +69,10 @@ test('ProfileRegistry resolves Legacy vs RGB profile based on device name', () =
     assert.equal(ProfileRegistry.getModelType('Launchpad Mini MK2'), 'classic');
     assert.equal(ProfileRegistry.getModelType('Launchpad MK2'), 'classic');
     assert.equal(ProfileRegistry.getModelType('Launchpad Mini MK3 MIDI'), 'mk3');
+    assert.equal(ProfileRegistry.getModelType('Launchpad X'), 'mk3');
     assert.equal(ProfileRegistry.getModelType('Launchpad X LPX MIDI'), 'mk3');
+    assert.equal(ProfileRegistry.getModelType('LPX MIDI'), 'mk3');
+    assert.equal(ProfileRegistry.getModelType('MIDIIN2 (LPMiniMK3 MIDI)'), 'mk3');
     assert.equal(ProfileRegistry.getModelType('Launchpad Pro'), 'pro');
     assert.equal(ProfileRegistry.getModelType('Launchpad Pro MK3'), 'pro-mk3');
 });
@@ -108,7 +115,11 @@ test('LaunchpadRGB maps programmer layout and 127-color palette accurately', () 
     // SysEx initialization
     profile.initialize();
     assert.deepEqual(sentMessages[0], [0xF0, 0x00, 0x20, 0x29, 0x02, 0x0D, 0x0E, 0x01, 0xF7]);
-    assert.deepEqual(sentMessages[1], [0xB0, 0x00, 0x00]);
+    // RGB models clear pads and CCs rather than sending legacy CC 0
+    assert.notDeepEqual(sentMessages[1], [0xB0, 0x00, 0x00]);
+    assert.ok(sentMessages[1].length >= 240);
+    assert.equal(sentMessages[1][0], 0x90);
+    assert.equal(sentMessages[1][2], 0x00);
 
     // Coordinate parsing (11-88 decimal grid)
     assert.deepEqual(profile.parseMessage([0x90, 81, 127]), { x: 0, y: 0, pressed: true }); // Top-left
@@ -117,15 +128,28 @@ test('LaunchpadRGB maps programmer layout and 127-color palette accurately', () 
     assert.deepEqual(profile.parseMessage([0x90, 18, 127]), { x: 7, y: 7, pressed: true }); // Bottom-right
     assert.deepEqual(profile.parseMessage([0x90, 89, 127]), { x: 8, y: 0, pressed: true }); // Top Scene button
     assert.deepEqual(profile.parseMessage([0x90, 19, 0]), { x: 8, y: 7, pressed: false }); // Bottom Scene release
-    assert.deepEqual(profile.parseMessage([0xB0, 104, 127]), { x: 0, y: 8, pressed: true }); // Top Automap 0
+    // Mini Mk3 in Programmer Mode uses CC 91-98 for top row
+    assert.deepEqual(profile.parseMessage([0xB0, 91, 127]), { x: 0, y: 8, pressed: true }); // Top Automap 0
 
     // Message building
     assert.deepEqual(profile.buildColorMessage(0, 0, 5), [0x90, 81, 5]); // Top-left red
     assert.deepEqual(profile.buildColorMessage(7, 7, 21), [0x90, 18, 21]); // Bottom-right green
     assert.deepEqual(profile.buildColorMessage(8, 0, 45), [0x90, 89, 45]); // Scene 0 blue
-    assert.deepEqual(profile.buildColorMessage(0, 8, 13), [0xB0, 104, 13]); // Automap 0 yellow
+    assert.deepEqual(profile.buildColorMessage(0, 8, 13), [0xB0, 91, 13]); // Automap 0 yellow (CC 91 on Mk3)
 
-    // Native RGB colors
+    // Launchpad MK2 uses CC 104-111 and Session Mode SysEx (layout 0x00)
+    const mk2Messages = [];
+    const mk2MockOutput = { send: (bytes) => mk2Messages.push(Array.from(bytes)) };
+    const mk2Profile = new LaunchpadRGB(mk2MockOutput, null, 'Launchpad MK2');
+    mk2Profile.initialize();
+    assert.deepEqual(mk2Messages[0], [0xF0, 0x00, 0x20, 0x29, 0x02, 0x18, 0x22, 0x00, 0xF7]);
+    assert.deepEqual(mk2Profile.parseMessage([0xB0, 104, 127]), { x: 0, y: 8, pressed: true }); // Top Automap 0 on MK2
+    assert.deepEqual(mk2Profile.buildColorMessage(0, 8, 13), [0xB0, 104, 13]); // Automap 0 on MK2
+
+    // Native RGB colors: amber and orange must be distinct
+    assert.equal(profile.getColor('orange').code, 9);
+    assert.equal(profile.getColor('amber').code, 11);
+    assert.notEqual(profile.getColor('amber').code, profile.getColor('orange').code);
     assert.equal(profile.getColor('blue').code, 45);
     assert.equal(profile.getColor('cyan').code, 37);
     assert.equal(profile.getColor('purple').code, 53);

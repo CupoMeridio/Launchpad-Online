@@ -33,9 +33,7 @@ export let projectLights = [];
 export let projectLightSyncToSound = [];
 export let projectLightDurations = [];
 export let currentPage = null; // Initialized as null to allow first "Page changed: 0" log
-export let activePageButton = null;
 export let currentMode = null; // Initialized as null to allow first "Mode changed: 5" log
-export let activeModeButton = null;
 
 export function setCurrentProject(p) { currentProject = p; }
 export function setSelectedProjectButton(b) { selectedProjectButton = b; }
@@ -44,9 +42,7 @@ export function setProjectLights(l) { projectLights = l; }
 export function setProjectLightSyncToSound(s) { projectLightSyncToSound = s; }
 export function setProjectLightDurations(d) { projectLightDurations = d; }
 export function setCurrentPage(p) { currentPage = p; }
-export function setActivePageButton(b) { activePageButton = b; }
 export function setCurrentMode(m) { currentMode = m; }
-export function setActiveModeButton(b) { activeModeButton = b; }
 
 /**
  * Returns a consistent snapshot of current project state.

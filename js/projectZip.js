@@ -8,9 +8,10 @@
  */
 
 import defaultJSZip from './vendor/jszip.js';
-import { buildProjectExport, buildDraftFromProject } from './projectCreatorModel.js';
+import { buildProjectExport, buildDraftFromProject, normalizeZipPath } from './projectCreatorModel.js';
 
 const AUDIO_EXTENSIONS = ['.wav', '.mp3', '.ogg', '.flac', '.m4a', '.aac', '.webm'];
+const PRECOMPRESSED_EXTENSIONS = ['.mp3', '.ogg', '.flac', '.m4a', '.aac', '.webm'];
 
 function isAudioFile(fileName) {
     const lower = fileName.toLowerCase();
@@ -38,10 +39,14 @@ export async function exportProjectToZip(draft, JSZipConstructor = defaultJSZip)
         zip.file(exportData.configFileName, jsonString);
     }
 
-    // Add all audio sample files
+    // Add all audio sample files with optimal compression
     for (const item of exportData.files) {
         const fileContent = (item.file && item.file.data) ? item.file.data : item.file;
-        zip.file(item.path, fileContent);
+        const lower = item.path.toLowerCase();
+        const isPrecompressed = PRECOMPRESSED_EXTENSIONS.some(ext => lower.endsWith(ext));
+        zip.file(item.path, fileContent, {
+            compression: isPrecompressed ? 'STORE' : 'DEFLATE'
+        });
     }
 
     const blob = await zip.generateAsync({
@@ -96,7 +101,7 @@ export async function importProjectFromZip(zipInput, JSZipConstructor = defaultJ
         throw new Error(`Failed to parse project JSON: ${parseError.message}`);
     }
 
-    // 2. Extract all audio samples into a file map
+    // 2. Extract all audio samples into a file map indexed by canonical normalized path
     const fileMap = new Map();
     for (const [relativePath, entry] of Object.entries(zip.files)) {
         if (entry.dir) continue;
@@ -116,15 +121,7 @@ export async function importProjectFromZip(zipInput, JSZipConstructor = defaultJ
             fileObj.name = fileName;
         }
 
-        const normalizedPath = relativePath.replace(/\\/g, '/').toLowerCase().trim();
-        fileMap.set(normalizedPath, fileObj);
-        fileMap.set(fileName.toLowerCase(), fileObj);
-
-        // Also index without any leading folder name (e.g. project-name/samples/... -> samples/...)
-        const samplesIdx = normalizedPath.indexOf('samples/');
-        if (samplesIdx !== -1) {
-            fileMap.set(normalizedPath.slice(samplesIdx), fileObj);
-        }
+        fileMap.set(normalizeZipPath(relativePath), fileObj);
     }
 
     // 3. Build the draft using the model

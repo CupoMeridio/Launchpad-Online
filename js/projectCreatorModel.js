@@ -47,10 +47,76 @@ export function createProjectPage(pageNumber) {
         name: `Page ${pageNumber}`,
         samples: Array(LAUNCHPAD_PADS).fill(null),
         soundBuffers: Array(LAUNCHPAD_PADS).fill(null),
+        sampleTokens: Array(LAUNCHPAD_PADS).fill(0),
         lights: Array(LAUNCHPAD_PADS).fill(''),
         lightSyncToSound: Array(LAUNCHPAD_PADS).fill(true),
         lightDurations: Array(LAUNCHPAD_PADS).fill(DEFAULT_LIGHT_DURATION_SEC)
     };
+}
+
+/**
+ * Assigns an audio sample to a specific pad using token-based concurrency protection.
+ * If superseded by a newer assignment or removal during decoding, returns 'superseded' and discards result.
+ * If decode fails or buffer is null, returns 'failed' and leaves previous sample intact.
+ * If successful, assigns sample and buffer and returns 'assigned'.
+ * 
+ * @param {object} page - The target page object.
+ * @param {number} padIndex - Pad index (0..63).
+ * @param {Blob|File|object} file - Audio file to decode and assign.
+ * @param {Function} [decoder] - Async function (file) => Promise<AudioBuffer|any>.
+ * @returns {Promise<'assigned' | 'superseded' | 'failed'>} Result of assignment.
+ */
+export async function assignPadSample(page, padIndex, file, decoder = null) {
+    if (!page || typeof padIndex !== 'number' || padIndex < 0 || padIndex >= LAUNCHPAD_PADS || !file) {
+        return 'failed';
+    }
+    if (!page.sampleTokens) {
+        page.sampleTokens = Array(LAUNCHPAD_PADS).fill(0);
+    }
+    const token = ++page.sampleTokens[padIndex];
+
+    let buffer = null;
+    if (typeof decoder === 'function') {
+        try {
+            buffer = await decoder(file);
+        } catch (_) {
+            buffer = null;
+        }
+    } else if (file && file.soundBuffer) {
+        buffer = file.soundBuffer;
+    }
+
+    // Ignore if superseded by a subsequent file selection or removal
+    if (page.sampleTokens[padIndex] !== token) {
+        return 'superseded';
+    }
+
+    if (!buffer) {
+        return 'failed';
+    }
+
+    page.samples[padIndex] = file;
+    page.soundBuffers[padIndex] = buffer;
+    return 'assigned';
+}
+
+/**
+ * Removes an assigned sample and buffer from a pad, incrementing the token
+ * to cancel any in-flight decode.
+ * 
+ * @param {object} page - The target page object.
+ * @param {number} padIndex - Pad index (0..63).
+ */
+export function removePadSample(page, padIndex) {
+    if (!page || typeof padIndex !== 'number' || padIndex < 0 || padIndex >= LAUNCHPAD_PADS) {
+        return;
+    }
+    if (!page.sampleTokens) {
+        page.sampleTokens = Array(LAUNCHPAD_PADS).fill(0);
+    }
+    page.sampleTokens[padIndex]++;
+    page.samples[padIndex] = null;
+    page.soundBuffers[padIndex] = null;
 }
 
 export function createProjectId(name) {
@@ -65,19 +131,48 @@ export function createProjectId(name) {
 }
 
 /**
+ * Normalizes a file path for consistent matching across operating systems and zip structures.
+ * Converts backslashes to forward slashes, strips leading/trailing slashes, and lowercases.
+ * @param {string} rawPath
+ * @returns {string}
+ */
+export function normalizeZipPath(rawPath) {
+    if (!rawPath || typeof rawPath !== 'string') return '';
+    return rawPath
+        .replace(/\\/g, '/')
+        .replace(/^\/+|\/+$/g, '')
+        .toLowerCase()
+        .trim();
+}
+
+/**
+ * Creates a new blank or initialized Studio Creator draft object.
+ *
+ * @param {string} [name=''] - Project name.
+ * @param {Array<object>|null} [pages=null] - Project pages, defaults to 1 blank page.
+ * @returns {object} Draft object with changeCount and savedChangeCount tracking.
+ */
+export function createDraft(name = '', pages = null) {
+    return {
+        name: typeof name === 'string' ? name.trim() : '',
+        changeCount: 0,
+        savedChangeCount: 0,
+        pages: Array.isArray(pages) && pages.length > 0 ? pages : [createProjectPage(1)]
+    };
+}
+
+/**
  * Checks if a draft has unsaved changes / modifications.
+ * Directly compares changeCount with savedChangeCount.
  * @param {object|null} draft
- * @returns {boolean} True if the draft contains meaningful data.
+ * @returns {boolean} True if the draft contains unsaved modifications.
  */
 export function isDraftDirty(draft) {
     if (!draft) return false;
-    if (typeof draft.name === 'string' && draft.name.trim() !== '') return true;
-    if (!Array.isArray(draft.pages) || draft.pages.length === 0) return false;
-    if (draft.pages.length > 1) return true;
-    const firstPage = draft.pages[0];
-    const hasSample = Array.isArray(firstPage.samples) && firstPage.samples.some(Boolean);
-    const hasLight = Array.isArray(firstPage.lights) && firstPage.lights.some(light => Boolean(light && light.trim()));
-    return Boolean(hasSample || hasLight);
+    if (typeof draft.changeCount === 'number' && typeof draft.savedChangeCount === 'number') {
+        return draft.changeCount !== draft.savedChangeCount;
+    }
+    return false;
 }
 
 /**
@@ -92,71 +187,80 @@ export function buildDraftFromProject(projectData, fileMap = new Map()) {
         throw new Error(`Invalid project: ${validation.errors.join('; ')}`);
     }
 
-    const map = fileMap instanceof Map ? fileMap : new Map(Object.entries(fileMap || {}));
+    const inputMap = fileMap instanceof Map ? fileMap : new Map(Object.entries(fileMap || {}));
+
+    // Index files by exact normalized path and relative from samples/
+    const exactMap = new Map();
+
+    for (const [key, value] of inputMap.entries()) {
+        const norm = normalizeZipPath(key);
+        if (!norm) continue;
+        exactMap.set(norm, value);
+
+        const samplesIdx = norm.indexOf('samples/');
+        if (samplesIdx !== -1) {
+            exactMap.set(norm.slice(samplesIdx), value);
+        }
+    }
 
     const getFile = (lookupPath) => {
         if (!lookupPath || typeof lookupPath !== 'string') return null;
-        const normalized = lookupPath.replace(/\\/g, '/').toLowerCase().trim();
-        const baseName = normalized.split('/').pop();
+        const norm = normalizeZipPath(lookupPath);
+        if (!norm) return null;
 
-        if (map.has(normalized)) return map.get(normalized);
-        const samplesIdx = normalized.indexOf('samples/');
+        // 1. Exact normalized path match
+        if (exactMap.has(norm)) return exactMap.get(norm);
+
+        // 2. Relative from samples/
+        const samplesIdx = norm.indexOf('samples/');
         if (samplesIdx !== -1) {
-            const subPath = normalized.slice(samplesIdx);
-            if (map.has(subPath)) return map.get(subPath);
+            const sub = norm.slice(samplesIdx);
+            if (exactMap.has(sub)) return exactMap.get(sub);
         }
-        if (map.has(baseName)) return map.get(baseName);
-        for (const [key, value] of map.entries()) {
-            const keyNorm = key.replace(/\\/g, '/').toLowerCase().trim();
-            if (keyNorm === normalized || keyNorm.endsWith(normalized) || keyNorm.endsWith(baseName)) {
-                return value;
-            }
-        }
+
+        console.warn(`[ProjectCreator] Sample file not found for path: "${lookupPath}"`);
         return null;
     };
 
-    const draft = {
-        name: typeof projectData.name === 'string' ? projectData.name.trim() : '',
-        pages: projectData.pages.map((page, index) => {
-            const draftPage = createProjectPage(index + 1);
-            if (page.name && typeof page.name === 'string') {
-                draftPage.name = page.name.trim();
-            }
+    const draftPages = projectData.pages.map((page, index) => {
+        const draftPage = createProjectPage(index + 1);
+        if (page.name && typeof page.name === 'string') {
+            draftPage.name = page.name.trim();
+        }
 
-            if (Array.isArray(page.sounds)) {
-                page.sounds.slice(0, LAUNCHPAD_PADS).forEach((soundPath, padIdx) => {
-                    if (soundPath) {
-                        const file = getFile(soundPath);
-                        if (file) {
-                            draftPage.samples[padIdx] = file;
-                        }
+        if (Array.isArray(page.sounds)) {
+            page.sounds.slice(0, LAUNCHPAD_PADS).forEach((soundPath, padIdx) => {
+                if (soundPath) {
+                    const file = getFile(soundPath);
+                    if (file) {
+                        draftPage.samples[padIdx] = file;
                     }
-                });
-            }
+                }
+            });
+        }
 
-            if (Array.isArray(page.lights)) {
-                page.lights.slice(0, LAUNCHPAD_PADS).forEach((light, padIdx) => {
-                    draftPage.lights[padIdx] = (typeof light === 'string') ? light : '';
-                });
-            }
+        if (Array.isArray(page.lights)) {
+            page.lights.slice(0, LAUNCHPAD_PADS).forEach((light, padIdx) => {
+                draftPage.lights[padIdx] = (typeof light === 'string') ? light : '';
+            });
+        }
 
-            if (Array.isArray(page.lightSyncToSound)) {
-                page.lightSyncToSound.slice(0, LAUNCHPAD_PADS).forEach((sync, padIdx) => {
-                    draftPage.lightSyncToSound[padIdx] = (typeof sync === 'boolean') ? sync : true;
-                });
-            }
+        if (Array.isArray(page.lightSyncToSound)) {
+            page.lightSyncToSound.slice(0, LAUNCHPAD_PADS).forEach((sync, padIdx) => {
+                draftPage.lightSyncToSound[padIdx] = (typeof sync === 'boolean') ? sync : true;
+            });
+        }
 
-            if (Array.isArray(page.lightDurations)) {
-                page.lightDurations.slice(0, LAUNCHPAD_PADS).forEach((dur, padIdx) => {
-                    draftPage.lightDurations[padIdx] = (typeof dur === 'number' && Number.isFinite(dur)) ? dur : DEFAULT_LIGHT_DURATION_SEC;
-                });
-            }
+        if (Array.isArray(page.lightDurations)) {
+            page.lightDurations.slice(0, LAUNCHPAD_PADS).forEach((dur, padIdx) => {
+                draftPage.lightDurations[padIdx] = (typeof dur === 'number' && Number.isFinite(dur)) ? dur : DEFAULT_LIGHT_DURATION_SEC;
+            });
+        }
 
-            return draftPage;
-        })
-    };
+        return draftPage;
+    });
 
-    return draft;
+    return createDraft(projectData.name, draftPages);
 }
 
 export function buildProjectExport(draft) {

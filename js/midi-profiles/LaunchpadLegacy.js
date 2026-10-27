@@ -54,16 +54,6 @@ export class LaunchpadLegacy extends DeviceProfile {
         }
     }
 
-    /**
-     * Reset hardware to clean state.
-     */
-    clear() {
-        if (!this.midiOut) return;
-        try {
-            // CC 0 reset command turns off all LEDs and duty cycle
-            this.midiOut.send([0xB0, 0x00, 0x00]);
-        } catch (_) {}
-    }
 
     /**
      * Parse incoming MIDI message:

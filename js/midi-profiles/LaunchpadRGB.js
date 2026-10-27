@@ -14,25 +14,29 @@
  */
 
 import { DeviceProfile } from './DeviceProfile.js';
+import { detectModel } from './ProfileRegistry.js';
 
 export class LaunchpadRGB extends DeviceProfile {
     /**
      * @param {MIDIOutput|null} outputPort
      * @param {MIDIInput|null} inputPort
      * @param {string} [name]
+     * @param {object|null} [modelInfo]
      */
-    constructor(outputPort, inputPort, name = 'Launchpad RGB (Mk2/Pro/X/Mini Mk3)') {
+    constructor(outputPort, inputPort, name = 'Launchpad RGB (Mk2/Pro/X/Mini Mk3)', modelInfo = null) {
         super(outputPort, inputPort, name, 'rgb');
 
-        this.productId = this.detectProductId(name);
-        this.isPro = name.toLowerCase().includes('pro');
+        const info = modelInfo || detectModel(name);
+        this.productId = info.productId;
+        this.isPro = info.isPro;
+        this.isMk3 = info.isMk3;
 
         // Novation standard 127-color RGB velocity palette
         this.colorPalette = {
             'off': { code: 0, full: { code: 0 }, medium: { code: 0 }, low: { code: 0 } },
             'red': { code: 5, full: { code: 5 }, medium: { code: 6 }, low: { code: 7 } },
             'green': { code: 21, full: { code: 21 }, medium: { code: 22 }, low: { code: 23 } },
-            'amber': { code: 9, full: { code: 9 }, medium: { code: 10 }, low: { code: 11 } },
+            'amber': { code: 11, full: { code: 11 }, medium: { code: 10 }, low: { code: 9 } },
             'yellow': { code: 13, full: { code: 13 }, medium: { code: 14 }, low: { code: 15 } },
             'orange': { code: 9, full: { code: 9 }, medium: { code: 10 }, low: { code: 11 } },
             'blue': { code: 45, full: { code: 45 }, medium: { code: 46 }, low: { code: 47 } },
@@ -49,20 +53,7 @@ export class LaunchpadRGB extends DeviceProfile {
      * @returns {number|null}
      */
     detectProductId(portName) {
-        const lower = (portName || '').toLowerCase();
-        if (lower.includes('mini') && (lower.includes('mk3') || lower.includes('mk 3') || lower.includes('lpminimk3'))) {
-            return 0x0D; // Launchpad Mini Mk3
-        }
-        if (lower.includes('launchpad x') || lower.includes('lpx')) {
-            return 0x0C; // Launchpad X
-        }
-        if (lower.includes('pro')) {
-            return 0x0E; // Launchpad Pro Mk3
-        }
-        if (lower.includes('mk2') || lower.includes('mk 2')) {
-            return 0x18; // Launchpad Mk2
-        }
-        return 0x0D; // Default to Mini Mk3 layout if undetermined RGB
+        return detectModel(portName).productId;
     }
 
     /**
@@ -70,12 +61,21 @@ export class LaunchpadRGB extends DeviceProfile {
      */
     async initialize() {
         console.log(`[MIDI Profile] Initializing ${this.name}...`);
-        if (this.midiOut && this.productId) {
+        if (this.midiOut) {
             try {
-                // Universal Novation Programmer Mode SysEx:
-                // [F0, 00, 20, 29 (Novation), 02 (Device family), Product ID, 0E (Layout), 01 (Programmer Mode), F7]
-                this.midiOut.send([0xF0, 0x00, 0x20, 0x29, 0x02, this.productId, 0x0E, 0x01, 0xF7]);
-            } catch (_) {}
+                if (this.isMk3 && this.productId) {
+                    // Mk3 Programmer Mode SysEx: [F0, 00, 20, 29, 02, PID, 0E, 01, F7]
+                    this.midiOut.send([0xF0, 0x00, 0x20, 0x29, 0x02, this.productId, 0x0E, 0x01, 0xF7]);
+                } else if (this.isPro && !this.isMk3) {
+                    // Launchpad Pro 2015: Programmer Mode via command 0x2C 0x03
+                    this.midiOut.send([0xF0, 0x00, 0x20, 0x29, 0x02, 0x10, 0x2C, 0x03, 0xF7]);
+                } else if (!this.isMk3 && !this.isPro && this.productId === 0x18) {
+                    // Launchpad Mk2: Explicitly ensure Session layout (0x00: notes 11-88, 19-89, CC 104-111)
+                    this.midiOut.send([0xF0, 0x00, 0x20, 0x29, 0x02, 0x18, 0x22, 0x00, 0xF7]);
+                }
+            } catch (err) {
+                console.warn(`[MIDI Profile] SysEx initialization failed for ${this.name}:`, err);
+            }
         }
         this.clear();
     }
@@ -85,28 +85,46 @@ export class LaunchpadRGB extends DeviceProfile {
      */
     async dispose() {
         this.clear();
-        if (this.midiOut && this.productId) {
+        if (this.midiOut) {
             try {
-                // Return to Live/DAW layout (00)
-                this.midiOut.send([0xF0, 0x00, 0x20, 0x29, 0x02, this.productId, 0x0E, 0x00, 0xF7]);
+                if (this.isMk3 && this.productId) {
+                    // Return to Live/DAW layout (00)
+                    this.midiOut.send([0xF0, 0x00, 0x20, 0x29, 0x02, this.productId, 0x0E, 0x00, 0xF7]);
+                } else if (this.isPro && !this.isMk3) {
+                    // Launchpad Pro 2015: return to Live/Session mode (0x00)
+                    this.midiOut.send([0xF0, 0x00, 0x20, 0x29, 0x02, 0x10, 0x2C, 0x00, 0xF7]);
+                }
             } catch (_) {}
         }
     }
 
     /**
-     * Reset LEDs on the device.
+     * Reset LEDs on the device by clearing all pads and CC buttons with velocity 0.
      */
     clear() {
         if (!this.midiOut) return;
         try {
-            this.midiOut.send([0xB0, 0x00, 0x00]);
+            const batch = [];
+            // Clear 8x8 grid pads (notes 11-88) and 8 scene buttons (notes 19-89)
+            for (let row = 1; row <= 8; row++) {
+                for (let col = 1; col <= 9; col++) {
+                    batch.push(0x90, row * 10 + col, 0x00);
+                }
+            }
+            // Clear top CCs: 91-98 on modern Programmer mode (Pro, Mini Mk3, X) or 104-111 on Mk2
+            const useCc91 = this.isPro || this.isMk3;
+            const startCc = useCc91 ? 91 : 104;
+            for (let cc = startCc; cc <= startCc + 7; cc++) {
+                batch.push(0xB0, cc, 0x00);
+            }
+            this.midiOut.send(new Uint8Array(batch));
         } catch (_) {}
     }
 
     /**
      * Parses incoming MIDI message:
      * - Note On / Off in Programmer Mode (notes 11-88 grid, 19-89 scene)
-     * - CC 104-111 (or 91-98 on Pro) for top Automap buttons
+     * - CC 91-98 (Pro, Mini Mk3, X) or CC 104-111 (Mk2) for top Automap buttons
      * 
      * @param {Uint8Array|number[]} msg
      * @returns {{ x: number, y: number, pressed: boolean }|null}
@@ -140,13 +158,17 @@ export class LaunchpadRGB extends DeviceProfile {
             }
         } else if (status === 0xB0) {
             const pressed = data2 > 0;
-            // Standard Automap buttons (CC 104..111)
-            if (data1 >= 104 && data1 <= 111) {
-                return { x: data1 - 104, y: 8, pressed };
-            }
-            // Launchpad Pro top row (CC 91..98)
-            if (this.isPro && data1 >= 91 && data1 <= 98) {
-                return { x: data1 - 91, y: 8, pressed };
+            const useCc91 = this.isPro || this.isMk3;
+            if (useCc91) {
+                // Top row on Pro, Mini Mk3 and X (CC 91..98)
+                if (data1 >= 91 && data1 <= 98) {
+                    return { x: data1 - 91, y: 8, pressed };
+                }
+            } else {
+                // Top row on Mk2 Session mode (CC 104..111)
+                if (data1 >= 104 && data1 <= 111) {
+                    return { x: data1 - 104, y: 8, pressed };
+                }
             }
         }
 
@@ -165,8 +187,8 @@ export class LaunchpadRGB extends DeviceProfile {
             return null;
         }
         if (y >= 8) {
-            // Automap button (top row) -> CC
-            const cc = (this.isPro ? 91 : 104) + x;
+            // Automap button (top row) -> CC (91-98 on Pro / Mk3 / X, 104-111 on Mk2)
+            const cc = (this.isPro || this.isMk3 ? 91 : 104) + x;
             return [0xB0, cc, colorCode];
         }
         if (x === 8) {

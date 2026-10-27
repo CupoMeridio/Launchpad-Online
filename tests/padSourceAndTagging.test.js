@@ -38,7 +38,7 @@ globalThis.cancelAnimationFrame = () => {};
 
 const { animations } = await import('../js/lights.js');
 const { setPadSource, getPadSource, triggerPad, releasePad } = await import('../js/interaction.js');
-const { buildAnimationCatalog } = await import('../js/projectCreatorModel.js');
+const { buildAnimationCatalog, createProjectPage, assignPadSample, removePadSample } = await import('../js/projectCreatorModel.js');
 const { ANIMATION_COLORS } = await import('../js/constants.js');
 
 test('all registered animations are pre-tagged with correct metadata', () => {
@@ -125,53 +125,59 @@ test('audioEngine stopSoundsWithPrefix isolates draft sounds from performance so
     audioEngine.stopSound('preview');
 });
 
-test('creator sample token logic rejects superseded or canceled audio decodes', () => {
-    const page = {
-        samples: Array(64).fill(null),
-        soundBuffers: Array(64).fill(null),
-        sampleTokens: Array(64).fill(0)
-    };
-
+test('creator sample token logic rejects superseded or canceled audio decodes', async () => {
+    const page = createProjectPage(1);
     const targetIndex = 5;
 
-    // First assignment starts
-    const token1 = ++page.sampleTokens[targetIndex];
-    // Second assignment starts immediately after
-    const token2 = ++page.sampleTokens[targetIndex];
+    let resolveSlow = null;
+    let resolveFast = null;
 
-    // Simulated resolution of first assignment (slow)
-    if (page.sampleTokens[targetIndex] === token1) {
-        page.samples[targetIndex] = { name: 'slow.wav' };
-        page.soundBuffers[targetIndex] = 'slowBuffer';
-    }
+    const slowDecode = new Promise(resolve => { resolveSlow = resolve; });
+    const fastDecode = new Promise(resolve => { resolveFast = resolve; });
 
-    // Token 1 was superseded, so nothing should have been assigned
-    assert.equal(page.samples[targetIndex], null);
-    assert.equal(page.soundBuffers[targetIndex], null);
+    // First assignment starts (slow)
+    const p1 = assignPadSample(page, targetIndex, { name: 'slow.wav' }, () => slowDecode);
+    // Second assignment starts immediately after (fast)
+    const p2 = assignPadSample(page, targetIndex, { name: 'fast.wav' }, () => fastDecode);
 
-    // Simulated resolution of second assignment (fast)
-    if (page.sampleTokens[targetIndex] === token2) {
-        page.samples[targetIndex] = { name: 'fast.wav' };
-        page.soundBuffers[targetIndex] = 'fastBuffer';
-    }
+    // Fast resolves first
+    resolveFast('fastBuffer');
+    const res2 = await p2;
+    assert.equal(res2, 'assigned');
+    assert.equal(page.samples[targetIndex].name, 'fast.wav');
+    assert.equal(page.soundBuffers[targetIndex], 'fastBuffer');
 
+    // Slow resolves late (superseded)
+    resolveSlow('slowBuffer');
+    const res1 = await p1;
+    assert.equal(res1, 'superseded', 'Superseded assignment must return superseded');
     assert.equal(page.samples[targetIndex].name, 'fast.wav');
     assert.equal(page.soundBuffers[targetIndex], 'fastBuffer');
 
     // User removes sample while another decode is in-flight
-    const token3 = ++page.sampleTokens[targetIndex];
-    page.sampleTokens[targetIndex]++; // User clicks Remove
-    page.samples[targetIndex] = null;
-    page.soundBuffers[targetIndex] = null;
+    let resolveLate = null;
+    const lateDecode = new Promise(resolve => { resolveLate = resolve; });
+    const p3 = assignPadSample(page, targetIndex, { name: 'cancelled.wav' }, () => lateDecode);
 
-    // Decode 3 finishes late
-    if (page.sampleTokens[targetIndex] === token3) {
-        page.samples[targetIndex] = { name: 'cancelled.wav' };
-        page.soundBuffers[targetIndex] = 'cancelledBuffer';
-    }
-
-    // Pad stays empty
+    removePadSample(page, targetIndex);
     assert.equal(page.samples[targetIndex], null);
     assert.equal(page.soundBuffers[targetIndex], null);
+
+    // Late decode resolves after removal
+    resolveLate('cancelledBuffer');
+    const res3 = await p3;
+    assert.equal(res3, 'superseded', 'Decode after removal must return superseded');
+    assert.equal(page.samples[targetIndex], null);
+    assert.equal(page.soundBuffers[targetIndex], null);
+
+    // Corrupt file decoding failure leaves previous valid sample intact
+    page.samples[targetIndex] = { name: 'good.wav' };
+    page.soundBuffers[targetIndex] = 'goodBuffer';
+
+    const failDecode = Promise.reject(new Error('Corrupt file'));
+    const pFail = await assignPadSample(page, targetIndex, { name: 'corrupted.wav' }, () => failDecode);
+    assert.equal(pFail, 'failed', 'Decode failure must return failed');
+    assert.equal(page.samples[targetIndex].name, 'good.wav', 'Previous sample must remain intact on decode error');
+    assert.equal(page.soundBuffers[targetIndex], 'goodBuffer', 'Previous buffer must remain intact on decode error');
 });
 
