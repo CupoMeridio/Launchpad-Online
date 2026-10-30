@@ -1,12 +1,21 @@
-import { getTranslation, showNotification } from './ui.js';
+import { getTranslation, showNotification, syncInputSlider, getLaunchpadRotation, getLaunchpadSize } from './ui.js';
 import { buildAnimationCatalog, createProjectPage, createDraft, isDraftDirty, assignPadSample, removePadSample } from './projectCreatorModel.js';
 import { exportProjectToZip, importProjectFromZip } from './projectZip.js';
+import { normalizeAppearance } from './appearanceModel.js';
+import {
+    applyBackground,
+    applySkin,
+    applyIcon,
+    applyVisualizer,
+    applyLayout,
+    applyAppearance
+} from './appearance.js';
 import { animations, releaseAnimation, triggerAnimation } from './lights.js';
 import { resolveLightDuration } from './animationData.js';
 import { webColorMap, getPadElement, updatePageButtonHighlight } from './webInterface.js';
 import { audioEngine } from './audio.js';
 import { setPadSource, updatePhysicalPageLights, syncPerformancePageButtons, syncPerformanceModeButtons } from './interaction.js';
-import { currentPage, currentMode } from './app.js';
+import { currentPage, currentMode, getStaticData } from './app.js';
 import { 
     LAUNCHPAD_COLS, 
     LAUNCHPAD_PADS, 
@@ -14,7 +23,11 @@ import {
     MIN_LIGHT_DURATION_SEC, 
     MAX_LIGHT_DURATION_SEC, 
     DEFAULT_LIGHT_DURATION_SEC,
-    ANIMATION_COLORS
+    ANIMATION_COLORS,
+    LAUNCHPAD_ROTATION_MIN,
+    LAUNCHPAD_ROTATION_MAX,
+    LAUNCHPAD_SIZE_MIN,
+    LAUNCHPAD_SIZE_MAX
 } from './constants.js';
 
 const LIGHT_COLOR_SWATCHES = {
@@ -46,6 +59,7 @@ let activeLightCategory = 'all';
 let pendingTextAnimation = null;
 let allAnimationGroups = null;
 let studioSubMode = 'edit';
+let activeCreatorView = 'pads';
 let activeMomentaryPreview = null;
 
 let lastRenderedCategory = null;
@@ -292,10 +306,212 @@ function renderSelectedPad() {
     renderLightPresets();
 }
 
+let staticCatalog = null;
+
+/**
+ * Returns the static catalog (videos/skins) already fetched by app.js, so the
+ * Studio does not issue a second request for js/static-data.json.
+ * @returns {Promise<{videos: string[], skins: string[]}>}
+ */
+async function loadStaticCatalog() {
+    if (!staticCatalog) {
+        staticCatalog = getStaticData();
+    }
+    return staticCatalog || { videos: [], skins: [] };
+}
+
+async function ensureThemeSelectOptions() {
+    const bgSelect = document.getElementById('creator-bg-select');
+    const skinSelect = document.getElementById('creator-skin-select');
+    if (!bgSelect || !skinSelect) return;
+
+    if (bgSelect.options.length <= 1) {
+        const data = await loadStaticCatalog();
+        if (Array.isArray(data.videos)) {
+            data.videos.forEach(video => {
+                const opt = document.createElement('option');
+                opt.value = video;
+                opt.textContent = video.replace(/\.(mp4|webm)$/i, '');
+                bgSelect.appendChild(opt);
+            });
+        }
+        if (Array.isArray(data.skins)) {
+            data.skins.forEach(skin => {
+                const opt = document.createElement('option');
+                opt.value = skin;
+                opt.textContent = skin.replace(/\.(png|jpg)$/i, '').replace(/_/g, ' ');
+                skinSelect.appendChild(opt);
+            });
+        }
+    }
+}
+
+export function setCreatorView(view) {
+    activeCreatorView = view;
+    const padsTab = document.getElementById('creator-tab-pads');
+    const themeTab = document.getElementById('creator-tab-theme');
+    const padsView = document.getElementById('creator-pads-view');
+    const themeView = document.getElementById('creator-theme-view');
+
+    if (padsTab && themeTab && padsView && themeView) {
+        padsTab.classList.toggle('selected', view === 'pads');
+        padsTab.setAttribute('aria-selected', String(view === 'pads'));
+        themeTab.classList.toggle('selected', view === 'theme');
+        themeTab.setAttribute('aria-selected', String(view === 'theme'));
+
+        padsView.hidden = (view !== 'pads');
+        themeView.hidden = (view !== 'theme');
+    }
+}
+
+/**
+ * Canonical appearance of the current draft. `rotation`/`size` stay `null` when
+ * the draft does not override them, so the user's personal preference is kept.
+ * @returns {object}
+ */
+function getDraftAppearance() {
+    return normalizeAppearance(draft || {});
+}
+
+function previewDraftBackground() {
+    if (!draft || !editorActive) return;
+    applyBackground(getDraftAppearance().background);
+}
+
+function previewDraftSkin() {
+    if (!draft || !editorActive) return;
+    applySkin(getDraftAppearance().skin);
+}
+
+function previewDraftIcon() {
+    if (!draft || !editorActive) return;
+    applyIcon(getDraftAppearance().icon);
+}
+
+function previewDraftVisualizer() {
+    if (!draft || !editorActive) return;
+    applyVisualizer(getDraftAppearance().visualizer);
+}
+
+function previewDraftLayout() {
+    if (!draft || !editorActive) return;
+    const { rotation, size } = getDraftAppearance();
+    applyLayout(rotation, size);
+}
+
+/**
+ * Applies the whole draft appearance and is used when opening or importing a
+ * draft. Live input handlers use the per-aspect helpers above so that changing
+ * rotation or a colour does not rebuild the background media element.
+ */
+export function previewDraftAppearance() {
+    if (!draft || !editorActive) return;
+    applyAppearance(getDraftAppearance());
+}
+
+async function renderThemeView() {
+    await ensureThemeSelectOptions();
+    if (!draft) return;
+
+    const bgSelect = document.getElementById('creator-bg-select');
+    const bgCustomName = document.getElementById('creator-bg-custom-name');
+    if (bgSelect) {
+        if (draft.customBackgroundFile) {
+            let customOpt = bgSelect.querySelector('option[data-custom]');
+            if (!customOpt) {
+                customOpt = document.createElement('option');
+                customOpt.setAttribute('data-custom', 'true');
+                bgSelect.appendChild(customOpt);
+            }
+            customOpt.value = 'custom';
+            customOpt.textContent = `File: ${draft.customBackgroundFile.name}`;
+            bgSelect.value = 'custom';
+        } else {
+            bgSelect.value = draft.backgroundMedia || '';
+        }
+    }
+    if (bgCustomName) {
+        if (draft.customBackgroundFile) {
+            bgCustomName.hidden = false;
+            bgCustomName.textContent = draft.customBackgroundFile.name;
+        } else {
+            bgCustomName.hidden = true;
+        }
+    }
+
+    const skinSelect = document.getElementById('creator-skin-select');
+    const skinCustomName = document.getElementById('creator-skin-custom-name');
+    if (skinSelect) {
+        if (draft.customCoverFile) {
+            let customOpt = skinSelect.querySelector('option[data-custom]');
+            if (!customOpt) {
+                customOpt = document.createElement('option');
+                customOpt.setAttribute('data-custom', 'true');
+                skinSelect.appendChild(customOpt);
+            }
+            customOpt.value = 'custom';
+            customOpt.textContent = `File: ${draft.customCoverFile.name}`;
+            skinSelect.value = 'custom';
+        } else {
+            skinSelect.value = draft.coverImage || '';
+        }
+    }
+    if (skinCustomName) {
+        if (draft.customCoverFile) {
+            skinCustomName.hidden = false;
+            skinCustomName.textContent = draft.customCoverFile.name;
+        } else {
+            skinCustomName.hidden = true;
+        }
+    }
+
+    const iconCustomName = document.getElementById('creator-icon-custom-name');
+    if (iconCustomName) {
+        if (draft.customIconFile) {
+            iconCustomName.hidden = false;
+            iconCustomName.textContent = draft.customIconFile.name;
+        } else if (draft.iconImage) {
+            iconCustomName.hidden = false;
+            iconCustomName.textContent = draft.iconImage;
+        } else {
+            iconCustomName.hidden = true;
+        }
+    }
+
+    const vizMode = document.getElementById('creator-viz-mode');
+    const vizColors = document.getElementById('creator-viz-colors');
+    const vizColor1 = document.getElementById('creator-viz-color1');
+    const vizGradient = document.getElementById('creator-viz-gradient');
+    const vizGradientSettings = document.getElementById('creator-viz-gradient-settings');
+    const vizColor2 = document.getElementById('creator-viz-color2');
+    const vizDirection = document.getElementById('creator-viz-direction');
+
+    if (vizMode) vizMode.value = draft.visualizerMode || 'off';
+    if (vizColors) vizColors.hidden = !(draft.visualizerMode && draft.visualizerMode !== 'off');
+    if (vizColor1) vizColor1.value = draft.visualizerColor1 || '#00aaff';
+    if (vizGradient) vizGradient.checked = !!draft.visualizerGradient;
+    if (vizGradientSettings) vizGradientSettings.hidden = !draft.visualizerGradient;
+    if (vizColor2) vizColor2.value = draft.visualizerColor2 || '#00aaff';
+    if (vizDirection) vizDirection.value = draft.visualizerGradientDirection || 'vertical';
+
+    const rotSlider = document.getElementById('creator-rotation-slider');
+    const rotInput = document.getElementById('creator-rotation-input');
+    const rotVal = typeof draft.launchpadRotation === 'number' ? draft.launchpadRotation : getLaunchpadRotation();
+    if (rotSlider) rotSlider.value = rotVal;
+    if (rotInput) rotInput.value = rotVal;
+
+    const sizeSlider = document.getElementById('creator-size-slider');
+    const sizeInput = document.getElementById('creator-size-input');
+    const sizeVal = typeof draft.launchpadSize === 'number' ? draft.launchpadSize : getLaunchpadSize();
+    if (sizeSlider) sizeSlider.value = sizeVal;
+    if (sizeInput) sizeInput.value = sizeVal;
+}
+
 function renderEditor() {
     renderPageTabs();
     renderPadGrid();
     renderSelectedPad();
+    renderThemeView();
 }
 
 export function requestCloseCreator() {
@@ -361,9 +577,19 @@ export function forceCloseCreator() {
         }
     }
 
-    // Restore performance page visuals and physical lights
+    // Restore performance page visuals, physical lights and original appearance
     syncPerformancePageButtons(currentPage);
     syncPerformanceModeButtons(currentMode);
+    setCreatorView('pads');
+
+    const bgFileInput = document.getElementById('creator-bg-file');
+    if (bgFileInput) bgFileInput.value = '';
+    const skinFileInput = document.getElementById('creator-skin-file');
+    if (skinFileInput) skinFileInput.value = '';
+    const iconFileInput = document.getElementById('creator-icon-file');
+    if (iconFileInput) iconFileInput.value = '';
+
+    import('./project.js').then(m => m.restoreProjectAppearance());
 }
 
 function markDraftModified() {
@@ -396,8 +622,10 @@ export function openCreator() {
         layout.classList.remove('sidebar-open');
     }
 
+    setCreatorView('pads');
     setStudioSubMode('edit');
     renderEditor();
+    previewDraftAppearance();
     updatePhysicalPageLights(activePageIndex);
 }
 
@@ -463,6 +691,9 @@ export function setStudioSubMode(mode) {
 
 export function selectProjectPad(index, preview = false) {
     if (!editorActive || !Number.isInteger(index) || index < 0 || index >= LAUNCHPAD_PADS) return false;
+    if (activeCreatorView !== 'pads') {
+        setCreatorView('pads');
+    }
     if (activePadIndex === index && preview) {
         previewPad(index);
         return true;
@@ -776,7 +1007,7 @@ async function handleProjectZipFile(file) {
     const currentImportId = ++activeImportId;
 
     try {
-        const { draft: importedDraft } = await importProjectFromZip(file);
+        const { draft: importedDraft, missingAssets = [] } = await importProjectFromZip(file);
 
         if (currentImportId !== activeImportId || !editorActive) return;
 
@@ -804,8 +1035,16 @@ async function handleProjectZipFile(file) {
 
         setStudioSubMode('edit');
         renderEditor();
+        previewDraftAppearance();
         updatePhysicalPageLights(activePageIndex);
         showNotification(translate('creator.importSuccess', { name: draft.name }), 'success', 5000);
+        if (missingAssets.length > 0) {
+            showNotification(
+                translate('creator.missingAssets', { count: missingAssets.length, files: missingAssets.join(', ') }),
+                'warning',
+                8000
+            );
+        }
     } catch (error) {
         if (currentImportId !== activeImportId || !editorActive) return;
         console.error('[Creator] Import error:', error);
@@ -1027,6 +1266,150 @@ export function initializeProjectCreator() {
     document.getElementById('creator-assign-text-animation').addEventListener('click', assignTextAnimation);
 
     document.getElementById('creator-export').addEventListener('click', exportProject);
+
+    // Editor section tabs (Pads vs Theme)
+    document.getElementById('creator-tab-pads')?.addEventListener('click', () => {
+        setCreatorView('pads');
+    });
+    document.getElementById('creator-tab-theme')?.addEventListener('click', () => {
+        setCreatorView('theme');
+    });
+
+    // Theme assets (background, skin, icon) share the same wiring: an optional
+    // <select> of bundled options plus a custom file upload. Each change updates
+    // only the aspect it belongs to before re-rendering the theme view.
+    const commitThemeChange = (preview) => {
+        markDraftModified();
+        preview();
+        renderThemeView();
+    };
+
+    const bindThemeAsset = ({ selectId = null, triggerId, fileId, pathKey, fileKey, preview }) => {
+        const select = selectId ? document.getElementById(selectId) : null;
+        if (select) {
+            select.addEventListener('change', (e) => {
+                if (!draft || e.target.value === 'custom') return;
+                draft[fileKey] = null;
+                draft[pathKey] = e.target.value;
+                commitThemeChange(preview);
+            });
+        }
+
+        const fileInput = document.getElementById(fileId);
+        document.getElementById(triggerId)?.addEventListener('click', () => {
+            if (fileInput) {
+                fileInput.value = '';
+                fileInput.click();
+            }
+        });
+        fileInput?.addEventListener('change', (e) => {
+            const file = e.target.files?.[0];
+            if (!file || !draft) return;
+            draft[fileKey] = file;
+            draft[pathKey] = file.name;
+            commitThemeChange(preview);
+        });
+    };
+
+    bindThemeAsset({
+        selectId: 'creator-bg-select',
+        triggerId: 'creator-upload-bg-trigger',
+        fileId: 'creator-bg-file',
+        pathKey: 'backgroundMedia',
+        fileKey: 'customBackgroundFile',
+        preview: previewDraftBackground
+    });
+
+    bindThemeAsset({
+        selectId: 'creator-skin-select',
+        triggerId: 'creator-upload-skin-trigger',
+        fileId: 'creator-skin-file',
+        pathKey: 'coverImage',
+        fileKey: 'customCoverFile',
+        preview: previewDraftSkin
+    });
+
+    bindThemeAsset({
+        triggerId: 'creator-upload-icon-trigger',
+        fileId: 'creator-icon-file',
+        pathKey: 'iconImage',
+        fileKey: 'customIconFile',
+        preview: previewDraftIcon
+    });
+
+    document.getElementById('creator-reset-icon-trigger')?.addEventListener('click', () => {
+        if (!draft) return;
+        draft.customIconFile = null;
+        draft.iconImage = '';
+        commitThemeChange(previewDraftIcon);
+    });
+
+    // Theme: Visualizer
+    const vizMode = document.getElementById('creator-viz-mode');
+    if (vizMode) {
+        vizMode.addEventListener('change', (e) => {
+            if (!draft) return;
+            draft.visualizerMode = e.target.value;
+            markDraftModified();
+            previewDraftVisualizer();
+            renderThemeView();
+        });
+    }
+
+    const vizColor1 = document.getElementById('creator-viz-color1');
+    if (vizColor1) {
+        vizColor1.addEventListener('input', (e) => {
+            if (!draft) return;
+            draft.visualizerColor1 = e.target.value;
+            markDraftModified();
+            previewDraftVisualizer();
+        });
+    }
+
+    const vizGradient = document.getElementById('creator-viz-gradient');
+    if (vizGradient) {
+        vizGradient.addEventListener('change', (e) => {
+            if (!draft) return;
+            draft.visualizerGradient = e.target.checked;
+            markDraftModified();
+            previewDraftVisualizer();
+            renderThemeView();
+        });
+    }
+
+    const vizColor2 = document.getElementById('creator-viz-color2');
+    if (vizColor2) {
+        vizColor2.addEventListener('input', (e) => {
+            if (!draft) return;
+            draft.visualizerColor2 = e.target.value;
+            markDraftModified();
+            previewDraftVisualizer();
+        });
+    }
+
+    const vizDirection = document.getElementById('creator-viz-direction');
+    if (vizDirection) {
+        vizDirection.addEventListener('change', (e) => {
+            if (!draft) return;
+            draft.visualizerGradientDirection = e.target.value;
+            markDraftModified();
+            previewDraftVisualizer();
+        });
+    }
+
+    syncInputSlider('creator-rotation-slider', 'creator-rotation-input', (angle) => {
+        if (!draft) return;
+        draft.launchpadRotation = angle;
+        markDraftModified();
+        previewDraftLayout();
+    }, LAUNCHPAD_ROTATION_MIN, LAUNCHPAD_ROTATION_MAX);
+
+    syncInputSlider('creator-size-slider', 'creator-size-input', (size) => {
+        if (!draft) return;
+        draft.launchpadSize = size;
+        markDraftModified();
+        previewDraftLayout();
+    }, LAUNCHPAD_SIZE_MIN, LAUNCHPAD_SIZE_MAX);
 
     window.addEventListener('launchpad-view-changed', () => {
         if (editorActive && draft) {

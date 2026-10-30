@@ -9,7 +9,7 @@ import { initMidi, isMidiConnected } from './midi.js';
 
 // Initialization and management functions from separate modules
 import { initializeVisualizerControls } from './visualizer-controls.js';
-import { initializeVideoControls } from './video.js';
+import { initializeBackgroundControls } from './background.js';
 import { loadProject, initializeProjectMenu, initializeBackgroundMenu } from './project.js';
 import { initializePersonalizeLaunchpadMenu, initializeLanguageControls, initializeModeMenu, getTranslation, bindStaticUIEvents, showNotification } from './ui.js';
 import { initInteraction, changeSoundSet, changeMode } from './interaction.js';
@@ -34,6 +34,10 @@ export let projectLightSyncToSound = [];
 export let projectLightDurations = [];
 export let currentPage = null; // Initialized as null to allow first "Page changed: 0" log
 export let currentMode = null; // Initialized as null to allow first "Mode changed: 5" log
+
+// Static catalog (videos/skins/projects) loaded once from js/static-data.json.
+let staticData = null;
+export function getStaticData() { return staticData; }
 
 export function setCurrentProject(p) { currentProject = p; }
 export function setSelectedProjectButton(b) { selectedProjectButton = b; }
@@ -126,6 +130,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
             const data = await response.json();
             projectsData = data.projects;
+            staticData = data;
 
             initializeBackgroundMenu(data.videos);
             initializeProjectMenu(data.projects);
@@ -243,7 +248,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     registerListener(document, 'touchstart', unlockAudioAndHideOverlay);
 
     // --- 2. UI Controls Initialization ---
-    initializeVideoControls();
+    initializeBackgroundControls();
     await initializeLanguageControls();
 
     // --- Handle Tab Visibility Changes ---

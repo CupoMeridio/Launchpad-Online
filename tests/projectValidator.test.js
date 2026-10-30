@@ -74,6 +74,14 @@ test('rejects optional metadata with an invalid type', () => {
     const project = createValidProject();
     project.coverImage = 42;
     assert.match(validateProject(project).errors.join('\n'), /"coverImage" must be a string or null/);
+
+    const project2 = createValidProject();
+    project2.backgroundImage = 'backgrounds/wallpaper.jpg';
+    project2.backgroundMedia = 'backgrounds/ambient.png';
+    assert.equal(validateProject(project2).isValid, true);
+
+    project2.backgroundMedia = 123;
+    assert.match(validateProject(project2).errors.join('\n'), /"backgroundMedia" must be a string or null/);
 });
 
 test('built-in projects pass validation and reference existing assets', () => {
@@ -117,4 +125,98 @@ test('validates optional LED animation data', () => {
     assert.match(errors, /Light 4: must be a string or empty/);
     assert.match(errors, /Light sync 2: must be a boolean/);
     assert.match(errors, /Light duration 3: must be between 0.1 and 60 seconds/);
+});
+
+test('validates visualizer configuration options', () => {
+    const project = createValidProject();
+    project.visualizerColor1 = '#ff0055';
+    project.visualizerColor2 = '#00ffff';
+    project.visualizerGradient = true;
+    project.visualizerGradientDirection = 'vertical';
+    assert.equal(validateProject(project).isValid, true);
+
+    project.visualizer = {
+        mode: 'both',
+        color1: '#ff0000',
+        color2: '#00ff00',
+        gradient: false,
+        gradientDirection: 'horizontal'
+    };
+    assert.equal(validateProject(project).isValid, true);
+
+    // Invalid enum values and colors must be rejected
+    project.visualizer = { mode: 'radial' };
+    let errors = validateProject(project).errors.join('\n');
+    assert.match(errors, /Visualizer field "mode" must be one of/);
+
+    project.visualizer = { color1: 'blue' };
+    errors = validateProject(project).errors.join('\n');
+    assert.match(errors, /Visualizer field "color1" must be a hex color/);
+
+    project.visualizer = { gradientDirection: 'to right' };
+    errors = validateProject(project).errors.join('\n');
+    assert.match(errors, /Visualizer field "gradientDirection" must be one of/);
+
+    project.visualizer = null;
+
+    // Invalid types
+    project.visualizerColor1 = 123;
+    errors = validateProject(project).errors.join('\n');
+    assert.match(errors, /"visualizerColor1" must be a string or null/);
+
+    project.visualizerColor1 = null;
+    project.visualizerGradient = 'true';
+    errors = validateProject(project).errors.join('\n');
+    assert.match(errors, /"visualizerGradient" must be a boolean or null/);
+
+    project.visualizerGradient = null;
+    project.visualizer = 'invalid';
+    errors = validateProject(project).errors.join('\n');
+    assert.match(errors, /must be an object if provided/);
+
+    project.visualizer = { mode: 123 };
+    errors = validateProject(project).errors.join('\n');
+    assert.match(errors, /Visualizer field "mode" must be a string/);
+});
+
+test('validates launchpad layout configuration options (rotation and size)', () => {
+    const project = createValidProject();
+    project.launchpadRotation = 90;
+    project.launchpadSize = 120;
+    assert.equal(validateProject(project).isValid, true);
+
+    project.launchpadRotation = 0;
+    project.launchpadSize = 50;
+    assert.equal(validateProject(project).isValid, true);
+
+    project.launchpadRotation = 360;
+    project.launchpadSize = 140;
+    assert.equal(validateProject(project).isValid, true);
+
+    // Invalid rotation
+    project.launchpadRotation = -5;
+    let errors = validateProject(project).errors.join('\n');
+    assert.match(errors, /"launchpadRotation" must be a number between 0 and 360/);
+
+    project.launchpadRotation = 361;
+    errors = validateProject(project).errors.join('\n');
+    assert.match(errors, /"launchpadRotation" must be a number between 0 and 360/);
+
+    project.launchpadRotation = '90';
+    errors = validateProject(project).errors.join('\n');
+    assert.match(errors, /"launchpadRotation" must be a number between 0 and 360/);
+
+    // Invalid size
+    project.launchpadRotation = null;
+    project.launchpadSize = 40;
+    errors = validateProject(project).errors.join('\n');
+    assert.match(errors, /"launchpadSize" must be a number between 50 and 140/);
+
+    project.launchpadSize = 150;
+    errors = validateProject(project).errors.join('\n');
+    assert.match(errors, /"launchpadSize" must be a number between 50 and 140/);
+
+    project.launchpadSize = '100';
+    errors = validateProject(project).errors.join('\n');
+    assert.match(errors, /"launchpadSize" must be a number between 50 and 140/);
 });

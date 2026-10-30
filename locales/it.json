@@ -150,5 +150,22 @@
     "creator.importing": "Caricamento progetto...",
     "creator.errorImport": "Impossibile importare il progetto: {error}",
     "creator.importSuccess": "Progetto importato: {name}",
-    "error.offline": "Impossibile caricare la risorsa: sei offline."
+    "creator.missingAssets": "Alcuni file del progetto non sono stati trovati nell'archivio e sono stati ignorati ({count}): {files}",
+    "error.offline": "Impossibile caricare la risorsa: sei offline.",
+    "creator.tabs.pads": "Suoni e Luci",
+    "creator.tabs.theme": "Aspetto e Tema",
+    "creator.theme.background": "Sfondo progetto",
+    "creator.theme.selectBackground": "Seleziona sfondo predefinito",
+    "creator.theme.skin": "Skin Launchpad",
+    "creator.theme.selectSkin": "Seleziona skin predefinita",
+    "creator.theme.icon": "Icona in alto a destra",
+    "creator.theme.visualizer": "Visualizzatore audio",
+    "creator.theme.visualizerMode": "Modalità predefinita",
+    "creator.theme.uploadCustom": "Carica file",
+    "creator.theme.none": "Nessuno",
+    "creator.theme.default": "Predefinita",
+    "creator.theme.resetIcon": "Ripristina icona",
+    "creator.theme.layout": "Layout Launchpad",
+    "menu.resetAppearance": "Ripristina aspetto progetto",
+    "notification.appearanceReset": "Aspetto del progetto ripristinato"
 }

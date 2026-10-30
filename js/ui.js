@@ -1,6 +1,16 @@
-import { updateVideoControlsVisibility } from './video.js';
+import { updateVideoControlsVisibility } from './background.js';
 import { syncInputSlider } from './formControls.js';
-import { LAUNCHPAD_ROTATION_MIN, LAUNCHPAD_ROTATION_MAX, LAUNCHPAD_SIZE_MIN, LAUNCHPAD_SIZE_MAX } from './constants.js';
+import {
+    LAUNCHPAD_ROTATION_MIN,
+    LAUNCHPAD_ROTATION_MAX,
+    LAUNCHPAD_SIZE_MIN,
+    LAUNCHPAD_SIZE_MAX,
+    AUDIO_EXTENSIONS,
+    IMAGE_EXTENSIONS,
+    MEDIA_EXTENSIONS,
+    toAcceptAttribute,
+    DEFAULT_VISUALIZER_COLOR
+} from './constants.js';
 import { setModelPreference } from './launchpadView.js';
 
 export { syncInputSlider };
@@ -135,9 +145,11 @@ export function toggleMenu(menuId) {
     updateVideoControlsVisibility();
 }
 
+let currentSkinUrl = null;
+
 /**
- * Sets a background image for the Launchpad.
- * @param {string|null} imageFile - The image file name, or `null` to remove it.
+ * Sets the Launchpad skin background from a File, path, or URL.
+ * @param {File|Blob|string|null} imageFile - The image file, path, or `null` to remove it.
  * @returns {Promise<void>} A promise that resolves when the background is loaded.
  */
 export function setLaunchpadBackground(imageFile) {
@@ -147,31 +159,48 @@ export function setLaunchpadBackground(imageFile) {
     if (menu) {
         const buttons = menu.querySelectorAll('.menu-option');
         buttons.forEach(b => b.classList.remove('selected'));
-        const selector = imageFile ? `.menu-option[data-skin="${imageFile}"]` : '.menu-option[data-skin="none"]';
+        const selector = typeof imageFile === 'string' && imageFile ? `.menu-option[data-skin="${CSS.escape(imageFile)}"]` : '.menu-option[data-skin="none"]';
         const active = menu.querySelector(selector);
         if (active) active.classList.add('selected');
     }
 
     if (!imageFile) {
-        launchpad.style.backgroundImage = 'none';
+        if (currentSkinUrl && currentSkinUrl.startsWith('blob:')) {
+            URL.revokeObjectURL(currentSkinUrl);
+            currentSkinUrl = null;
+        }
+        if (launchpad) launchpad.style.backgroundImage = 'none';
         return Promise.resolve();
     }
 
+    let url;
+    if (typeof imageFile === 'object' && imageFile !== null) {
+        url = URL.createObjectURL(imageFile);
+    } else {
+        url = (imageFile.includes('/') || imageFile.startsWith('blob:') || imageFile.startsWith('data:'))
+            ? imageFile
+            : `assets/images/launchpad covers/${imageFile}`;
+    }
+
+    const previousSkinUrl = currentSkinUrl;
+    currentSkinUrl = url;
+
+    if (previousSkinUrl && previousSkinUrl.startsWith('blob:') && previousSkinUrl !== url) {
+        URL.revokeObjectURL(previousSkinUrl);
+    }
+
     return new Promise((resolve) => {
-        // If the imageFile path contains a slash, assume it's a full path,
-        // otherwise assume it's a file in the default assets/images/launchpad covers/ directory.
-        const imageSrc = imageFile.includes('/') ? imageFile : `assets/images/launchpad covers/${imageFile}`;
-        const fullUrl = `${imageSrc}?t=${new Date().getTime()}`;
+        const fullUrl = (url.startsWith('blob:') || url.startsWith('data:')) ? url : `${url}?t=${Date.now()}`;
 
         // Create a temporary image to track loading
         const img = new Image();
         img.onload = () => {
-            launchpad.style.backgroundImage = `url('${fullUrl}')`;
+            if (launchpad) launchpad.style.backgroundImage = `url('${fullUrl}')`;
             resolve();
         };
         img.onerror = () => {
             console.error(`Error loading skin: ${fullUrl}`);
-            launchpad.style.backgroundImage = 'none';
+            if (launchpad) launchpad.style.backgroundImage = 'none';
             resolve(); // Still resolve to not block loading indefinitely
         };
         img.src = fullUrl;
@@ -210,38 +239,18 @@ export function initializePersonalizeLaunchpadMenu(imageFiles) {
         menu.appendChild(button);
     });
 
-    // Rotation synchronization
+    // Rotation/scale controls start from the saved preference, seeding it from
+    // the controls' own defaults on first run.
     const rotationSlider = document.getElementById('rotation-slider');
-    const rotationInput = document.getElementById('rotation-input');
-    const savedRotation = safeLocalStorageGetItem('launchpad.rotation', null);
-
-    if (savedRotation !== null) {
-        const rotationValue = parseInt(savedRotation, 10);
-        setSettingValue('rotation', rotationValue);
-        if (rotationSlider) rotationSlider.value = savedRotation;
-        if (rotationInput) rotationInput.value = savedRotation;
-    } else if (rotationSlider) {
-        const defaultRotation = parseInt(rotationSlider.value, 10);
-        setSettingValue('rotation', defaultRotation);
+    if (rotationSlider && safeLocalStorageGetItem(LAUNCHPAD_LAYOUT_KEYS.rotation, null) === null) {
+        setSettingValue('rotation', parseInt(rotationSlider.value, 10));
     }
-    applyLaunchpadTransform();
-    syncInputSlider('rotation-slider', 'rotation-input', setLaunchpadRotation, LAUNCHPAD_ROTATION_MIN, LAUNCHPAD_ROTATION_MAX);
-
-    // Size synchronization
     const sizeSlider = document.getElementById('size-slider');
-    const sizeInput = document.getElementById('size-input');
-    const savedSize = safeLocalStorageGetItem('launchpad.size', null);
-
-    if (savedSize !== null) {
-        const sizeValue = parseInt(savedSize, 10);
-        setSettingValue('scale', sizeValue / 100);
-        if (sizeSlider) sizeSlider.value = savedSize;
-        if (sizeInput) sizeInput.value = savedSize;
-    } else if (sizeSlider) {
-        const defaultSize = parseInt(sizeSlider.value, 10);
-        setSettingValue('scale', defaultSize / 100);
+    if (sizeSlider && safeLocalStorageGetItem(LAUNCHPAD_LAYOUT_KEYS.scale, null) === null) {
+        setSettingValue('scale', parseInt(sizeSlider.value, 10) / 100);
     }
-    applyLaunchpadTransform();
+    restoreLaunchpadLayout();
+    syncInputSlider('rotation-slider', 'rotation-input', setLaunchpadRotation, LAUNCHPAD_ROTATION_MIN, LAUNCHPAD_ROTATION_MAX);
     syncInputSlider('size-slider', 'size-input', setLaunchpadSize, LAUNCHPAD_SIZE_MIN, LAUNCHPAD_SIZE_MAX);
 
     const logoInput = document.getElementById('logo-file-input');
@@ -286,17 +295,32 @@ export function showNotification(message, type = 'info', duration = 3000) {
 }
 
 /**
- * Launchpad UI Settings - Grouped state management
- * Centralizes all launchpad customization settings (rotation, scale, etc.)
- * Benefits: Easy to extend with new settings, consistent persistence pattern
+ * Launchpad UI settings, in two layers:
+ * - `launchpadSettings` is what is currently applied to the Launchpad and may
+ *   come from a project or Studio draft override.
+ * - `launchpadPreference` is the user's own saved rotation/size, which overrides
+ *   must never touch. It is mirrored in storage but kept in memory too, so it
+ *   survives even when storage is unavailable.
  */
 let launchpadSettings = {
     rotation: 0,
     scale: 1
 };
 
+let launchpadPreference = {
+    rotation: 0,
+    scale: 1
+};
+
+let launchpadPreferenceLoaded = false;
+
+const LAUNCHPAD_LAYOUT_KEYS = {
+    rotation: 'launchpad.rotation',
+    scale: 'launchpad.scale'
+};
+
 /**
- * Gets a launchpad setting value
+ * Gets the currently applied value of a launchpad setting.
  * @param {string} key - Setting key (e.g., 'rotation', 'scale')
  * @param {*} defaultValue - Default if not set
  * @returns {*} The setting value
@@ -306,14 +330,42 @@ function getSettingValue(key, defaultValue = null) {
 }
 
 /**
- * Sets a launchpad setting value and persists to storage
+ * Reads a numeric layout preference from storage, falling back to `defaultValue`.
+ * @param {'rotation'|'scale'} key
+ * @param {number} defaultValue
+ * @returns {number}
+ */
+function readLayoutPreference(key, defaultValue) {
+    const stored = safeLocalStorageGetItem(LAUNCHPAD_LAYOUT_KEYS[key], null);
+    if (stored === null || stored === '') return defaultValue;
+    const parsed = parseFloat(stored);
+    return Number.isFinite(parsed) ? parsed : defaultValue;
+}
+
+/**
+ * Loads the user's saved layout preference from storage on first use.
+ */
+function ensureLaunchpadPreference() {
+    if (launchpadPreferenceLoaded) return;
+    launchpadPreferenceLoaded = true;
+    launchpadPreference.rotation = readLayoutPreference('rotation', 0);
+    launchpadPreference.scale = readLayoutPreference('scale', 1);
+}
+
+/**
+ * Applies a launchpad setting. Project and draft overrides pass `persist = false`
+ * so they are never written as the user's personal preference.
  * @param {string} key - Setting key (e.g., 'rotation', 'scale')
  * @param {*} value - Value to set
+ * @param {boolean} persist - Whether to save the value as the user preference
  */
-function setSettingValue(key, value) {
+function setSettingValue(key, value, persist = true) {
     launchpadSettings[key] = value;
-    // Persist to storage with 'launchpad.' prefix
-    safeLocalStorageSetItem(`launchpad.${key}`, value);
+    if (persist) {
+        ensureLaunchpadPreference();
+        launchpadPreference[key] = value;
+        safeLocalStorageSetItem(LAUNCHPAD_LAYOUT_KEYS[key] || `launchpad.${key}`, value);
+    }
 }
 
 /**
@@ -362,12 +414,12 @@ export function bindStaticUIEvents() {
         resetIconBtn.addEventListener('click', resetTopRightIcon);
     }
 
-    // "Clear background" button (data-video="none")
-    const clearBgBtn = document.querySelector('.menu-option[data-video="none"]');
+    // "Clear background" button (data-background="none")
+    const clearBgBtn = document.querySelector('.menu-option[data-background="none"]');
     if (clearBgBtn) {
         clearBgBtn.addEventListener('click', () => {
             if (clearBgBtn.classList.contains('selected')) return;
-            import('./video.js').then(m => m.setBackgroundVideo(null));
+            import('./background.js').then(m => m.setBackgroundMedia(null));
         });
     }
 
@@ -379,6 +431,37 @@ export function bindStaticUIEvents() {
             setLaunchpadBackground(null);
         });
     }
+
+    // "Reset project appearance" button in sidebar
+    const resetAppearanceBtn = document.getElementById('reset-project-appearance');
+    if (resetAppearanceBtn) {
+        resetAppearanceBtn.addEventListener('click', async () => {
+            const { restoreProjectAppearance } = await import('./project.js');
+            restoreProjectAppearance();
+            showNotification(getTranslation('notification.appearanceReset'), 'success');
+        });
+    }
+
+    // File pickers' `accept` lists come from the same extension lists used by
+    // project import/export, so every accepted file can actually be packaged.
+    const acceptByInput = {
+        'background-file-input': MEDIA_EXTENSIONS,
+        'logo-file-input': MEDIA_EXTENSIONS,
+        'creator-bg-file': MEDIA_EXTENSIONS,
+        'creator-skin-file': IMAGE_EXTENSIONS,
+        'creator-icon-file': MEDIA_EXTENSIONS,
+        'creator-sample-file': AUDIO_EXTENSIONS
+    };
+    Object.entries(acceptByInput).forEach(([id, extensions]) => {
+        const input = document.getElementById(id);
+        if (input) input.setAttribute('accept', toAcceptAttribute(extensions));
+    });
+
+    // Visualizer colour inputs share a single default colour.
+    ['color1-picker', 'color2-picker', 'creator-viz-color1', 'creator-viz-color2'].forEach(id => {
+        const input = document.getElementById(id);
+        if (input) input.value = DEFAULT_VISUALIZER_COLOR;
+    });
 }
 
 /**
@@ -393,14 +476,65 @@ function applyLaunchpadTransform() {
     }
 }
 
-export function setLaunchpadRotation(angle) {
-    setSettingValue('rotation', angle);
+/**
+ * Applies a rotation to the Launchpad.
+ * @param {number} angle - Rotation in degrees.
+ * @param {boolean} persist - False for project/draft overrides, which must not
+ *   become the user's saved preference.
+ */
+export function setLaunchpadRotation(angle, persist = true) {
+    setSettingValue('rotation', angle, persist);
     applyLaunchpadTransform();
+    const slider = document.getElementById('rotation-slider');
+    const input = document.getElementById('rotation-input');
+    if (slider) slider.value = angle;
+    if (input) input.value = angle;
 }
 
-export function setLaunchpadSize(size) {
-    setSettingValue('scale', size / 100);
+/**
+ * Applies a size to the Launchpad.
+ * @param {number} size - Size as a percentage.
+ * @param {boolean} persist - False for project/draft overrides, which must not
+ *   become the user's saved preference.
+ */
+export function setLaunchpadSize(size, persist = true) {
+    setSettingValue('scale', size / 100, persist);
     applyLaunchpadTransform();
+    const slider = document.getElementById('size-slider');
+    const input = document.getElementById('size-input');
+    if (slider) slider.value = size;
+    if (input) input.value = size;
+}
+
+/**
+ * Returns the rotation the user personally saved, independent of any project or
+ * draft override currently applied.
+ * @returns {number} Rotation in degrees.
+ */
+export function getLaunchpadRotation() {
+    ensureLaunchpadPreference();
+    return launchpadPreference.rotation;
+}
+
+/**
+ * Returns the size the user personally saved, independent of any project or
+ * draft override currently applied.
+ * @returns {number} Size as a percentage.
+ */
+export function getLaunchpadSize() {
+    ensureLaunchpadPreference();
+    return Math.round(launchpadPreference.scale * 100);
+}
+
+/**
+ * Re-applies the rotation/size the user personally saved. Used when a project or
+ * draft leaves an aspect unspecified, so an override is never mistaken for a
+ * preference and the user's own value comes back.
+ * @param {{rotation?: boolean, size?: boolean}} [aspects]
+ */
+export function restoreLaunchpadLayout({ rotation = true, size = true } = {}) {
+    if (rotation) setLaunchpadRotation(getLaunchpadRotation(), false);
+    if (size) setLaunchpadSize(getLaunchpadSize(), false);
 }
 
 /**

@@ -5,9 +5,17 @@
  */
 
 import { audioEngine } from './audio.js';
-import { setLaunchpadBackground, getTranslation, setTopRightIconFile, resetTopRightIcon, showNotification } from './ui.js';
-import { setBackgroundVideo } from './video.js';
-import { selectedProjectButton, setCurrentProject, setProjectSounds, setProjectLights, setProjectLightSyncToSound, setProjectLightDurations, setSelectedProjectButton } from './app.js';
+import { getTranslation, showNotification } from './ui.js';
+import { normalizeAppearance, createDefaultAppearance } from './appearanceModel.js';
+import {
+    applySkin,
+    applyIcon,
+    applyBackground,
+    applyVisualizer,
+    applyLayout,
+    applyAppearance
+} from './appearance.js';
+import { selectedProjectButton, setCurrentProject, setProjectSounds, setProjectLights, setProjectLightSyncToSound, setProjectLightDurations, setSelectedProjectButton, currentProject } from './app.js';
 import { changeSoundSet } from './interaction.js';
 import { stopAnimationLoop, startAnimationLoop } from './lights.js';
 import { validateProject, getErrorSummary } from './projectValidator.js';
@@ -22,21 +30,36 @@ import { LAUNCHPAD_PADS, DEFAULT_LIGHT_DURATION_SEC } from './constants.js';
 let activeProjectLoad = null;
 
 /**
+ * Builds a resolver that turns a project-relative asset path into a usable URL.
+ * Absolute URLs, root paths and `assets/` refs are returned unchanged.
+ * @param {string} configPath - Path of the project configuration JSON.
+ * @returns {(path: string) => string}
+ */
+function createPathResolver(configPath) {
+    const baseUrl = configPath ? configPath.substring(0, configPath.lastIndexOf('/') + 1) : '';
+    return (path) => {
+        if (!path) return path;
+        if (path.startsWith('http') || path.startsWith('/') || path.startsWith('assets/')) return path;
+        return baseUrl ? baseUrl + path : path;
+    };
+}
+
+/**
  * Dynamically populates the background video menu.
  * @param {string[]} videoFiles - An array of video file names.
  */
 export function initializeBackgroundMenu(videoFiles) {
     const backgroundMenu = document.getElementById('background-menu');
-    const videoControls = backgroundMenu.querySelector('.video-controls');
+    const videoControls = backgroundMenu.querySelector('.media-controls');
 
     videoFiles.forEach(videoFile => {
         const button = document.createElement('button');
         button.className = 'menu-option';
-        button.setAttribute('data-video', videoFile);
-        button.textContent = videoFile.replace('.mp4', '');
+        button.setAttribute('data-background', videoFile);
+        button.textContent = videoFile.replace(/\.[^.]+$/, '');
         button.onclick = () => {
             if (button.classList.contains('selected')) return;
-            setBackgroundVideo(videoFile);
+            applyBackground(videoFile);
         };
         backgroundMenu.insertBefore(button, videoControls);
     });
@@ -108,14 +131,10 @@ async function loadProjectInternal(configPath, button, onProgress = null) {
 
         // CRITICAL: Set current project BEFORE any operations that depend on it
         // This ensures MIDI and other modules see consistent state
+        project.configPath = configPath;
         setCurrentProject(project);
 
-        const baseUrl = configPath.substring(0, configPath.lastIndexOf('/') + 1);
-        const resolvePath = (path) => {
-            if (!path) return path;
-            if (path.startsWith('http') || path.startsWith('/') || path.startsWith('assets/')) return path;
-            return baseUrl + path;
-        };
+        const resolvePath = createPathResolver(configPath);
 
         const sounds = [];
         const lights = [];
@@ -139,13 +158,14 @@ async function loadProjectInternal(configPath, button, onProgress = null) {
         setProjectLightDurations(lightDurations);
 
         // --- PROGRESS TRACKING ---
+        const appearance = normalizeAppearance(project, resolvePath);
         let audioLoaded = 0;
         let skinLoaded = 0;
         let iconLoaded = 0;
         let videoLoaded = 0;
-        const hasSkin = !!project.coverImage;
-        const hasIcon = !!project.iconImage;
-        const hasVideo = !!project.backgroundVideo;
+        const hasSkin = !!appearance.skin;
+        const hasIcon = !!appearance.icon;
+        const hasVideo = !!appearance.background;
         const totalAssets = sounds.length + (hasSkin ? 1 : 0) + (hasIcon ? 1 : 0) + (hasVideo ? 1 : 0);
 
         const updateOverallProgress = () => {
@@ -172,7 +192,7 @@ async function loadProjectInternal(configPath, button, onProgress = null) {
         loadingPromises.push(audioPromise);
 
         // 2. Skin Loading
-        const skinPromise = setLaunchpadBackground(resolvePath(project.coverImage)).then(() => {
+        const skinPromise = Promise.resolve(applySkin(appearance.skin)).then(() => {
             if (hasSkin) {
                 skinLoaded = 1;
                 updateOverallProgress();
@@ -180,29 +200,25 @@ async function loadProjectInternal(configPath, button, onProgress = null) {
         });
         loadingPromises.push(skinPromise);
 
-        // 3. Icon Loading
-        let iconPromise;
-        if (hasIcon) {
-            iconPromise = setTopRightIconFile(resolvePath(project.iconImage)).then(() => {
+        // 3. Icon Loading (falls back to the default icon when the project has none)
+        const iconPromise = Promise.resolve(applyIcon(appearance.icon)).then(() => {
+            if (hasIcon) {
                 iconLoaded = 1;
                 updateOverallProgress();
-            });
-        } else {
-            // Se non c'è un'icona specifica per il progetto, ripristina quella di default
-            iconPromise = resetTopRightIcon();
-        }
+            }
+        });
         loadingPromises.push(iconPromise);
 
-        // 4. Video Loading
+        // 4. Background Media Loading
         if (hasVideo) {
-            console.log("Loading project background video:", project.backgroundVideo);
-            const videoPromise = setBackgroundVideo(resolvePath(project.backgroundVideo)).then(() => {
+            console.log("Loading project background media:", appearance.background);
+            const videoPromise = Promise.resolve(applyBackground(appearance.background)).then(() => {
                 videoLoaded = 1;
                 updateOverallProgress();
             });
             loadingPromises.push(videoPromise);
         } else {
-            setBackgroundVideo(null);
+            applyBackground(null);
         }
 
         // Wait for everything to finish
@@ -211,9 +227,9 @@ async function loadProjectInternal(configPath, button, onProgress = null) {
         // Ensure final UI update
         updateOverallProgress();
 
-        // Visualizer Mode
-        const visualizerMode = project.visualizerMode || 'off';
-        window.dispatchEvent(new CustomEvent('visualizer:setMode', { detail: { mode: visualizerMode } }));
+        // Visualizer styling and layout overrides
+        applyVisualizer(appearance.visualizer);
+        applyLayout(appearance.rotation, appearance.size);
 
         if (selectedProjectButton) {
             selectedProjectButton.classList.remove('selected');
@@ -286,4 +302,22 @@ export function initializeProjectMenu(projects) {
             // Selected button handling logic is in loadProject
         }
     });
+}
+
+/**
+ * Restores the active project's original visual appearance (background, skin, icon, visualizer).
+ * Used when the user clicks "Ripristina aspetto progetto" or exits the editor.
+ * @returns {boolean} True if a project appearance was restored, false if reset to defaults.
+ */
+export function restoreProjectAppearance() {
+    if (!currentProject) {
+        // No project: clear the visuals but leave rotation/size to the user preference.
+        applyAppearance(createDefaultAppearance());
+        return false;
+    }
+
+    const resolvePath = createPathResolver(currentProject.configPath);
+
+    applyAppearance(normalizeAppearance(currentProject, resolvePath));
+    return true;
 }

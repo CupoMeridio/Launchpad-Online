@@ -11,8 +11,55 @@ import {
     LAUNCHPAD_PADS, 
     MAX_PROJECT_PAGES, 
     MIN_LIGHT_DURATION_SEC, 
-    MAX_LIGHT_DURATION_SEC 
+    MAX_LIGHT_DURATION_SEC,
+    LAUNCHPAD_ROTATION_MIN,
+    LAUNCHPAD_ROTATION_MAX,
+    LAUNCHPAD_SIZE_MIN,
+    LAUNCHPAD_SIZE_MAX,
+    VISUALIZER_MODES,
+    VISUALIZER_GRADIENT_DIRECTIONS
 } from './constants.js';
+
+const HEX_COLOR_PATTERN = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+
+/**
+ * Validates a visualizer color value (hex notation).
+ * @param {string} value
+ * @returns {boolean}
+ */
+function isValidColor(value) {
+    return HEX_COLOR_PATTERN.test(value);
+}
+
+/**
+ * Validates the enumerable/juridical values of a visualizer configuration,
+ * shared by the flat legacy fields and the nested `visualizer` object.
+ * @param {object} viz - Object exposing optional mode/color1/color2/gradientDirection.
+ * @param {string} label - Human-readable label for error messages.
+ * @param {string[]} errors - Accumulator for error messages.
+ */
+function validateVisualizerValues(viz, label, errors) {
+    if (viz.mode !== undefined && viz.mode !== null) {
+        if (typeof viz.mode !== 'string' || !VISUALIZER_MODES.includes(viz.mode)) {
+            errors.push(`${label} field "mode" must be one of: ${VISUALIZER_MODES.join(', ')}`);
+        }
+    }
+
+    ['color1', 'color2'].forEach(field => {
+        const value = viz[field];
+        if (value !== undefined && value !== null) {
+            if (typeof value !== 'string' || !isValidColor(value)) {
+                errors.push(`${label} field "${field}" must be a hex color (e.g. #00aaff)`);
+            }
+        }
+    });
+
+    if (viz.gradientDirection !== undefined && viz.gradientDirection !== null) {
+        if (typeof viz.gradientDirection !== 'string' || !VISUALIZER_GRADIENT_DIRECTIONS.includes(viz.gradientDirection)) {
+            errors.push(`${label} field "gradientDirection" must be one of: ${VISUALIZER_GRADIENT_DIRECTIONS.join(', ')}`);
+        }
+    }
+}
 
 /**
  * Validates a project configuration object.
@@ -57,13 +104,66 @@ export function validateProject(project) {
         errors.push(...pageErrors);
     });
 
-    // 5. Check optional fields (must be strings or null)
-    const optionalStringFields = ['coverImage', 'iconImage', 'backgroundVideo', 'visualizerMode'];
+    // 5. Check optional fields (must be strings, booleans, or objects as appropriate)
+    const optionalStringFields = [
+        'coverImage', 
+        'iconImage', 
+        'backgroundVideo', 
+        'backgroundImage',
+        'backgroundMedia',
+        'visualizerMode', 
+        'visualizerColor1', 
+        'visualizerColor2', 
+        'visualizerGradientDirection'
+    ];
     optionalStringFields.forEach(field => {
         if (project[field] !== undefined && project[field] !== null && typeof project[field] !== 'string') {
             errors.push(`Project field "${field}" must be a string or null if provided`);
         }
     });
+
+    if (project.visualizerGradient !== undefined && project.visualizerGradient !== null && typeof project.visualizerGradient !== 'boolean') {
+        errors.push('Project field "visualizerGradient" must be a boolean or null if provided');
+    }
+
+    validateVisualizerValues({
+        mode: project.visualizerMode,
+        color1: project.visualizerColor1,
+        color2: project.visualizerColor2,
+        gradientDirection: project.visualizerGradientDirection
+    }, 'Project', errors);
+
+    if (project.visualizer !== undefined && project.visualizer !== null) {
+        if (typeof project.visualizer !== 'object' || Array.isArray(project.visualizer)) {
+            errors.push('Project field "visualizer" must be an object if provided');
+        } else {
+            const viz = project.visualizer;
+            const vizStringFields = ['mode', 'color1', 'color2', 'gradientDirection'];
+            vizStringFields.forEach(field => {
+                if (viz[field] !== undefined && viz[field] !== null && typeof viz[field] !== 'string') {
+                    errors.push(`Visualizer field "${field}" must be a string or null if provided`);
+                }
+            });
+            if (viz.gradient !== undefined && viz.gradient !== null && typeof viz.gradient !== 'boolean') {
+                errors.push('Visualizer field "gradient" must be a boolean or null if provided');
+            }
+            validateVisualizerValues(viz, 'Visualizer', errors);
+        }
+    }
+
+    if (project.launchpadRotation !== undefined && project.launchpadRotation !== null) {
+        if (typeof project.launchpadRotation !== 'number' || Number.isNaN(project.launchpadRotation) || 
+            project.launchpadRotation < LAUNCHPAD_ROTATION_MIN || project.launchpadRotation > LAUNCHPAD_ROTATION_MAX) {
+            errors.push(`Project field "launchpadRotation" must be a number between ${LAUNCHPAD_ROTATION_MIN} and ${LAUNCHPAD_ROTATION_MAX} if provided`);
+        }
+    }
+
+    if (project.launchpadSize !== undefined && project.launchpadSize !== null) {
+        if (typeof project.launchpadSize !== 'number' || Number.isNaN(project.launchpadSize) || 
+            project.launchpadSize < LAUNCHPAD_SIZE_MIN || project.launchpadSize > LAUNCHPAD_SIZE_MAX) {
+            errors.push(`Project field "launchpadSize" must be a number between ${LAUNCHPAD_SIZE_MIN} and ${LAUNCHPAD_SIZE_MAX} if provided`);
+        }
+    }
 
     const isValid = errors.length === 0;
     return { isValid, errors };

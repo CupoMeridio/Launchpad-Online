@@ -55,7 +55,7 @@
     -->
   <script src="js/interaction.js" type="module" defer></script>
   <script src="js/ui.js" type="module" defer></script>
-  <script src="js/video.js" type="module" defer></script>
+  <script src="js/background.js" type="module" defer></script>
   <script src="js/visualizer-controls.js" type="module" defer></script>
   <script src="js/vendor/jszip.min.js" defer></script>
   <script src="js/project.js" type="module" defer></script>
@@ -97,12 +97,12 @@
   <div class="layout">
     <!--
       BACKGROUND ELEMENTS AND VISUALIZER
-      - video-overlay: A semi-transparent layer overlaying the background video to improve readability.
+      - media-overlay: A semi-transparent layer overlaying the background media to improve readability.
                        The opacity is controlled from the menu.
       - visualizer-canvas: Two <canvas> elements used to draw the audio visualizer (one at the top, one at the bottom).
                            Their visibility and behavior are managed by 'js/visualizer.js'.
     -->
-    <div class="video-overlay"></div>
+    <div class="media-overlay"></div>
     <div id="audio-unlock-overlay" class="launchpad-overlay">
       <p data-i18n="overlay.clickToStart">Clicca per avviare</p>
     </div>
@@ -154,6 +154,10 @@
           <button class="menu-toggle" type="button" id="toggle-project-creator"
             data-i18n="menu.projectCreator.toggle">Studio Creator</button>
         </div>
+        <div class="menu-item">
+          <button class="menu-toggle" type="button" id="reset-project-appearance"
+            data-i18n="menu.resetAppearance">Ripristina aspetto progetto</button>
+        </div>
 
         <!--
           BACKGROUND MENU
@@ -165,24 +169,24 @@
           <button class="menu-toggle" data-menu="background-menu"
             data-i18n="menu.background.toggle">Sfondo</button>
           <div class="menu-dropdown" id="background-menu">
-            <button class="menu-option selected" data-video="none"
+            <button class="menu-option selected" data-background="none"
               data-i18n="background.none">Nessuno sfondo</button>
             <div class="control-group" style="padding: 15px 15px 5px 15px;">
               <label for="background-file-input" data-i18n="background.upload">Carica file</label>
               <div class="input-group">
-                <input type="file" id="background-file-input" class="file-input-hidden" accept="video/*,image/*">
+                <input type="file" id="background-file-input" class="file-input-hidden">
                 <button type="button" class="menu-option" id="background-file-trigger"
                   data-i18n="background.upload">Carica file</button>
               </div>
             </div>
             <!--
-              VIDEO CONTROLS
+              MEDIA CONTROLS
               These sliders allow real-time adjustments:
-              - Opacity: Controls transparency of the overlay above the video.
-              - Blur: Applies a blur filter to the video.
-              - Brightness: Adjusts the video brightness.
+              - Opacity: Controls transparency of the overlay above the media.
+              - Blur: Applies a blur filter to the media.
+              - Brightness: Adjusts the media brightness.
             -->
-            <div class="video-controls">
+            <div class="media-controls">
               <div class="control-group">
                 <label for="opacity-slider" data-i18n="background.opacity">Opacità</label>
                 <div class="input-group">
@@ -286,7 +290,7 @@
             <div class="control-group" id="color1-group">
               <label for="color1-picker" data-i18n="visualizer.color1">Colore 1</label>
               <div class="input-group">
-                <input type="color" id="color1-picker" value="#00aaff">
+                <input type="color" id="color1-picker">
               </div>
             </div>
             <div class="control-group" id="enable-gradient-group">
@@ -299,7 +303,7 @@
               <div class="control-group">
                 <label for="color2-picker" data-i18n="visualizer.color2">Colore 2</label>
                 <div class="input-group">
-                  <input type="color" id="color2-picker" value="#00aaff">
+                  <input type="color" id="color2-picker">
                 </div>
               </div>
               <div class="control-group">
@@ -395,7 +399,7 @@
             </div>
             <div class="control-group">
               <label for="logo-file-input" data-i18n="launchpad.icon.label">Icona in alto a destra</label>
-              <input type="file" id="logo-file-input" class="file-input-hidden" accept="video/*,image/*">
+              <input type="file" id="logo-file-input" class="file-input-hidden">
               <button type="button" class="menu-option" id="logo-file-trigger" data-i18n="launchpad.icon.upload">Carica
                 icona/video</button>
               <button type="button" class="menu-option" data-action="resetTopRightIcon"
@@ -474,64 +478,174 @@
         </div>
         <input type="file" id="creator-project-zip-input" class="file-input-hidden" accept=".zip,application/zip,application/x-zip-compressed">
       </section>
-      <section id="creator-bank-details" class="inspector-section">
-        <div class="inspector-page-heading">
-          <span data-i18n="creator.pages">Pagine progetto</span>
-          <span id="creator-page-count"></span>
-        </div>
-        <div id="creator-page-tabs" class="creator-page-tabs" role="tablist" aria-label="Project pages"></div>
-        <div class="inspector-actions">
-          <button type="button" class="inspector-action" id="creator-add-page" data-i18n="creator.addPage">Aggiungi pagina</button>
-          <button type="button" class="inspector-action" id="creator-remove-page" data-i18n="creator.removePage">Rimuovi pagina</button>
-        </div>
-      </section>
-      <section id="creator-pad-inspector" class="inspector-section">
-        <div class="inspector-page-heading">
-          <span data-i18n="creator.selectedPad">PAD SELEZIONATO</span>
-          <strong id="creator-selected-pad">Pad 1</strong>
-        </div>
-        <p id="creator-sample-name" class="creator-sample-name"></p>
-        <div class="inspector-actions">
-          <button type="button" class="inspector-action" id="creator-import-sound" data-i18n="creator.importSound">Carica file</button>
-          <button type="button" class="inspector-action" id="creator-preview-pad" data-i18n="creator.playPad">Play</button>
-          <button type="button" class="inspector-action" id="creator-remove-sample" data-i18n="creator.removeSample">Rimuovi</button>
-        </div>
-        <p id="creator-hold-hint" class="creator-duration-note" hidden data-i18n="creator.playPadHoldHint">Effetto continuo: tieni premuto per la durata desiderata</p>
-        <input type="file" id="creator-sample-file" class="file-input-hidden" accept="audio/*">
-        <div class="inspector-page-heading">
-          <span data-i18n="creator.lightCatalog">LUCE / ANIMAZIONE</span>
-        </div>
-        <div id="creator-assigned-light" class="creator-assigned-light" hidden>
-          <div class="creator-assigned-light-row">
-            <div class="creator-assigned-light-info">
-              <span id="creator-assigned-swatch" class="creator-light-swatch"></span>
-              <strong id="creator-assigned-name"></strong>
-            </div>
-            <button type="button" class="inspector-action creator-action-sm" id="creator-remove-light"
-              data-i18n="creator.removeLight">Rimuovi luce</button>
+      <div class="creator-view-tab-bar" role="tablist" aria-label="Editor sections">
+        <button type="button" id="creator-tab-pads" class="creator-view-tab selected" role="tab" aria-selected="true" aria-controls="creator-pads-view">
+          <span data-i18n="creator.tabs.pads">Suoni e Luci</span>
+        </button>
+        <button type="button" id="creator-tab-theme" class="creator-view-tab" role="tab" aria-selected="false" aria-controls="creator-theme-view">
+          <span data-i18n="creator.tabs.theme">Aspetto e Tema</span>
+        </button>
+      </div>
+      <div id="creator-pads-view" class="creator-view-panel">
+        <section id="creator-bank-details" class="inspector-section">
+          <div class="inspector-page-heading">
+            <span data-i18n="creator.pages">Pagine progetto</span>
+            <span id="creator-page-count"></span>
           </div>
-          <section id="creator-light-timing" class="creator-light-timing" hidden>
-            <label class="creator-sync-toggle">
-              <input type="checkbox" id="creator-light-sync" checked>
-              <span data-i18n="creator.syncLight">Sincronizza alla durata del suono</span>
-            </label>
-            <div id="creator-manual-light-duration" class="creator-manual-light-duration" hidden>
-              <label for="creator-light-duration" data-i18n="creator.lightDuration">Durata luce (secondi)</label>
-              <input type="number" id="creator-light-duration" min="0.1" max="60" step="0.1" value="2.5">
-            </div>
-          </section>
-        </div>
-        <label for="creator-light-search" data-i18n="creator.searchAnimations">Cerca animazione</label>
-        <input type="search" id="creator-light-search" autocomplete="off">
-        <nav id="creator-light-categories" class="creator-light-categories" aria-label="Animation categories"></nav>
-        <div id="creator-light-presets" class="creator-light-presets"></div>
-        <section id="creator-text-animation" class="creator-text-animation" hidden>
-          <label for="creator-animation-text" data-i18n="creator.animationText">Testo animazione</label>
-          <input type="text" id="creator-animation-text" maxlength="16" autocomplete="off">
-          <button type="button" class="inspector-action" id="creator-assign-text-animation"
-            data-i18n="creator.assignAnimation">Assegna animazione</button>
+          <div id="creator-page-tabs" class="creator-page-tabs" role="tablist" aria-label="Project pages"></div>
+          <div class="inspector-actions">
+            <button type="button" class="inspector-action" id="creator-add-page" data-i18n="creator.addPage">Aggiungi pagina</button>
+            <button type="button" class="inspector-action" id="creator-remove-page" data-i18n="creator.removePage">Rimuovi pagina</button>
+          </div>
         </section>
-      </section>
+        <section id="creator-pad-inspector" class="inspector-section">
+          <div class="inspector-page-heading">
+            <span data-i18n="creator.selectedPad">PAD SELEZIONATO</span>
+            <strong id="creator-selected-pad">Pad 1</strong>
+          </div>
+          <p id="creator-sample-name" class="creator-sample-name"></p>
+          <div class="inspector-actions">
+            <button type="button" class="inspector-action" id="creator-import-sound" data-i18n="creator.importSound">Carica file</button>
+            <button type="button" class="inspector-action" id="creator-preview-pad" data-i18n="creator.playPad">Play</button>
+            <button type="button" class="inspector-action" id="creator-remove-sample" data-i18n="creator.removeSample">Rimuovi</button>
+          </div>
+          <p id="creator-hold-hint" class="creator-duration-note" hidden data-i18n="creator.playPadHoldHint">Effetto continuo: tieni premuto per la durata desiderata</p>
+          <input type="file" id="creator-sample-file" class="file-input-hidden">
+          <div class="inspector-page-heading">
+            <span data-i18n="creator.lightCatalog">LUCE / ANIMAZIONE</span>
+          </div>
+          <div id="creator-assigned-light" class="creator-assigned-light" hidden>
+            <div class="creator-assigned-light-row">
+              <div class="creator-assigned-light-info">
+                <span id="creator-assigned-swatch" class="creator-light-swatch"></span>
+                <strong id="creator-assigned-name"></strong>
+              </div>
+              <button type="button" class="inspector-action creator-action-sm" id="creator-remove-light"
+                data-i18n="creator.removeLight">Rimuovi luce</button>
+            </div>
+            <section id="creator-light-timing" class="creator-light-timing" hidden>
+              <label class="creator-sync-toggle">
+                <input type="checkbox" id="creator-light-sync" checked>
+                <span data-i18n="creator.syncLight">Sincronizza alla durata del suono</span>
+              </label>
+              <div id="creator-manual-light-duration" class="creator-manual-light-duration" hidden>
+                <label for="creator-light-duration" data-i18n="creator.lightDuration">Durata luce (secondi)</label>
+                <input type="number" id="creator-light-duration" min="0.1" max="60" step="0.1" value="2.5">
+              </div>
+            </section>
+          </div>
+          <label for="creator-light-search" data-i18n="creator.searchAnimations">Cerca animazione</label>
+          <input type="search" id="creator-light-search" autocomplete="off">
+          <nav id="creator-light-categories" class="creator-light-categories" aria-label="Animation categories"></nav>
+          <div id="creator-light-presets" class="creator-light-presets"></div>
+          <section id="creator-text-animation" class="creator-text-animation" hidden>
+            <label for="creator-animation-text" data-i18n="creator.animationText">Testo animazione</label>
+            <input type="text" id="creator-animation-text" maxlength="16" autocomplete="off">
+            <button type="button" class="inspector-action" id="creator-assign-text-animation"
+              data-i18n="creator.assignAnimation">Assegna animazione</button>
+          </section>
+        </section>
+      </div>
+      <div id="creator-theme-view" class="creator-view-panel" hidden>
+        <section class="inspector-section">
+          <div class="inspector-page-heading">
+            <span data-i18n="creator.theme.background">SFONDO PROGETTO</span>
+          </div>
+          <label for="creator-bg-select" data-i18n="creator.theme.selectBackground">Seleziona sfondo predefinito</label>
+          <select id="creator-bg-select" class="creator-select">
+            <option value="" data-i18n="creator.theme.none">Nessuno sfondo</option>
+          </select>
+          <div class="inspector-actions" style="margin-top: 8px;">
+            <button type="button" class="inspector-action" id="creator-upload-bg-trigger" data-i18n="creator.theme.uploadCustom">Carica video/immagine</button>
+          </div>
+          <input type="file" id="creator-bg-file" class="file-input-hidden">
+          <p id="creator-bg-custom-name" class="creator-duration-note" hidden></p>
+        </section>
+        <section class="inspector-section">
+          <div class="inspector-page-heading">
+            <span data-i18n="creator.theme.skin">SKIN LAUNCHPAD</span>
+          </div>
+          <label for="creator-skin-select" data-i18n="creator.theme.selectSkin">Seleziona skin predefinita</label>
+          <select id="creator-skin-select" class="creator-select">
+            <option value="" data-i18n="creator.theme.default">Predefinita</option>
+          </select>
+          <div class="inspector-actions" style="margin-top: 8px;">
+            <button type="button" class="inspector-action" id="creator-upload-skin-trigger" data-i18n="creator.theme.uploadCustom">Carica skin personalizzata</button>
+          </div>
+          <input type="file" id="creator-skin-file" class="file-input-hidden">
+          <p id="creator-skin-custom-name" class="creator-duration-note" hidden></p>
+        </section>
+        <section class="inspector-section">
+          <div class="inspector-page-heading">
+            <span data-i18n="creator.theme.icon">ICONA IN ALTO A DESTRA</span>
+          </div>
+          <div class="inspector-actions">
+            <button type="button" class="inspector-action" id="creator-upload-icon-trigger" data-i18n="creator.theme.uploadCustom">Carica icona</button>
+            <button type="button" class="inspector-action" id="creator-reset-icon-trigger" data-i18n="creator.theme.resetIcon">Ripristina icona</button>
+          </div>
+          <input type="file" id="creator-icon-file" class="file-input-hidden">
+          <p id="creator-icon-custom-name" class="creator-duration-note" hidden></p>
+        </section>
+        <section class="inspector-section">
+          <div class="inspector-page-heading">
+            <span data-i18n="creator.theme.visualizer">VISUALIZZATORE AUDIO</span>
+          </div>
+          <label for="creator-viz-mode" data-i18n="creator.theme.visualizerMode">Modalita predefinita</label>
+          <select id="creator-viz-mode" class="creator-select">
+            <option value="off" data-i18n="visualizer.mode.off">Disattivato</option>
+            <option value="both" data-i18n="visualizer.mode.both">Entrambi i pannelli</option>
+            <option value="both-mirror" data-i18n="visualizer.mode.both-mirror">Entrambi (specchiato)</option>
+            <option value="top" data-i18n="visualizer.mode.top">Solo superiore</option>
+            <option value="top-mirror" data-i18n="visualizer.mode.top-mirror">Superiore (specchiato)</option>
+            <option value="bottom" data-i18n="visualizer.mode.bottom">Solo inferiore</option>
+            <option value="bottom-mirror" data-i18n="visualizer.mode.bottom-mirror">Inferiore (specchiato)</option>
+          </select>
+          <div id="creator-viz-colors" style="margin-top: 10px;">
+            <label for="creator-viz-color1" data-i18n="visualizer.color1">Colore iniziale</label>
+            <input type="color" id="creator-viz-color1" style="width: 100%; height: 36px; padding: 2px; border-radius: 4px; border: 1px solid #444; background: #222; cursor: pointer;">
+            <label style="margin-top: 10px; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" id="creator-viz-gradient">
+              <span data-i18n="visualizer.gradient.enable">Abilita gradiente di colore</span>
+            </label>
+            <div id="creator-viz-gradient-settings" hidden style="margin-top: 8px;">
+              <label for="creator-viz-color2" data-i18n="visualizer.color2">Colore finale</label>
+              <input type="color" id="creator-viz-color2" style="width: 100%; height: 36px; padding: 2px; border-radius: 4px; border: 1px solid #444; background: #222; cursor: pointer;">
+              <label for="creator-viz-direction" style="margin-top: 8px; display: block;" data-i18n="visualizer.gradient.direction">Direzione del gradiente</label>
+              <select id="creator-viz-direction" class="creator-select">
+                <option value="vertical" data-i18n="visualizer.gradient.vertical">Verticale</option>
+                <option value="horizontal" data-i18n="visualizer.gradient.horizontal">Orizzontale</option>
+                <option value="vertical-reverse" data-i18n="visualizer.gradient.verticalReverse">Verticale (inverso)</option>
+                <option value="horizontal-reverse" data-i18n="visualizer.gradient.horizontalReverse">Orizzontale (inverso)</option>
+              </select>
+            </div>
+          </div>
+        </section>
+        <section class="inspector-section">
+          <div class="inspector-page-heading">
+            <span data-i18n="creator.theme.layout">LAYOUT LAUNCHPAD</span>
+          </div>
+          <div class="control-group">
+            <label for="creator-rotation-slider" data-i18n="launchpad.rotation">Rotazione Launchpad</label>
+            <div class="input-group">
+              <input type="range" id="creator-rotation-slider" min="0" max="360" step="1" value="0">
+              <div class="input-with-unit">
+                <input type="number" id="creator-rotation-input" min="0" max="360" step="1" value="0" class="manual-input">
+                <span class="value-display">°</span>
+              </div>
+            </div>
+          </div>
+          <div class="control-group" style="margin-top: 10px;">
+            <label for="creator-size-slider" data-i18n="launchpad.size">Dimensione Launchpad</label>
+            <div class="input-group">
+              <input type="range" id="creator-size-slider" min="50" max="140" step="1" value="100">
+              <div class="input-with-unit">
+                <input type="number" id="creator-size-input" min="50" max="140" step="1" value="100" class="manual-input">
+                <span class="value-display">%</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
       <footer class="inspector-footer">
         <span id="creator-sample-count" aria-live="polite"></span>
         <button type="button" class="inspector-export" id="creator-export" data-i18n="creator.export">Esporta progetto</button>

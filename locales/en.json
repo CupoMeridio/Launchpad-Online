@@ -150,5 +150,22 @@
     "creator.importing": "Loading project...",
     "creator.errorImport": "Failed to import project: {error}",
     "creator.importSuccess": "Project imported: {name}",
-    "error.offline": "Unable to load resource: you are offline."
+    "creator.missingAssets": "Some project files were not found in the archive and were skipped ({count}): {files}",
+    "error.offline": "Unable to load resource: you are offline.",
+    "creator.tabs.pads": "Sounds & Lights",
+    "creator.tabs.theme": "Appearance & Theme",
+    "creator.theme.background": "Project Background",
+    "creator.theme.selectBackground": "Select default background",
+    "creator.theme.skin": "Launchpad Skin",
+    "creator.theme.selectSkin": "Select default skin",
+    "creator.theme.icon": "Top-right Icon",
+    "creator.theme.visualizer": "Audio Visualizer",
+    "creator.theme.visualizerMode": "Default visualizer mode",
+    "creator.theme.uploadCustom": "Upload file",
+    "creator.theme.none": "None",
+    "creator.theme.default": "Default",
+    "creator.theme.resetIcon": "Reset icon",
+    "creator.theme.layout": "Launchpad Layout",
+    "menu.resetAppearance": "Reset project appearance",
+    "notification.appearanceReset": "Project appearance restored"
 }

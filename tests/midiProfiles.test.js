@@ -105,7 +105,7 @@ test('LaunchpadLegacy maps notes, CCs and colors accurately', () => {
     assert.equal(profile.getColor('white').code, 51); // Fallback to amber
 });
 
-test('LaunchpadRGB maps programmer layout and 127-color palette accurately', () => {
+test('LaunchpadRGB maps programmer layout and 127-color palette accurately', async () => {
     const sentMessages = [];
     const mockOutput = {
         send: (bytes) => sentMessages.push(Array.from(bytes))
@@ -113,7 +113,7 @@ test('LaunchpadRGB maps programmer layout and 127-color palette accurately', () 
     const profile = new LaunchpadRGB(mockOutput, null, 'Launchpad Mini MK3');
 
     // SysEx initialization
-    profile.initialize();
+    await profile.initialize();
     assert.deepEqual(sentMessages[0], [0xF0, 0x00, 0x20, 0x29, 0x02, 0x0D, 0x0E, 0x01, 0xF7]);
     // RGB models clear pads and CCs rather than sending legacy CC 0
     assert.notDeepEqual(sentMessages[1], [0xB0, 0x00, 0x00]);
@@ -141,7 +141,7 @@ test('LaunchpadRGB maps programmer layout and 127-color palette accurately', () 
     const mk2Messages = [];
     const mk2MockOutput = { send: (bytes) => mk2Messages.push(Array.from(bytes)) };
     const mk2Profile = new LaunchpadRGB(mk2MockOutput, null, 'Launchpad MK2');
-    mk2Profile.initialize();
+    await mk2Profile.initialize();
     assert.deepEqual(mk2Messages[0], [0xF0, 0x00, 0x20, 0x29, 0x02, 0x18, 0x22, 0x00, 0xF7]);
     assert.deepEqual(mk2Profile.parseMessage([0xB0, 104, 127]), { x: 0, y: 8, pressed: true }); // Top Automap 0 on MK2
     assert.deepEqual(mk2Profile.buildColorMessage(0, 8, 13), [0xB0, 104, 13]); // Automap 0 on MK2

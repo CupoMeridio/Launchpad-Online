@@ -5,6 +5,7 @@ import {
     ANIMATION_COLORS
 } from './constants.js';
 import { validateProject } from './projectValidator.js';
+import { normalizeVisualizer, normalizeLayout, getBackgroundMedia } from './appearanceModel.js';
 
 export function buildAnimationCatalog(animationRegistry) {
     const groups = new Map();
@@ -150,14 +151,34 @@ export function normalizeZipPath(rawPath) {
  *
  * @param {string} [name=''] - Project name.
  * @param {Array<object>|null} [pages=null] - Project pages, defaults to 1 blank page.
+ * @param {object} [theme={}] - Project theme & visual options.
  * @returns {object} Draft object with changeCount and savedChangeCount tracking.
  */
-export function createDraft(name = '', pages = null) {
+export function createDraft(name = '', pages = null, theme = {}) {
+    const visualizer = normalizeVisualizer(theme);
+    const layout = normalizeLayout(theme);
+    const backgroundMedia = getBackgroundMedia(theme);
+
     return {
         name: typeof name === 'string' ? name.trim() : '',
         changeCount: 0,
         savedChangeCount: 0,
-        pages: Array.isArray(pages) && pages.length > 0 ? pages : [createProjectPage(1)]
+        pages: Array.isArray(pages) && pages.length > 0 ? pages : [createProjectPage(1)],
+        coverImage: typeof theme?.coverImage === 'string' ? theme.coverImage : '',
+        iconImage: typeof theme?.iconImage === 'string' ? theme.iconImage : '',
+        backgroundMedia: typeof backgroundMedia === 'string' ? backgroundMedia : '',
+        visualizerMode: visualizer.mode,
+        visualizerColor1: visualizer.color1,
+        visualizerColor2: visualizer.color2,
+        visualizerGradient: visualizer.gradient,
+        visualizerGradientDirection: visualizer.gradientDirection,
+        // `null` means "the project does not specify it" so the user's personal
+        // rotation/size preference must not be overwritten.
+        launchpadRotation: layout.rotation,
+        launchpadSize: layout.size,
+        customCoverFile: theme?.customCoverFile || null,
+        customIconFile: theme?.customIconFile || null,
+        customBackgroundFile: theme?.customBackgroundFile || null
     };
 }
 
@@ -186,6 +207,9 @@ export function buildDraftFromProject(projectData, fileMap = new Map()) {
     if (!validation.isValid) {
         throw new Error(`Invalid project: ${validation.errors.join('; ')}`);
     }
+
+    // Assets declared by the manifest but not present in the archive.
+    const missingAssets = [];
 
     const inputMap = fileMap instanceof Map ? fileMap : new Map(Object.entries(fileMap || {}));
 
@@ -218,7 +242,8 @@ export function buildDraftFromProject(projectData, fileMap = new Map()) {
             if (exactMap.has(sub)) return exactMap.get(sub);
         }
 
-        console.warn(`[ProjectCreator] Sample file not found for path: "${lookupPath}"`);
+        // Asset declared by the manifest but missing from the archive.
+        missingAssets.push(lookupPath);
         return null;
     };
 
@@ -260,7 +285,34 @@ export function buildDraftFromProject(projectData, fileMap = new Map()) {
         return draftPage;
     });
 
-    return createDraft(projectData.name, draftPages);
+    const bgSource = getBackgroundMedia(projectData);
+    const visualizer = normalizeVisualizer(projectData);
+    const layout = normalizeLayout(projectData);
+    // Declared theme paths are kept only when the matching file was packaged; a
+    // dangling reference would otherwise be re-written on the next export.
+    const coverFile = typeof projectData.coverImage === 'string' ? getFile(projectData.coverImage) : null;
+    const iconFile = typeof projectData.iconImage === 'string' ? getFile(projectData.iconImage) : null;
+    const backgroundFile = typeof bgSource === 'string' ? getFile(bgSource) : null;
+
+    const theme = {
+        coverImage: coverFile ? projectData.coverImage : '',
+        iconImage: iconFile ? projectData.iconImage : '',
+        backgroundMedia: backgroundFile ? bgSource : '',
+        visualizerMode: visualizer.mode,
+        visualizerColor1: visualizer.color1,
+        visualizerColor2: visualizer.color2,
+        visualizerGradient: visualizer.gradient,
+        visualizerGradientDirection: visualizer.gradientDirection,
+        launchpadRotation: layout.rotation,
+        launchpadSize: layout.size,
+        customCoverFile: coverFile,
+        customIconFile: iconFile,
+        customBackgroundFile: backgroundFile
+    };
+
+    const draft = createDraft(projectData.name, draftPages, theme);
+    draft.missingAssets = missingAssets;
+    return draft;
 }
 
 export function buildProjectExport(draft) {
@@ -299,6 +351,51 @@ export function buildProjectExport(draft) {
 
     const id = createProjectId(name);
     const project = { id, name, pages };
+
+    const getFileExt = (fileName, defaultExt) => {
+        const match = (fileName || '').match(/\.([a-zA-Z0-9]+)$/);
+        return match ? match[1].toLowerCase() : defaultExt;
+    };
+
+    if (draft?.customCoverFile) {
+        const ext = getFileExt(draft.customCoverFile.name, 'png');
+        const coverPath = `cover.${ext}`;
+        files.push({ path: coverPath, file: draft.customCoverFile });
+        project.coverImage = coverPath;
+    } else if (typeof draft?.coverImage === 'string' && draft.coverImage) {
+        project.coverImage = draft.coverImage;
+    }
+
+    if (draft?.customIconFile) {
+        const ext = getFileExt(draft.customIconFile.name, 'png');
+        const iconPath = `icon.${ext}`;
+        files.push({ path: iconPath, file: draft.customIconFile });
+        project.iconImage = iconPath;
+    } else if (typeof draft?.iconImage === 'string' && draft.iconImage) {
+        project.iconImage = draft.iconImage;
+    }
+
+    if (draft?.customBackgroundFile) {
+        const ext = getFileExt(draft.customBackgroundFile.name, 'mp4');
+        const bgPath = `background.${ext}`;
+        files.push({ path: bgPath, file: draft.customBackgroundFile });
+        project.backgroundMedia = bgPath;
+    } else if (typeof draft?.backgroundMedia === 'string' && draft.backgroundMedia) {
+        project.backgroundMedia = draft.backgroundMedia;
+    }
+
+    // Canonical visualizer schema: always written as a nested object.
+    project.visualizer = normalizeVisualizer(draft);
+
+    // Rotation/size are only exported when the project explicitly defines them,
+    // so loading it back does not overwrite the user's personal preference.
+    if (typeof draft?.launchpadRotation === 'number') {
+        project.launchpadRotation = draft.launchpadRotation;
+    }
+    if (typeof draft?.launchpadSize === 'number') {
+        project.launchpadSize = draft.launchpadSize;
+    }
+
     const validation = validateProject(project);
     if (!validation.isValid) {
         throw new Error(validation.errors.join('; '));

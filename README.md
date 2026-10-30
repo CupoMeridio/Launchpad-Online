@@ -110,8 +110,8 @@ Launchpad-Online/
 │   ├── projectCreatorModel.js # Creator data model & validation
 │   ├── projectZip.js       # Standalone project .zip import/export
 │   ├── static-data.json    # Static configuration data
+│   ├── background.js       # Background media controller (videos & images)
 │   ├── ui.js               # UI components and DOM management
-│   ├── video.js            # Video background controller
 │   ├── visualizer-controls.js # Visualizer UI controls
 │   ├── visualizer.js       # Audio visualizer logic
 │   └── webInterface.js     # Virtual Launchpad interface

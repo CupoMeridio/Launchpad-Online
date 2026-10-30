@@ -59,7 +59,7 @@ const APP_SHELL_FILES = [
     `${basePath}js/projectCreatorModel.js`,
     `${basePath}js/projectZip.js`,
     `${basePath}js/ui.js`,
-    `${basePath}js/video.js`,
+    `${basePath}js/background.js`,
     `${basePath}js/visibilityManager.js`,
     `${basePath}js/visualizer.js`,
     `${basePath}js/visualizer-controls.js`,

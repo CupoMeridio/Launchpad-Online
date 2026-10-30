@@ -150,5 +150,22 @@
     "creator.importing": "Cargando proyecto...",
     "creator.errorImport": "No se pudo importar el proyecto: {error}",
     "creator.importSuccess": "Proyecto importado: {name}",
-    "error.offline": "No se puede cargar el recurso: estás desconectado."
+    "creator.missingAssets": "Algunos archivos del proyecto no se encontraron en el archivo y se omitieron ({count}): {files}",
+    "error.offline": "No se puede cargar el recurso: estás desconectado.",
+    "creator.tabs.pads": "Sonidos y Luces",
+    "creator.tabs.theme": "Aspecto y Tema",
+    "creator.theme.background": "Fondo del proyecto",
+    "creator.theme.selectBackground": "Seleccionar fondo predeterminado",
+    "creator.theme.skin": "Skin de Launchpad",
+    "creator.theme.selectSkin": "Seleccionar skin predeterminada",
+    "creator.theme.icon": "Icono superior derecho",
+    "creator.theme.visualizer": "Visualizador de audio",
+    "creator.theme.visualizerMode": "Modo predeterminado",
+    "creator.theme.uploadCustom": "Cargar archivo",
+    "creator.theme.none": "Ninguno",
+    "creator.theme.default": "Predeterminada",
+    "creator.theme.resetIcon": "Restablecer icono",
+    "creator.theme.layout": "Diseño del Launchpad",
+    "menu.resetAppearance": "Restablecer aspecto del proyecto",
+    "notification.appearanceReset": "Aspecto del proyecto restablecido"
 }

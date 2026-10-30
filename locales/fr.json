@@ -150,5 +150,22 @@
     "creator.importing": "Chargement du projet...",
     "creator.errorImport": "Impossible d'importer le projet : {error}",
     "creator.importSuccess": "Projet importé : {name}",
-    "error.offline": "Impossible de charger la ressource : vous êtes hors ligne."
+    "creator.missingAssets": "Certains fichiers du projet sont introuvables dans l'archive et ont été ignorés ({count}) : {files}",
+    "error.offline": "Impossible de charger la ressource : vous êtes hors ligne.",
+    "creator.tabs.pads": "Sons et Lumières",
+    "creator.tabs.theme": "Apparence et Thème",
+    "creator.theme.background": "Arrière-plan du projet",
+    "creator.theme.selectBackground": "Sélectionner l'arrière-plan par défaut",
+    "creator.theme.skin": "Skin Launchpad",
+    "creator.theme.selectSkin": "Sélectionner le skin par défaut",
+    "creator.theme.icon": "Icône en haut à droite",
+    "creator.theme.visualizer": "Visualiseur audio",
+    "creator.theme.visualizerMode": "Mode par défaut",
+    "creator.theme.uploadCustom": "Téléverser un fichier",
+    "creator.theme.none": "Aucun",
+    "creator.theme.default": "Par défaut",
+    "creator.theme.resetIcon": "Réinitialiser l'icône",
+    "creator.theme.layout": "Disposition du Launchpad",
+    "menu.resetAppearance": "Réinitialiser l'apparence du projet",
+    "notification.appearanceReset": "Apparence du projet réinitialisée"
 }

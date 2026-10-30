@@ -9,13 +9,14 @@
 
 import defaultJSZip from './vendor/jszip.js';
 import { buildProjectExport, buildDraftFromProject, normalizeZipPath } from './projectCreatorModel.js';
+import { PROJECT_ASSET_EXTENSIONS, PRECOMPRESSED_EXTENSIONS, hasFileExtension } from './constants.js';
 
-const AUDIO_EXTENSIONS = ['.wav', '.mp3', '.ogg', '.flac', '.m4a', '.aac', '.webm'];
-const PRECOMPRESSED_EXTENSIONS = ['.mp3', '.ogg', '.flac', '.m4a', '.aac', '.webm'];
+function isPackageableAsset(fileName) {
+    return hasFileExtension(fileName, PROJECT_ASSET_EXTENSIONS);
+}
 
-function isAudioFile(fileName) {
-    const lower = fileName.toLowerCase();
-    return AUDIO_EXTENSIONS.some(ext => lower.endsWith(ext));
+function isPrecompressedFile(fileName) {
+    return hasFileExtension(fileName, PRECOMPRESSED_EXTENSIONS);
 }
 
 /**
@@ -42,8 +43,7 @@ export async function exportProjectToZip(draft, JSZipConstructor = defaultJSZip)
     // Add all audio sample files with optimal compression
     for (const item of exportData.files) {
         const fileContent = (item.file && item.file.data) ? item.file.data : item.file;
-        const lower = item.path.toLowerCase();
-        const isPrecompressed = PRECOMPRESSED_EXTENSIONS.some(ext => lower.endsWith(ext));
+        const isPrecompressed = isPrecompressedFile(item.path);
         zip.file(item.path, fileContent, {
             compression: isPrecompressed ? 'STORE' : 'DEFLATE'
         });
@@ -101,11 +101,11 @@ export async function importProjectFromZip(zipInput, JSZipConstructor = defaultJ
         throw new Error(`Failed to parse project JSON: ${parseError.message}`);
     }
 
-    // 2. Extract all audio samples into a file map indexed by canonical normalized path
+    // 2. Extract all audio and media assets into a file map indexed by canonical normalized path
     const fileMap = new Map();
     for (const [relativePath, entry] of Object.entries(zip.files)) {
         if (entry.dir) continue;
-        if (!isAudioFile(relativePath)) continue;
+        if (!isPackageableAsset(relativePath)) continue;
 
         const blob = await entry.async('blob');
         const fileName = relativePath.split('/').pop();
@@ -129,6 +129,8 @@ export async function importProjectFromZip(zipInput, JSZipConstructor = defaultJ
 
     return {
         draft,
-        projectData
+        projectData,
+        // Assets declared by the project manifest but absent from the archive
+        missingAssets: draft.missingAssets || []
     };
 }

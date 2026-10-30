@@ -190,13 +190,13 @@ main {
 }
 
 /*
-  VIDEO OVERLAY
-  - A layer that overlays the video to apply effects like color, opacity, and blur.
+  MEDIA OVERLAY
+  - A layer that overlays the background media to apply effects like color, opacity, and blur.
   - CUSTOMIZATION: Modify `background-color` to change the filter color.
     The value `rgba(18, 18, 18, 0.15)` is a semi-transparent black.
     Opacity and blur are controlled dynamically via JavaScript, but here you can set transition values.
 */
-.video-overlay {
+.media-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -204,7 +204,7 @@ main {
     height: 100%;
     background-color: rgba(18, 18, 18, 0.15);
     z-index: -1;
-    /* Positioned between video and content. */
+    /* Positioned between media and content. */
     transition: opacity 0.3s ease, backdrop-filter 0.3s ease;
     /* Transitions for opacity and blur. */
     opacity: 0;
@@ -216,16 +216,16 @@ main {
 }
 
 /* The `.active` class is added via JS to show the overlay. */
-.video-overlay.active {
+.media-overlay.active {
     opacity: 1;
 }
 
 /*
-  VIDEO CONTROLS (SLIDERS)
+  MEDIA CONTROLS (SLIDERS)
   - Styles for the slider container (opacity, blur, brightness).
   - The appear/disappear animation is created with `max-height` and `padding`.
 */
-.video-controls {
+.media-controls {
     background-color: #252525;
     /* Slightly different background from menu to distinguish it. */
     border-radius: var(--radius-sm);
@@ -238,7 +238,7 @@ main {
 }
 
 /* The `.visible` class is added via JS to show controls. */
-.video-controls.visible {
+.media-controls.visible {
     padding: 15px;
     max-height: 500px;
     /* Height sufficient to contain everything. */
@@ -1287,6 +1287,59 @@ main {
     color: var(--accent-studio-hover);
     font-size: 11px;
     text-align: center;
+}
+
+.creator-view-tab-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: #151719;
+    border: 1px solid var(--border-dark);
+    border-radius: var(--radius-md);
+    padding: 2px;
+    gap: 2px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+
+.creator-view-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.creator-view-tab:hover {
+    color: var(--text-primary);
+}
+
+.creator-view-tab.selected {
+    color: #101416;
+    background: var(--accent-studio);
+}
+
+.creator-select {
+    width: 100%;
+    padding: 7px 10px;
+    background: #151719;
+    border: 1px solid var(--border-dark);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.creator-select:focus {
+    outline: none;
+    border-color: var(--accent-studio);
 }
 
 .creator-assigned-light {

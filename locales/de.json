@@ -150,5 +150,22 @@
     "creator.importing": "Projekt wird geladen...",
     "creator.errorImport": "Projekt konnte nicht importiert werden: {error}",
     "creator.importSuccess": "Projekt importiert: {name}",
-    "error.offline": "Ressource kann nicht geladen werden: Du bist offline."
+    "creator.missingAssets": "Einige Projektdateien wurden im Archiv nicht gefunden und übersprungen ({count}): {files}",
+    "error.offline": "Ressource kann nicht geladen werden: Du bist offline.",
+    "creator.tabs.pads": "Sounds & Lichter",
+    "creator.tabs.theme": "Aussehen & Thema",
+    "creator.theme.background": "Projekthintergrund",
+    "creator.theme.selectBackground": "Standardhintergrund auswählen",
+    "creator.theme.skin": "Launchpad-Skin",
+    "creator.theme.selectSkin": "Standard-Skin auswählen",
+    "creator.theme.icon": "Symbol oben rechts",
+    "creator.theme.visualizer": "Audio-Visualisierer",
+    "creator.theme.visualizerMode": "Standardmodus",
+    "creator.theme.uploadCustom": "Datei hochladen",
+    "creator.theme.none": "Keiner",
+    "creator.theme.default": "Standard",
+    "creator.theme.resetIcon": "Symbol zurücksetzen",
+    "creator.theme.layout": "Launchpad-Layout",
+    "menu.resetAppearance": "Projektaussehen zurücksetzen",
+    "notification.appearanceReset": "Projektaussehen wiederhergestellt"
 }

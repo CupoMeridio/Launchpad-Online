@@ -89,6 +89,62 @@ export const LAUNCHPAD_SIZE_MIN = 50; // 50% of original
 export const LAUNCHPAD_SIZE_MAX = 140; // 140% of original
 
 // ============================================================================
+// PROJECT ASSET FILE TYPES
+// ============================================================================
+// Single source of truth for the file extensions understood by the project
+// import/export logic and by the `accept` attributes of the upload inputs.
+
+export const AUDIO_EXTENSIONS = ['.wav', '.mp3', '.ogg', '.flac', '.m4a', '.aac', '.webm'];
+export const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg', '.avif'];
+export const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mov', '.m4v', '.ogv', '.mkv'];
+
+/** Backgrounds and icons accept both images and videos. */
+export const MEDIA_EXTENSIONS = [...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS];
+
+/** Every file type that may be packaged inside a project archive. */
+export const PROJECT_ASSET_EXTENSIONS = [...AUDIO_EXTENSIONS, ...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS];
+
+/** Formats that already carry their own compression and are stored, not deflated. */
+export const PRECOMPRESSED_EXTENSIONS = [
+    '.mp3', '.ogg', '.flac', '.m4a', '.aac', '.webm',
+    '.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif',
+    '.mp4', '.mov', '.m4v', '.ogv', '.mkv'
+];
+
+/**
+ * Builds the value for an `<input accept>` attribute from an extension list.
+ * @param {string[]} extensions
+ * @returns {string}
+ */
+export function toAcceptAttribute(extensions) {
+    return [...new Set(extensions)].join(',');
+}
+
+/**
+ * Checks whether a file name ends with one of the given extensions.
+ * @param {string} fileName
+ * @param {string[]} extensions
+ * @returns {boolean}
+ */
+export function hasFileExtension(fileName, extensions) {
+    if (typeof fileName !== 'string' || fileName.length === 0) return false;
+    const lower = fileName.split('?')[0].split('#')[0].toLowerCase();
+    return extensions.some(ext => lower.endsWith(ext));
+}
+
+// ============================================================================
+// VISUALIZER OPTIONS
+// ============================================================================
+
+export const VISUALIZER_MODES = ['off', 'top', 'bottom', 'both', 'top-mirror', 'bottom-mirror', 'both-mirror'];
+export const VISUALIZER_GRADIENT_DIRECTIONS = ['vertical', 'horizontal', 'vertical-reverse', 'horizontal-reverse'];
+
+export const DEFAULT_VISUALIZER_MODE = 'off';
+export const DEFAULT_VISUALIZER_COLOR = '#00aaff';
+export const DEFAULT_VISUALIZER_GRADIENT = false;
+export const DEFAULT_VISUALIZER_GRADIENT_DIRECTION = 'vertical';
+
+// ============================================================================
 // PROJECT LIGHT & PAGE CONSTRAINTS
 // ============================================================================
 
