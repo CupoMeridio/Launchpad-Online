@@ -18,8 +18,8 @@ import {
     AUDIO_ERROR_TYPES
 } from './audioErrorHandler.js';
 import { showNotification } from './ui.js';
-import { registerListener } from './eventCleanup.js';
 import { onVisibilityChange } from './visibilityManager.js';
+import { debug } from './logger.js';
 
 /**
  * Checks if the Web Audio API is supported in the current browser.
@@ -83,12 +83,12 @@ class AudioEngine {
             onVisibilityChange((isVisible) => {
                 if (isVisible && this.audioContext && this.audioContext.state === 'suspended') {
                     this.audioContext.resume().then(() => {
-                        console.log("[AUDIO] AudioContext resumed after tab became visible.");
+                        debug("[AUDIO] AudioContext resumed after tab became visible.");
                     });
                 }
             });
 
-            console.log("[AUDIO] AudioEngine initialized successfully.");
+            debug("[AUDIO] AudioEngine initialized successfully.");
         } catch (error) {
             const errorMsg = `[AUDIO] Failed to initialize AudioContext: ${error.message}`;
             this.initError = errorMsg;
@@ -187,7 +187,7 @@ class AudioEngine {
             // Store the decoded buffer in the array at the correct position.
             this.soundBuffers[index] = audioBuffer;
             audioLoadingTracker.markSuccess(url);
-            console.log(`[AUDIO] Sound loaded successfully: ${url}`);
+            debug(`[AUDIO] Sound loaded successfully: ${url}`);
             return audioBuffer;
 
         } catch (error) {
@@ -235,7 +235,7 @@ class AudioEngine {
             }
 
             const stats = audioLoadingTracker.getFailureStats();
-            console.log(`[AUDIO] Project sounds loaded. Success: ${stats.successful}, Failed: ${stats.failed}`);
+            debug(`[AUDIO] Project sounds loaded. Success: ${stats.successful}, Failed: ${stats.failed}`);
 
             // Notify user if there were failures
             if (stats.failed > 0) {
@@ -429,7 +429,7 @@ class AudioEngine {
      * @returns {Promise<AudioBuffer|null>} The loaded buffer or null on failure
      */
     async retryFailedSound(url, index) {
-        console.log(`[AUDIO] Retrying failed sound: ${url}`);
+        debug(`[AUDIO] Retrying failed sound: ${url}`);
         return await this.loadSound(url, index, true); // Notify user on retry
     }
 }

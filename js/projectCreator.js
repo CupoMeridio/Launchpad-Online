@@ -346,7 +346,7 @@ async function ensureThemeSelectOptions() {
     }
 }
 
-export function setCreatorView(view) {
+function setCreatorView(view) {
     activeCreatorView = view;
     const padsTab = document.getElementById('creator-tab-pads');
     const themeTab = document.getElementById('creator-tab-theme');
@@ -404,7 +404,7 @@ function previewDraftLayout() {
  * draft. Live input handlers use the per-aspect helpers above so that changing
  * rotation or a colour does not rebuild the background media element.
  */
-export function previewDraftAppearance() {
+function previewDraftAppearance() {
     if (!draft || !editorActive) return;
     applyAppearance(getDraftAppearance());
 }
@@ -514,7 +514,7 @@ function renderEditor() {
     renderThemeView();
 }
 
-export function requestCloseCreator() {
+function requestCloseCreator() {
     if (!editorActive) return;
     if (!isDraftDirty(draft)) {
         forceCloseCreator();
@@ -535,7 +535,7 @@ export function requestCloseCreator() {
     }
 }
 
-export function closeUnsavedDialog() {
+function closeUnsavedDialog() {
     const dialog = document.getElementById('creator-unsaved-dialog');
     if (dialog) {
         if (typeof dialog.close === 'function') {
@@ -546,7 +546,7 @@ export function closeUnsavedDialog() {
     }
 }
 
-export function forceCloseCreator() {
+function forceCloseCreator() {
     closeUnsavedDialog();
     activeImportId++;
     editorActive = false;
@@ -597,7 +597,7 @@ function markDraftModified() {
     draft.changeCount++;
 }
 
-export function closeCreator() {
+function closeCreator() {
     requestCloseCreator();
 }
 
@@ -646,7 +646,7 @@ function updateLiveToolbar() {
     }
 }
 
-export function setStudioSubMode(mode) {
+function setStudioSubMode(mode) {
     if (mode !== 'edit' && mode !== 'live') return;
     studioSubMode = mode;
     stopPreview();
@@ -689,7 +689,7 @@ export function setStudioSubMode(mode) {
     }
 }
 
-export function selectProjectPad(index, preview = false) {
+function selectProjectPad(index, preview = false) {
     if (!editorActive || !Number.isInteger(index) || index < 0 || index >= LAUNCHPAD_PADS) return false;
     if (activeCreatorView !== 'pads') {
         setCreatorView('pads');
@@ -862,7 +862,7 @@ function assignTextAnimation() {
     assignLightAnimation(animationName);
 }
 
-export function selectProjectPage(index, updateVisuals = true) {
+function selectProjectPage(index, updateVisuals = true) {
     if (!editorActive || !Number.isInteger(index) || index < 0 || index >= draft.pages.length) return false;
     stopPreview();
     stopAllDraftPads();

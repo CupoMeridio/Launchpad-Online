@@ -6,6 +6,8 @@
  * color palette representations, and initialization routines (such as SysEx).
  */
 
+import { debug } from '../logger.js';
+
 export class DeviceProfile {
     /**
      * @param {MIDIOutput|null} outputPort - The Web MIDI output port.
@@ -25,7 +27,7 @@ export class DeviceProfile {
      * @returns {Promise<void>}
      */
     async initialize() {
-        console.log(`[MIDI Profile] Initializing ${this.name}...`);
+        debug(`[MIDI Profile] Initializing ${this.name}...`);
         this.clear();
     }
 

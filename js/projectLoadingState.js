@@ -13,6 +13,7 @@
  */
 
 import { PROJECT_LOADING_TIMEOUT_MS } from './constants.js';
+import { debug } from './logger.js';
 
 const LOADING_STATES = {
     IDLE: 'IDLE',
@@ -24,15 +25,7 @@ const LOADING_STATES = {
 let currentLoadingState = LOADING_STATES.IDLE;
 let loadingPromise = Promise.resolve(); // Track current load operation
 let resolveLoadingPromise = null;
-let lastError = null;
 let loadingTimeoutId = null; // Safety timeout to prevent infinite loading state
-
-/**
- * Returns true if a project is currently loading
- */
-export function isProjectLoading() {
-    return currentLoadingState === LOADING_STATES.LOADING;
-}
 
 /**
  * Returns true if a project is fully loaded and ready
@@ -52,7 +45,7 @@ export function isProjectReady() {
  * @returns {Promise} Waits for current load to complete before allowing next load
  */
 export async function beginLoadingProject() {
-    console.log("[ProjectLoading] Project loading started");
+    debug("[ProjectLoading] Project loading started");
     
     // Wait for any previous loading to complete to prevent concurrent loads
     await loadingPromise;
@@ -64,7 +57,6 @@ export async function beginLoadingProject() {
     }
     
     currentLoadingState = LOADING_STATES.LOADING;
-    lastError = null;
     
     // Create a new promise for the current loading operation
     loadingPromise = new Promise(resolve => {
@@ -97,8 +89,7 @@ export function markProjectReady() {
     }
     
     currentLoadingState = LOADING_STATES.READY;
-    lastError = null;
-    console.log("[ProjectLoading] Project ready");
+    debug("[ProjectLoading] Project ready");
     
     if (resolveLoadingPromise) {
         resolveLoadingPromise();
@@ -125,7 +116,6 @@ export function markProjectLoadError(error) {
     }
     
     currentLoadingState = LOADING_STATES.ERROR;
-    lastError = error;
     console.error("[ProjectLoading] Project loading failed:", error);
     
     if (resolveLoadingPromise) {
@@ -137,24 +127,6 @@ export function markProjectLoadError(error) {
     window.dispatchEvent(new CustomEvent('project:error', {
         detail: { error: error.message, timestamp: Date.now() }
     }));
-}
-
-/**
- * Wraps a loading operation to ensure proper state management
- * 
- * @param {Promise} operation - The async operation to execute
- * @returns {Promise} Resolves when operation completes
- */
-export async function wrapProjectLoading(operation) {
-    try {
-        await beginLoadingProject();
-        const result = await operation;
-        markProjectReady();
-        return result;
-    } catch (error) {
-        markProjectLoadError(error);
-        throw error;
-    }
 }
 
 /**

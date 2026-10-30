@@ -2,13 +2,14 @@
  * EVENT CLEANUP MANAGER (eventCleanup.js)
  * 
  * Centralized management of event listeners to prevent memory leaks and duplicates.
- * Tracks all registered listeners and provides cleanup functions.
+ * Tracks all registered listeners and provides listener management functions.
  * 
  * Usage:
  * - Use registerListener() to add listeners that should be tracked
- * - Use cleanup() to remove all listeners from a specific target
- * - Use cleanupAll() to remove all registered listeners globally
+ * - Use removeListener() to remove a specific tracked listener
  */
+
+import { debug } from './logger.js';
 
 /**
  * Stores registered listener info for tracking and cleanup.
@@ -60,46 +61,8 @@ export function registerListener(target, eventType, listener, options = false) {
     target.addEventListener(eventType, listener, options);
     eventListeners.add({ listener, options });
     
-    console.log(`[EventCleanup] Registered listener for ${eventType}`);
+    debug(`[EventCleanup] Registered listener for ${eventType}`);
     return listener;
-}
-
-/**
- * Removes all listeners registered on a specific target.
- * Optional: filter by event type.
- * 
- * @param {EventTarget} target - The element/window to clean up
- * @param {string} eventType - Optional: only remove listeners of this type
- */
-export function cleanup(target, eventType = null) {
-    if (!target || !registeredListeners.has(target)) {
-        return;
-    }
-
-    const registry = getTargetRegistry(target);
-    
-    if (eventType) {
-        // Clean up specific event type
-        if (registry.has(eventType)) {
-            const listeners = registry.get(eventType);
-            for (const entry of listeners) {
-                target.removeEventListener(eventType, entry.listener, entry.options);
-            }
-            registry.delete(eventType);
-            console.log(`[EventCleanup] Cleaned up ${listeners.size} listeners for ${eventType}`);
-        }
-    } else {
-        // Clean up all listeners on this target
-        let totalRemoved = 0;
-        for (const [evType, listeners] of registry.entries()) {
-            for (const entry of listeners) {
-                target.removeEventListener(evType, entry.listener, entry.options);
-                totalRemoved++;
-            }
-        }
-        registry.clear();
-        console.log(`[EventCleanup] Cleaned up ${totalRemoved} total listeners from target`);
-    }
 }
 
 /**

@@ -15,6 +15,7 @@
 
 import { DeviceProfile } from './DeviceProfile.js';
 import { detectModel } from './ProfileRegistry.js';
+import { debug } from '../logger.js';
 
 export class LaunchpadRGB extends DeviceProfile {
     /**
@@ -60,7 +61,7 @@ export class LaunchpadRGB extends DeviceProfile {
      * Switch device into Programmer/Custom Mode and clear pads.
      */
     async initialize() {
-        console.log(`[MIDI Profile] Initializing ${this.name}...`);
+        debug(`[MIDI Profile] Initializing ${this.name}...`);
         if (this.midiOut) {
             try {
                 if (this.isMk3 && this.productId) {

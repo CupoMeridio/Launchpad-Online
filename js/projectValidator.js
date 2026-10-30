@@ -175,7 +175,7 @@ export function validateProject(project) {
  * @param {number} pageIndex - The index of this page (for error messages)
  * @returns {string[]} Array of error messages (empty if valid)
  */
-export function validatePage(page, pageIndex) {
+function validatePage(page, pageIndex) {
     const errors = [];
     const pageNum = pageIndex + 1;
 

@@ -52,12 +52,6 @@ export const TOTAL_MODES = 4; // 4-7 are official modes
  */
 export const PROJECT_LOADING_TIMEOUT_MS = 60000; // 60 seconds
 
-/**
- * Maximum time to wait for project ready state when MIDI device connects (milliseconds)
- * Allows some time for project to load, but doesn't block MIDI connection indefinitely
- */
-export const MIDI_PROJECT_WAIT_TIMEOUT_MS = 3000; // 3 seconds
-
 // ============================================================================
 // ANIMATION & VISUAL FEEDBACK TIMEOUTS
 // ============================================================================
@@ -66,11 +60,6 @@ export const MIDI_PROJECT_WAIT_TIMEOUT_MS = 3000; // 3 seconds
  * Duration of error shake animation on Launchpad when invalid action attempted
  */
 export const ERROR_SHAKE_DURATION_MS = 500; // 500ms
-
-/**
- * Duration for visualizer mode change animations
- */
-export const VISUALIZER_TRANSITION_DURATION_MS = 300; // 300ms
 
 // ============================================================================
 // UI LAYOUT CONSTRAINTS
@@ -96,7 +85,7 @@ export const LAUNCHPAD_SIZE_MAX = 140; // 140% of original
 
 export const AUDIO_EXTENSIONS = ['.wav', '.mp3', '.ogg', '.flac', '.m4a', '.aac', '.webm'];
 export const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg', '.avif'];
-export const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mov', '.m4v', '.ogv', '.mkv'];
+const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mov', '.m4v', '.ogv', '.mkv'];
 
 /** Backgrounds and icons accept both images and videos. */
 export const MEDIA_EXTENSIONS = [...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS];

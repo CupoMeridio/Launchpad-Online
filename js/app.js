@@ -5,19 +5,20 @@
 // Main application modules
 import { audioEngine } from './audio.js';
 import { Visualizer } from './visualizer.js';
-import { initMidi, isMidiConnected } from './midi.js';
+import { initMidi } from './midi.js';
 
 // Initialization and management functions from separate modules
 import { initializeVisualizerControls } from './visualizer-controls.js';
 import { initializeBackgroundControls } from './background.js';
 import { loadProject, initializeProjectMenu, initializeBackgroundMenu } from './project.js';
 import { initializePersonalizeLaunchpadMenu, initializeLanguageControls, initializeModeMenu, getTranslation, bindStaticUIEvents, showNotification } from './ui.js';
-import { initInteraction, changeSoundSet, changeMode } from './interaction.js';
+import { initInteraction, changeMode } from './interaction.js';
 import { stopAnimationLoop, startAnimationLoop } from './lights.js';
 import { setVisualizer } from './visualizerManager.js';
-import { registerListener, cleanup, removeListener } from './eventCleanup.js';
+import { registerListener, removeListener } from './eventCleanup.js';
 import { initVisibilityManager, onVisibilityChange } from './visibilityManager.js';
 import { initLaunchpadView } from './launchpadView.js';
+import { debug } from './logger.js';
 
 // ----------------------------------------------------------------------------
 // APPLICATION GLOBAL STATE
@@ -28,10 +29,10 @@ import { initLaunchpadView } from './launchpadView.js';
 
 export let currentProject = null;
 export let selectedProjectButton = null;
-export let projectSounds = [];
-export let projectLights = [];
-export let projectLightSyncToSound = [];
-export let projectLightDurations = [];
+let projectSounds = [];
+let projectLights = [];
+let projectLightSyncToSound = [];
+let projectLightDurations = [];
 export let currentPage = null; // Initialized as null to allow first "Page changed: 0" log
 export let currentMode = null; // Initialized as null to allow first "Mode changed: 5" log
 
@@ -204,7 +205,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
 
         if (projectsData && projectsData.length > 0) {
-            console.log("Loading initial project after interaction...");
+            debug("Loading initial project after interaction...");
             const firstProjectButton = document.querySelector('#project-menu .menu-option');
 
             // PARALLEL EXECUTION: loadProject() and initMidi() can run independently
@@ -217,7 +218,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             
             try {
                 await Promise.all(promises);
-                console.log("Initial project and MIDI system loaded.");
+                debug("Initial project and MIDI system loaded.");
                 midiInitialized = true;
             } catch (error) {
                 console.error("Error during parallel initialization:", error);
@@ -229,12 +230,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                 await initMidi().catch(error => console.error("Error during MIDI initialization:", error));
                 midiInitialized = true;
             }
-        }
-
-        // If NO MIDI is connected, a single call is required for the UI.
-        // isMidiConnected from midi.js is used to check the actual hardware status.
-        if (!isMidiConnected) {
-            console.log("[App] No MIDI connected, initializing UI visuals manually.");
         }
 
         // Remove both event listeners to be safe
@@ -285,8 +280,8 @@ document.addEventListener('DOMContentLoaded', async function () {
             registerListener(window, 'load', () => {
                 // Use a relative path so the SW works regardless of the deployment subdirectory
                 navigator.serviceWorker.register('./service-worker.js')
-                    .then(registration => console.log('Service Worker registered: ', registration))
-                    .catch(registrationError => console.log('Service Worker registration failed: ', registrationError));
+                    .then(registration => debug('Service Worker registered: ', registration))
+                    .catch(registrationError => console.error('Service Worker registration failed: ', registrationError));
             });
             
             // Trigger load event listener manually if already loaded

@@ -6,6 +6,7 @@ import { setPhysicalColor, getLpColor, flushPhysicalColors } from './physicalInt
 import { getPadElement, updatePageButtonHighlight, updateModeButtonHighlight } from './webInterface.js';
 import { registerListener } from './eventCleanup.js';
 import { isProjectReady } from './projectLoadingState.js';
+import { debug } from './logger.js';
 import { 
     LAUNCHPAD_COLS, 
     LAUNCHPAD_PADS, 
@@ -109,7 +110,7 @@ export function releasePad(index) {
 export function initInteraction() {
     // Prevent multiple initializations
     if (interactionInitialized) {
-        console.log("[Interaction] Already initialized, skipping duplicate setup");
+        debug("[Interaction] Already initialized, skipping duplicate setup");
         return;
     }
     interactionInitialized = true;
@@ -167,7 +168,7 @@ export function initInteraction() {
         syncPerformanceModeButtons();
     });
 
-    console.log("[Interaction] Interaction listeners initialized");
+    debug("[Interaction] Interaction listeners initialized");
 }
 
 /**
@@ -232,7 +233,7 @@ export function changeSoundSet(index, updateVisuals = true) {
         setCurrentPage(index);
         
         if (pageChanged) {
-            console.log(`Page changed: ${index}`);
+            debug(`Page changed: ${index}`);
         }
 
         if (updateVisuals) {
@@ -260,7 +261,7 @@ export function changeSoundSet(index, updateVisuals = true) {
  * Updates the lights for the mode buttons on the physical Launchpad.
  * @param {number} activeIndex - The index of the currently active mode (4-7).
  */
-export function updatePhysicalModeLights(activeIndex) {
+function updatePhysicalModeLights(activeIndex) {
     const orange = getLpColor('orange');
     const off = getLpColor('off');
 
@@ -309,7 +310,7 @@ export function changeMode(index, updateVisuals = true) {
 
     setCurrentMode(index);
     if (modeChanged) {
-        console.log(`Mode changed: ${index}`);
+        debug(`Mode changed: ${index}`);
     }
 
     // Always dispatch event to ensure hardware layout is synced with current state

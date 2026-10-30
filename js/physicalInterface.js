@@ -5,6 +5,8 @@
  * Supports batching, immediate color sends, and palette lookups across Legacy and RGB hardware.
  */
 
+import { debug } from './logger.js';
+
 let activeProfile = null;
 const colorCache = new Map();
 const pendingUpdates = new Map(); // Key: (status << 8) | key, Value: number[] msg
@@ -14,7 +16,7 @@ const pendingUpdates = new Map(); // Key: (status << 8) | key, Value: number[] m
  * @param {import('./midi-profiles/DeviceProfile.js').DeviceProfile|null} profile
  */
 export function setDeviceProfile(profile) {
-    console.log("[PHYSICAL] Device profile set:", profile ? profile.name : "null");
+    debug("[PHYSICAL] Device profile set:", profile ? profile.name : "null");
     activeProfile = profile;
     colorCache.clear();
     pendingUpdates.clear();

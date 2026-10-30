@@ -1,7 +1,8 @@
 import { audioEngine } from './audio.js';
 import { syncInputSlider } from './ui.js';
 import * as VisualizerManager from './visualizerManager.js';
-import { registerListener, cleanup } from './eventCleanup.js';
+import { registerListener } from './eventCleanup.js';
+import { debug } from './logger.js';
 
 let visualizerControlsInitialized = false; // Prevent duplicate listener registration
 
@@ -12,7 +13,7 @@ let visualizerControlsInitialized = false; // Prevent duplicate listener registr
 export function initializeVisualizerControls() {
     // Prevent multiple initializations
     if (visualizerControlsInitialized) {
-        console.log("[VisualizerControls] Already initialized, skipping duplicate setup");
+        debug("[VisualizerControls] Already initialized, skipping duplicate setup");
         return;
     }
     visualizerControlsInitialized = true;

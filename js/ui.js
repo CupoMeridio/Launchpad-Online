@@ -106,7 +106,7 @@ export async function initializeLanguageControls() {
 /**
  * Shows or hides the sidebar.
  */
-export function toggleSidebar() {
+function toggleSidebar() {
     const layout = document.querySelector('.layout');
     layout.classList.toggle('sidebar-open');
 }
@@ -115,7 +115,7 @@ export function toggleSidebar() {
  * Opens or closes a dropdown menu in the sidebar.
  * @param {string} menuId - The ID of the menu element to toggle.
  */
-export function toggleMenu(menuId) {
+function toggleMenu(menuId) {
     const menu = document.getElementById(menuId);
     const willOpen = !menu.classList.contains('open');
     if (willOpen) {
@@ -211,7 +211,7 @@ export function setLaunchpadBackground(imageFile) {
  * Shows or hides the pad "stickers".
  * @param {boolean} isActive - `true` to show stickers, `false` to hide them.
  */
-export function toggleLaunchpadStickers(isActive) {
+function toggleLaunchpadStickers(isActive) {
     const launchpad = document.getElementById('Launchpad');
     if (isActive) {
         launchpad.classList.add('has-stickers');

@@ -22,10 +22,10 @@ import { validateProject, getErrorSummary } from './projectValidator.js';
 import { 
     beginLoadingProject, 
     markProjectReady, 
-    markProjectLoadError,
-    isProjectReady
+    markProjectLoadError
 } from './projectLoadingState.js';
 import { LAUNCHPAD_PADS, DEFAULT_LIGHT_DURATION_SEC } from './constants.js';
+import { debug } from './logger.js';
 
 let activeProjectLoad = null;
 
@@ -73,7 +73,7 @@ export function initializeBackgroundMenu(videoFiles) {
  */
 export function loadProject(configPath, button, onProgress = null) {
     if (activeProjectLoad) {
-        console.log("[Project] A project is already loading; ignoring the new request.");
+        debug("[Project] A project is already loading; ignoring the new request.");
         return activeProjectLoad;
     }
 
@@ -211,7 +211,7 @@ async function loadProjectInternal(configPath, button, onProgress = null) {
 
         // 4. Background Media Loading
         if (hasVideo) {
-            console.log("Loading project background media:", appearance.background);
+            debug("Loading project background media:", appearance.background);
             const videoPromise = Promise.resolve(applyBackground(appearance.background)).then(() => {
                 videoLoaded = 1;
                 updateOverallProgress();
@@ -239,7 +239,7 @@ async function loadProjectInternal(configPath, button, onProgress = null) {
             setSelectedProjectButton(button);
         }
 
-        console.log(`Project "${project.name}" loaded.`);
+        debug(`Project "${project.name}" loaded.`);
         
         // MARK PROJECT AS READY - Critical for MIDI and other systems
         // This signals that currentProject, projectSounds, and projectLights are all set

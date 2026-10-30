@@ -13,7 +13,7 @@ export { setWebColor, webColorMap, setPhysicalColor, getLpColor, flushPhysicalCo
  * Handles delayed callbacks without creating new object instances for every call.
  * Uses a recycled pool of task objects.
  */
-export class AnimationScheduler {
+class AnimationScheduler {
     constructor() {
         this.tasks = [];
         this.pool = [];  
@@ -55,7 +55,7 @@ export class AnimationScheduler {
  * Handles all fading logic in a single batched loop.
  * Eliminates the creation of separate animation objects for every single LED fade.
  */
-export class FadeSystem {
+class FadeSystem {
     constructor() {
         // Map allows sparse storage (only active pads) without iterating 100 empty slots
         // Key: Pad ID/Index (string or number), Value: FadeState object

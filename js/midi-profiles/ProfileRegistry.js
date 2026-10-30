@@ -7,6 +7,7 @@
 
 import { LaunchpadLegacy } from './LaunchpadLegacy.js';
 import { LaunchpadRGB } from './LaunchpadRGB.js';
+import { debug } from '../logger.js';
 
 /**
  * Detects model family, layout view type, product ID, and generation from a MIDI port or device name.
@@ -178,7 +179,7 @@ export class ProfileRegistry {
      */
     static getProfile(portName, outputPort, inputPort) {
         const info = detectModel(portName);
-        console.log(`[MIDI Profile] Resolving profile for device: "${portName}" -> family: ${info.family}, model: ${info.modelType}`);
+        debug(`[MIDI Profile] Resolving profile for device: "${portName}" -> family: ${info.family}, model: ${info.modelType}`);
 
         if (info.family === 'rgb') {
             return new LaunchpadRGB(outputPort, inputPort, portName, info);

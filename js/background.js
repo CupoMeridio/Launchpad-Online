@@ -141,7 +141,7 @@ function resetMediaControls() {
     }
 }
 
-export function applyVideoEffects() {
+function applyVideoEffects() {
     const overlay = document.querySelector('.media-overlay');
     const opacityInput = document.getElementById('opacity-input');
     const blurInput = document.getElementById('blur-input');
@@ -187,7 +187,7 @@ export function initializeBackgroundControls() {
         fileInput.addEventListener('change', function () {
             const file = this.files && this.files[0];
             if (!file) return;
-            setBackgroundFile(file);
+            setBackgroundMedia(file);
         });
     }
 }
@@ -205,8 +205,4 @@ function removeExistingBackground() {
     if (existingVideo) existingVideo.remove();
     const existingMedia = document.querySelectorAll('.background-media');
     existingMedia.forEach(el => el.remove());
-}
-
-export function setBackgroundFile(file) {
-    return setBackgroundMedia(file);
 }

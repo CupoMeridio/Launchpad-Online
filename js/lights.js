@@ -23,16 +23,12 @@ import { TextAnimation, ScrollingTextAnimation } from './animationClasses.js';
 export { animations };
 
 let animationFrameId = null;
-let lastTickTime = 0;
 let isLoopRunning = false;
 
 /**
  * Main animation loop.
  */
 function animationLoop(now) {
-    const deltaTime = now - lastTickTime;
-    lastTickTime = now;
-
     // 1. Update Managers
     scheduler.update(now);
     fader.update(now);
@@ -73,23 +69,13 @@ export function stopAnimationLoop() {
 export function startAnimationLoop() {
     if (!isLoopRunning) {
         isLoopRunning = true;
-        lastTickTime = performance.now();
-        animationLoop(lastTickTime);
+        animationLoop(performance.now());
     }
-}
-
-/**
- * Gets the current state of the animation loop.
- * @returns {boolean} True if the loop is currently running.
- */
-export function isAnimationLoopRunning() {
-    return isLoopRunning;
 }
 
 // Start the loop
 isLoopRunning = true;
-lastTickTime = performance.now();
-animationLoop(lastTickTime);
+animationLoop(performance.now());
 
 // Initialize the library
 createAnimationLibrary();

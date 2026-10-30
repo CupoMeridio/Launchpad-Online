@@ -6,6 +6,7 @@
  */
 
 import { invalidatePadCache } from './webInterface.js';
+import { debug } from './logger.js';
 
 export const LAUNCHPAD_MODELS = {
     AUTO: 'auto',
@@ -79,7 +80,7 @@ const PRO_MK3_BOTTOM_BUTTONS = [
  * @param {string} [className='mk3-icon']
  * @returns {string}
  */
-export function renderArrowSvg(dir = 'right', className = 'mk3-icon') {
+function renderArrowSvg(dir = 'right', className = 'mk3-icon') {
     let rot = '';
     if (dir === 'up') rot = ' style="transform: rotate(-90deg);"';
     else if (dir === 'down') rot = ' style="transform: rotate(90deg);"';
@@ -92,7 +93,7 @@ export function renderArrowSvg(dir = 'right', className = 'mk3-icon') {
  * @param {number} r - Row index 0..7
  * @returns {string}
  */
-export function renderPadRow(r) {
+function renderPadRow(r) {
     const letter = ROW_LETTERS[r];
     let row = '';
     for (let c = 1; c <= 8; c++) {
@@ -335,7 +336,7 @@ export function setDetectedHardwareModel(hardwareModel) {
  * Avoids redundant redraws if the requested model is already displayed.
  * @param {'classic' | 'mk3' | 'pro' | 'pro-mk3'} model
  */
-export function renderLaunchpad(model) {
+function renderLaunchpad(model) {
     const launchpad = document.getElementById('Launchpad');
     if (!launchpad) return;
 
@@ -374,7 +375,7 @@ export function renderLaunchpad(model) {
     if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
         window.dispatchEvent(new CustomEvent('launchpad-view-changed', { detail: { model } }));
     }
-    console.log(`[LaunchpadView] Rendered model: ${model}`);
+    debug(`[LaunchpadView] Rendered model: ${model}`);
 }
 
 /**
