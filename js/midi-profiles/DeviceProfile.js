@@ -75,13 +75,26 @@ export class DeviceProfile {
     }
 
     /**
+     * Resolves the base color object for a given color name from palette or fallbacks.
+     * @param {string} colorName
+     * @returns {object|null}
+     */
+    resolveColorBase(colorName) {
+        return this.colorPalette?.[colorName] || null;
+    }
+
+    /**
      * Resolves a color name and brightness level to a model-specific color descriptor.
      * @param {string} colorName - e.g. 'red', 'green', 'amber', 'yellow', 'orange', 'blue', etc.
      * @param {'full'|'medium'|'low'|null} [level] - Optional brightness level.
      * @returns {{ code: number, full?: { code: number }, medium?: { code: number }, low?: { code: number } }|null}
      */
     getColor(colorName, level = null) {
-        return null;
+        const base = this.resolveColorBase(colorName);
+        if (level && base && base[level]) {
+            return base[level];
+        }
+        return base;
     }
 
     /**

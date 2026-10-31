@@ -1379,15 +1379,6 @@ main {
     font-size: 11px;
 }
 
-.inspector-action-danger {
-    color: #ff9b9b;
-    border-color: #833535;
-    background: rgba(180, 40, 40, 0.15);
-}
-
-.inspector-action-danger:hover {
-    background: rgba(180, 40, 40, 0.35);
-}
 
 .creator-hold-hint {
     margin: 0;

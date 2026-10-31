@@ -7,9 +7,21 @@
  * - samples/page-<X>/pad-<Y>.<ext> with all assigned audio samples
  */
 
-import defaultJSZip from './vendor/jszip.js';
 import { buildProjectExport, buildDraftFromProject, normalizeZipPath } from './projectCreatorModel.js';
 import { PROJECT_ASSET_EXTENSIONS, PRECOMPRESSED_EXTENSIONS, hasFileExtension } from './constants.js';
+
+let cachedJSZip = null;
+
+async function resolveJSZip(overrideConstructor) {
+    if (overrideConstructor) {
+        return overrideConstructor;
+    }
+    if (!cachedJSZip) {
+        const module = await import('./vendor/jszip.js');
+        cachedJSZip = module.default || module;
+    }
+    return cachedJSZip;
+}
 
 function isPackageableAsset(fileName) {
     return hasFileExtension(fileName, PROJECT_ASSET_EXTENSIONS);
@@ -25,13 +37,14 @@ function isPrecompressedFile(fileName) {
  * @param {Function} [JSZipConstructor] - Optional JSZip constructor override for tests.
  * @returns {Promise<{ blob: Blob, filename: string, exportData: object }>}
  */
-export async function exportProjectToZip(draft, JSZipConstructor = defaultJSZip) {
-    if (!JSZipConstructor) {
+export async function exportProjectToZip(draft, JSZipConstructor = null) {
+    const ZipCtor = await resolveJSZip(JSZipConstructor);
+    if (!ZipCtor) {
         throw new Error('JSZip library is not available');
     }
 
     const exportData = buildProjectExport(draft);
-    const zip = new JSZipConstructor();
+    const zip = new ZipCtor();
 
     const jsonString = JSON.stringify(exportData.project, null, 2);
     // Include both canonical project.json and <id>.json for backwards/tooling compatibility
@@ -69,12 +82,13 @@ export async function exportProjectToZip(draft, JSZipConstructor = defaultJSZip)
  * @param {Function} [JSZipConstructor] - Optional JSZip constructor override for tests.
  * @returns {Promise<{ draft: object, projectData: object }>}
  */
-export async function importProjectFromZip(zipInput, JSZipConstructor = defaultJSZip) {
-    if (!JSZipConstructor) {
+export async function importProjectFromZip(zipInput, JSZipConstructor = null) {
+    const ZipCtor = await resolveJSZip(JSZipConstructor);
+    if (!ZipCtor) {
         throw new Error('JSZip library is not available');
     }
 
-    const zip = await JSZipConstructor.loadAsync(zipInput);
+    const zip = await ZipCtor.loadAsync(zipInput);
 
     // 1. Locate the project JSON manifest
     let jsonEntry = zip.file('project.json');

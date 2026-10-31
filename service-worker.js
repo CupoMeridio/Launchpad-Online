@@ -18,7 +18,7 @@
 // CUSTOMIZATION: When you make changes to App Shell files, update this timestamp.
 // This invalidates the old cache and forces the Service Worker to download new files.
 // Example: 'launchpad-pwa-cache-2026-03-21-1430' → update to → 'launchpad-pwa-cache-2026-03-21-1505'
-const CACHE_NAME = 'launchpad-pwa-cache-2026-10-27-0010';
+const CACHE_NAME = 'launchpad-pwa-cache-2026-10-31-1945';
 
 // Get the base path dynamically to support both local dev and GitHub Pages
 const basePath = self.registration.scope.replace(self.location.origin, '');
@@ -42,12 +42,15 @@ const APP_SHELL_FILES = [
     `${basePath}js/animations/multi.js`,
     `${basePath}js/animations/special.js`,
     `${basePath}js/app.js`,
+    `${basePath}js/appearance.js`,
+    `${basePath}js/appearanceModel.js`,
     `${basePath}js/audio.js`,
     `${basePath}js/constants.js`,
     `${basePath}js/formControls.js`,
     `${basePath}js/interaction.js`,
     `${basePath}js/launchpadView.js`,
     `${basePath}js/lights.js`,
+    `${basePath}js/logger.js`,
     `${basePath}js/midi.js`,
     `${basePath}js/midi-profiles/DeviceProfile.js`,
     `${basePath}js/midi-profiles/LaunchpadLegacy.js`,
@@ -121,11 +124,8 @@ self.addEventListener('activate', event => {
                     }
                 })
             );
-        })
+        }).then(() => self.clients.claim())
     );
-    // `self.clients.claim()` allows the activated Service Worker to take control
-    // of all open tabs of the application immediately, without needing a refresh.
-    return self.clients.claim();
 });
 
 // 3. 'FETCH' EVENT: Intercepting network requests
@@ -168,11 +168,13 @@ self.addEventListener('fetch', event => {
         event.respondWith(
             fetch(request)
                 .then(networkResponse => {
-                    // Cache the fresh response and return it
-                    return caches.open(CACHE_NAME).then(cache => {
-                        cache.put(request, networkResponse.clone());
-                        return networkResponse;
-                    });
+                    if (networkResponse && networkResponse.ok) {
+                        return caches.open(CACHE_NAME).then(cache => {
+                            cache.put(request, networkResponse.clone());
+                            return networkResponse;
+                        });
+                    }
+                    return networkResponse;
                 })
                 .catch(() => {
                     // Try to serve from cache first
@@ -202,14 +204,14 @@ self.addEventListener('fetch', event => {
                     return cachedResponse;
                 }
                 return fetch(request).then(networkResponse => {
-                    // Do not cache partial responses (206) as Cache API doesn't support them
-                    if (networkResponse.status === 206) {
-                        return networkResponse;
+                    // Do not cache partial responses (206) or error responses
+                    if (networkResponse && networkResponse.ok && networkResponse.status !== 206) {
+                        return caches.open(CACHE_NAME).then(cache => {
+                            cache.put(request, networkResponse.clone());
+                            return networkResponse;
+                        });
                     }
-                    return caches.open(CACHE_NAME).then(cache => {
-                        cache.put(request, networkResponse.clone());
-                        return networkResponse;
-                    });
+                    return networkResponse;
                 });
             })
         );
@@ -220,10 +222,13 @@ self.addEventListener('fetch', event => {
     event.respondWith(
         caches.match(request).then(cachedResponse => {
             return cachedResponse || fetch(request).then(networkResponse => {
-                return caches.open(CACHE_NAME).then(cache => {
-                    cache.put(request, networkResponse.clone());
-                    return networkResponse;
-                });
+                if (networkResponse && networkResponse.ok) {
+                    return caches.open(CACHE_NAME).then(cache => {
+                        cache.put(request, networkResponse.clone());
+                        return networkResponse;
+                    });
+                }
+                return networkResponse;
             });
         })
     );

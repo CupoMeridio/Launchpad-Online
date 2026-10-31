@@ -910,47 +910,51 @@ function chooseSample() {
     document.getElementById('creator-sample-file').click();
 }
 
-function startHoldPreview(index = activePadIndex) {
-    if (index === null || !getCurrentPage()) return;
+function getPadPreviewContext(index = activePadIndex) {
+    if (index === null || !getCurrentPage()) return null;
     stopPreview();
     const page = getCurrentPage();
-    const buffer = page.soundBuffers[index];
-    const animation = page.lights[index];
-    const x = index % LAUNCHPAD_COLS;
-    const y = Math.floor(index / LAUNCHPAD_COLS);
+    return {
+        page,
+        buffer: page.soundBuffers[index],
+        animation: page.lights[index],
+        x: index % LAUNCHPAD_COLS,
+        y: Math.floor(index / LAUNCHPAD_COLS)
+    };
+}
 
-    if (buffer) {
-        audioEngine.playBuffer(buffer, 'preview');
+function startHoldPreview(index = activePadIndex) {
+    const ctx = getPadPreviewContext(index);
+    if (!ctx) return;
+
+    if (ctx.buffer) {
+        audioEngine.playBuffer(ctx.buffer, 'preview');
     }
-    if (animation) {
-        activeMomentaryPreview = { animation, x, y };
-        triggerAnimation(animation, x, y);
+    if (ctx.animation) {
+        activeMomentaryPreview = { animation: ctx.animation, x: ctx.x, y: ctx.y };
+        triggerAnimation(ctx.animation, ctx.x, ctx.y);
     }
 }
 
 function previewPad(index = activePadIndex) {
-    if (index === null || !getCurrentPage()) return;
-    stopPreview();
-    const page = getCurrentPage();
-    const buffer = page.soundBuffers[index];
-    const animation = page.lights[index];
-    const x = index % LAUNCHPAD_COLS;
-    const y = Math.floor(index / LAUNCHPAD_COLS);
-    const manualDuration = getManualLightDuration(page, index);
+    const ctx = getPadPreviewContext(index);
+    if (!ctx) return;
+
+    const manualDuration = getManualLightDuration(ctx.page, index);
 
     let duration = 0;
-    if (buffer) {
-        duration = audioEngine.playBuffer(buffer, 'preview');
+    if (ctx.buffer) {
+        duration = audioEngine.playBuffer(ctx.buffer, 'preview');
     }
 
-    if (animation) {
-        const syncToSound = page.lightSyncToSound[index] ?? true;
+    if (ctx.animation) {
+        const syncToSound = ctx.page.lightSyncToSound[index] ?? true;
         const animDuration = resolveLightDuration(
             syncToSound,
             duration,
             manualDuration
         );
-        triggerAnimation(animation, x, y, animDuration);
+        triggerAnimation(ctx.animation, ctx.x, ctx.y, animDuration);
     }
 }
 

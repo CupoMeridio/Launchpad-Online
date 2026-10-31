@@ -205,14 +205,9 @@ export class LaunchpadRGB extends DeviceProfile {
     /**
      * Resolves color descriptor with full RGB support.
      * @param {string} colorName
-     * @param {'full'|'medium'|'low'|null} [level]
      */
-    getColor(colorName, level = null) {
-        const base = this.colorPalette[colorName] || this.colorPalette['white'];
-        if (level && base[level]) {
-            return base[level];
-        }
-        return base;
+    resolveColorBase(colorName) {
+        return this.colorPalette[colorName] || this.colorPalette['white'];
     }
 
     /**

@@ -115,15 +115,10 @@ export class LaunchpadLegacy extends DeviceProfile {
     /**
      * Resolves color descriptor with fallback.
      * @param {string} colorName
-     * @param {'full'|'medium'|'low'|null} [level]
      */
-    getColor(colorName, level = null) {
+    resolveColorBase(colorName) {
         const resolvedName = this.colorPalette[colorName] ? colorName : (this.colorFallbacks[colorName] || 'amber');
-        const base = this.colorPalette[resolvedName] || this.colorPalette['off'];
-        if (level && base[level]) {
-            return base[level];
-        }
-        return base;
+        return this.colorPalette[resolvedName] || this.colorPalette['off'];
     }
 
     /**
