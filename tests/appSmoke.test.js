@@ -66,4 +66,33 @@ test('application shell contains no emoji pictographs', () => {
     const html = readFileSync(path.join(workspaceRoot, 'index.html'), 'utf8');
     const emojiRegex = /\p{RGI_Emoji}/v;
     assert.equal(emojiRegex.test(html), false, 'index.html should not contain any emoji characters');
-});
+});
+
+test('main menu integrates personalization tabs, subpanels, and appearance reset', () => {
+    const html = readFileSync(path.join(workspaceRoot, 'index.html'), 'utf8');
+
+    assert.match(html, /id="customization-menu"/);
+    assert.match(html, /data-menu="customization-menu"/);
+    assert.match(html, /id="customization-panel-launchpad"/);
+    assert.match(html, /id="customization-panel-background"/);
+    assert.match(html, /id="customization-panel-visualizer"/);
+    assert.match(html, /id="personalize-launchpad-menu"/);
+    assert.match(html, /id="background-menu"/);
+    assert.match(html, /id="visualizer-menu"/);
+    assert.match(html, /id="reset-project-appearance"/);
+});
+
+test('application defines resizers for sidebar and project inspector', () => {
+    const html = readFileSync(path.join(workspaceRoot, 'index.html'), 'utf8');
+
+    assert.match(html, /id="sidebar-resizer"/);
+    assert.match(html, /id="inspector-resizer"/);
+});
+
+test('customization menu defines UI accent color picker and reset button', () => {
+    const html = readFileSync(path.join(workspaceRoot, 'index.html'), 'utf8');
+
+    assert.match(html, /id="ui-accent-color-picker"/);
+    assert.match(html, /id="ui-accent-reset-btn"/);
+});
+

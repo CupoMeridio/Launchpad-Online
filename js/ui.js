@@ -72,6 +72,10 @@ async function loadTranslations(lang) {
     }
 }
 
+// Attributes that can be localized from static HTML via `data-i18n-<attribute>`
+// (e.g. data-i18n-aria-label="a11y.resizeSidebar").
+const TRANSLATABLE_ATTRIBUTES = ['aria-label', 'title'];
+
 function applyTranslations() {
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
@@ -79,6 +83,16 @@ function applyTranslations() {
         if (typeof text === 'string') {
             el.textContent = text;
         }
+    });
+
+    TRANSLATABLE_ATTRIBUTES.forEach(attr => {
+        const dataAttribute = `data-i18n-${attr}`;
+        document.querySelectorAll(`[${dataAttribute}]`).forEach(el => {
+            const text = translations[el.getAttribute(dataAttribute)];
+            if (typeof text === 'string') {
+                el.setAttribute(attr, text);
+            }
+        });
     });
 }
 
@@ -368,12 +382,270 @@ function setSettingValue(key, value, persist = true) {
     }
 }
 
+// Single source of truth for the active Customization tab, kept in sync with the
+// `.active` classes toggled by switchCustomizationTab(). Exposed so other modules
+// (e.g. background.js) can query it instead of walking the DOM structure.
+let activeCustomizationTab = 'launchpad';
+
+/**
+ * Returns true when the given customization tab is the currently active one.
+ * @param {'launchpad'|'background'|'visualizer'} tabName
+ * @returns {boolean}
+ */
+export function isCustomizationTabActive(tabName) {
+    return activeCustomizationTab === tabName;
+}
+
+/**
+ * Switches the active panel inside the Customization menu.
+ * @param {string} tabName - 'launchpad' | 'background' | 'visualizer'
+ */
+function switchCustomizationTab(tabName) {
+    activeCustomizationTab = tabName;
+
+    const tabs = document.querySelectorAll('.customization-tab');
+    const panels = {
+        launchpad: document.getElementById('customization-panel-launchpad'),
+        background: document.getElementById('customization-panel-background'),
+        visualizer: document.getElementById('customization-panel-visualizer')
+    };
+
+    tabs.forEach(tab => {
+        const isTarget = tab.dataset.tab === tabName;
+        tab.classList.toggle('selected', isTarget);
+        tab.setAttribute('aria-selected', String(isTarget));
+    });
+
+    // Visibility is driven purely by the `.active` class (see .customization-tab-panel).
+    Object.entries(panels).forEach(([name, panel]) => {
+        if (!panel) return;
+        panel.classList.toggle('active', name === tabName);
+    });
+
+    updateVideoControlsVisibility();
+}
+
+const DEFAULT_UI_ACCENT = '#00aaff';
+
+/**
+ * Sets the UI accent color and computes matching hover, dim, and glow variations.
+ * @param {string} hex - Hex color e.g. '#00aaff'
+ * @param {boolean} [persist=true] - Whether to save to localStorage
+ */
+function setUIAccentColor(hex, persist = true) {
+    if (!hex || typeof hex !== 'string' || !hex.startsWith('#')) return;
+
+    const cleanHex = hex.trim();
+    if (!/^#[0-9a-fA-F]{6}$/.test(cleanHex)) return;
+
+    const num = parseInt(cleanHex.slice(1), 16);
+    const r = (num >> 16) & 255;
+    const g = (num >> 8) & 255;
+    const b = num & 255;
+
+    const darken = (c) => Math.max(0, Math.min(255, Math.round(c * 0.85)));
+    const toHex = (c) => darken(c).toString(16).padStart(2, '0');
+    const hoverHex = `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+
+    const dim = `rgba(${r}, ${g}, ${b}, 0.18)`;
+    const glow = `rgba(${r}, ${g}, ${b}, 0.35)`;
+
+    if (globalThis.document?.documentElement?.style) {
+        document.documentElement.style.setProperty('--accent-blue', cleanHex);
+        document.documentElement.style.setProperty('--accent-blue-hover', hoverHex);
+        document.documentElement.style.setProperty('--accent-blue-dim', dim);
+        document.documentElement.style.setProperty('--accent-blue-glow', glow);
+    }
+
+    const picker = globalThis.document?.getElementById ? document.getElementById('ui-accent-color-picker') : null;
+    if (picker && picker.value.toLowerCase() !== cleanHex.toLowerCase()) {
+        picker.value = cleanHex;
+    }
+
+    if (persist) {
+        safeLocalStorageSetItem('ui.accentColor', cleanHex);
+    }
+}
+
+/**
+ * Restores the saved UI accent color from localStorage or applies default.
+ */
+function restoreUIAccentColor() {
+    const saved = safeLocalStorageGetItem('ui.accentColor', DEFAULT_UI_ACCENT);
+    setUIAccentColor(saved || DEFAULT_UI_ACCENT, false);
+}
+
+const SIDEBAR_WIDTH_DEFAULT = 260;
+const SIDEBAR_WIDTH_MIN = 200;
+const SIDEBAR_WIDTH_MAX = 520;
+
+const INSPECTOR_WIDTH_DEFAULT = 310;
+const INSPECTOR_WIDTH_MIN = 260;
+const INSPECTOR_WIDTH_MAX = 650;
+
+/**
+ * Wires a separator element so that dragging it resizes a panel width, exposed
+ * as a CSS custom property on <html>. Also supports arrow-key nudging, a
+ * default-width reset (double-click / Enter / Space) and persists the width.
+ * @param {object} config
+ * @param {HTMLElement|null} config.resizer - The separator element.
+ * @param {string} config.cssVar - Custom property holding the panel width.
+ * @param {number} config.defaultWidth - Fallback / reset width (px).
+ * @param {number} config.minWidth - Lower clamp (px).
+ * @param {number} config.maxWidth - Upper clamp (px).
+ * @param {string} config.storageKey - localStorage key for the persisted width.
+ * @param {boolean} [config.invert=false] - True when dragging left grows the panel.
+ * @param {number} config.minContentSpace - Min px to keep free for the main content.
+ */
+function setupPanelResizer({ resizer, cssVar, defaultWidth, minWidth, maxWidth, storageKey, invert = false, minContentSpace }) {
+    const layout = document.querySelector('.layout');
+    if (!resizer || !layout) return;
+
+    const root = document.documentElement;
+    const notifyResize = () => window.dispatchEvent(new Event('resize'));
+    const readWidth = () => {
+        const computed = parseInt(getComputedStyle(root).getPropertyValue(cssVar), 10);
+        return Number.isFinite(computed) ? computed : defaultWidth;
+    };
+    const clamp = (width) => {
+        const contentAwareMax = Math.min(maxWidth, window.innerWidth - minContentSpace);
+        return Math.max(minWidth, Math.min(contentAwareMax, Math.round(width)));
+    };
+    const applyWidth = (width) => {
+        root.style.setProperty(cssVar, `${width}px`);
+        notifyResize();
+    };
+    const rememberWidth = (width) => safeLocalStorageSetItem(storageKey, width);
+
+    let isDragging = false;
+    let startX = 0;
+    let startWidth = 0;
+
+    const onPointerDown = (e) => {
+        if (e.button !== 0) return;
+        isDragging = true;
+        startX = e.clientX;
+        startWidth = readWidth();
+        resizer.setPointerCapture(e.pointerId);
+        resizer.classList.add('is-dragging');
+        layout.classList.add('is-resizing');
+        e.preventDefault();
+    };
+
+    const onPointerMove = (e) => {
+        if (!isDragging) return;
+        const delta = invert ? startX - e.clientX : e.clientX - startX;
+        applyWidth(clamp(startWidth + delta));
+    };
+
+    const onPointerUp = (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+        try { resizer.releasePointerCapture(e.pointerId); } catch (_) {}
+        resizer.classList.remove('is-dragging');
+        layout.classList.remove('is-resizing');
+        rememberWidth(readWidth());
+        notifyResize();
+    };
+
+    const resetWidth = () => {
+        applyWidth(defaultWidth);
+        rememberWidth(defaultWidth);
+    };
+
+    // Arrow keys nudge the width; Enter/Space restores the default.
+    const growKeys = invert ? ['ArrowLeft', 'ArrowUp'] : ['ArrowRight', 'ArrowUp'];
+    const shrinkKeys = invert ? ['ArrowRight', 'ArrowDown'] : ['ArrowLeft', 'ArrowDown'];
+
+    const onKeyDown = (e) => {
+        const step = e.shiftKey ? 30 : 10;
+        let nextWidth = null;
+        if (growKeys.includes(e.key)) {
+            nextWidth = clamp(readWidth() + step);
+        } else if (shrinkKeys.includes(e.key)) {
+            nextWidth = clamp(readWidth() - step);
+        } else if (e.key === 'Enter' || e.key === ' ') {
+            resetWidth();
+            e.preventDefault();
+            return;
+        } else {
+            return;
+        }
+        applyWidth(nextWidth);
+        rememberWidth(nextWidth);
+        e.preventDefault();
+    };
+
+    resizer.addEventListener('pointerdown', onPointerDown);
+    resizer.addEventListener('pointermove', onPointerMove);
+    resizer.addEventListener('pointerup', onPointerUp);
+    resizer.addEventListener('pointercancel', onPointerUp);
+    resizer.addEventListener('dblclick', resetWidth);
+    resizer.addEventListener('keydown', onKeyDown);
+}
+
+/**
+ * Initializes resizable side panels (sidebar on the left, project inspector on the right).
+ */
+function initializeResizablePanels() {
+    const restoreWidth = (storageKey, cssVar, minWidth, maxWidth) => {
+        const saved = parseInt(safeLocalStorageGetItem(storageKey, null), 10);
+        if (Number.isFinite(saved) && saved >= minWidth && saved <= maxWidth) {
+            document.documentElement.style.setProperty(cssVar, `${saved}px`);
+        }
+    };
+
+    restoreWidth('ui.sidebarWidth', '--sidebar-width', SIDEBAR_WIDTH_MIN, SIDEBAR_WIDTH_MAX);
+    restoreWidth('ui.inspectorWidth', '--inspector-width', INSPECTOR_WIDTH_MIN, INSPECTOR_WIDTH_MAX);
+
+    setupPanelResizer({
+        resizer: document.getElementById('sidebar-resizer'),
+        cssVar: '--sidebar-width',
+        defaultWidth: SIDEBAR_WIDTH_DEFAULT,
+        minWidth: SIDEBAR_WIDTH_MIN,
+        maxWidth: SIDEBAR_WIDTH_MAX,
+        storageKey: 'ui.sidebarWidth',
+        minContentSpace: 300
+    });
+
+    setupPanelResizer({
+        resizer: document.getElementById('inspector-resizer'),
+        cssVar: '--inspector-width',
+        defaultWidth: INSPECTOR_WIDTH_DEFAULT,
+        minWidth: INSPECTOR_WIDTH_MIN,
+        maxWidth: INSPECTOR_WIDTH_MAX,
+        storageKey: 'ui.inspectorWidth',
+        invert: true,
+        minContentSpace: 350
+    });
+}
+
 /**
  * Binds all static UI event listeners that previously relied on inline
  * onclick/onchange attributes in HTML or window.* globals.
  * Called once from app.js after DOMContentLoaded.
  */
 export function bindStaticUIEvents() {
+    // Initialize UI accent color and resizable side panels
+    restoreUIAccentColor();
+    initializeResizablePanels();
+
+    // UI Accent Color Picker
+    const accentPicker = document.getElementById('ui-accent-color-picker');
+    if (accentPicker) {
+        accentPicker.addEventListener('input', (e) => {
+            setUIAccentColor(e.target.value, true);
+        });
+    }
+
+    // Reset Accent Button
+    const resetAccentBtn = document.getElementById('ui-accent-reset-btn');
+    if (resetAccentBtn) {
+        resetAccentBtn.addEventListener('click', () => {
+            setUIAccentColor(DEFAULT_UI_ACCENT, true);
+        });
+    }
+
     // Sidebar open/close
     const openSidebarBtn = document.getElementById('openSidebar');
     if (openSidebarBtn) {
@@ -383,6 +655,13 @@ export function bindStaticUIEvents() {
     // Menu toggle buttons — each carries data-menu="<menuId>" set in index.html
     document.querySelectorAll('.menu-toggle[data-menu]').forEach(btn => {
         btn.addEventListener('click', () => toggleMenu(btn.dataset.menu));
+    });
+
+    // Customization tabs (Launchpad, Sfondo, Visualizzatore)
+    document.querySelectorAll('.customization-tab[data-tab]').forEach(tab => {
+        tab.addEventListener('click', () => {
+            switchCustomizationTab(tab.dataset.tab);
+        });
     });
 
     // Launchpad Model selection dropdown

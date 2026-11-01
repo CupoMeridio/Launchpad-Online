@@ -4,7 +4,7 @@
  * and applies visual effects (overlay opacity, blur, brightness).
  */
 
-import { syncInputSlider } from './ui.js';
+import { syncInputSlider, isCustomizationTabActive } from './ui.js';
 
 let currentBackgroundEl = null;
 
@@ -14,19 +14,21 @@ const MEDIA_EFFECT_DEFAULTS = {
     brightness: 100
 };
 
+/**
+ * Shows the media effect controls only when a background is active AND the
+ * Background tab of the Customization menu is the currently visible one.
+ * Relies on ui.js as the single source of truth for the active tab
+ * (isCustomizationTabActive) and for the menu open state (`#customization-menu`).
+ */
 export function updateVideoControlsVisibility() {
-    const backgroundMenu = document.getElementById('background-menu');
+    const customizationMenu = document.getElementById('customization-menu');
     const videoControls = document.querySelector('.media-controls');
-    if (!videoControls || !backgroundMenu) return;
+    if (!videoControls || !customizationMenu) return;
 
     const isMediaActive = currentBackgroundEl !== null;
-    const isMenuOpen = backgroundMenu.classList.contains('open');
+    const isMenuOpen = customizationMenu.classList.contains('open') && isCustomizationTabActive('background');
 
-    if (isMediaActive && isMenuOpen) {
-        videoControls.classList.add('visible');
-    } else {
-        videoControls.classList.remove('visible');
-    }
+    videoControls.classList.toggle('visible', isMediaActive && isMenuOpen);
 }
 
 function isImageSource(source, file) {
