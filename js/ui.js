@@ -497,25 +497,62 @@ const INSPECTOR_WIDTH_MAX = 650;
  * @param {boolean} [config.invert=false] - True when dragging left grows the panel.
  * @param {number} config.minContentSpace - Min px to keep free for the main content.
  */
+let resizeNotificationRafId = null;
+
+/**
+ * Coalesces resize event dispatches across animation frames to avoid thrashing
+ * expensive resize listeners (e.g. canvas reallocations) during dragging.
+ */
+function notifyThrottledResize() {
+    if (resizeNotificationRafId !== null) return;
+    const requestFrame = typeof requestAnimationFrame === 'function'
+        ? requestAnimationFrame
+        : (cb) => setTimeout(cb, 16);
+
+    resizeNotificationRafId = requestFrame(() => {
+        resizeNotificationRafId = null;
+        if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+            window.dispatchEvent(new Event('resize'));
+        }
+    });
+}
+
 function setupPanelResizer({ resizer, cssVar, defaultWidth, minWidth, maxWidth, storageKey, invert = false, minContentSpace }) {
     const layout = document.querySelector('.layout');
     if (!resizer || !layout) return;
 
     const root = document.documentElement;
-    const notifyResize = () => window.dispatchEvent(new Event('resize'));
     const readWidth = () => {
         const computed = parseInt(getComputedStyle(root).getPropertyValue(cssVar), 10);
         return Number.isFinite(computed) ? computed : defaultWidth;
     };
     const clamp = (width) => {
-        const contentAwareMax = Math.min(maxWidth, window.innerWidth - minContentSpace);
-        return Math.max(minWidth, Math.min(contentAwareMax, Math.round(width)));
+        const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
+        const contentAwareMax = Math.min(maxWidth, viewportWidth - minContentSpace);
+        const effectiveMax = Math.max(minWidth, contentAwareMax);
+        return Math.max(minWidth, Math.min(effectiveMax, Math.round(width)));
     };
     const applyWidth = (width) => {
+        const current = readWidth();
+        if (current === width) return;
         root.style.setProperty(cssVar, `${width}px`);
-        notifyResize();
+        resizer.setAttribute('aria-valuenow', String(width));
+        notifyThrottledResize();
     };
     const rememberWidth = (width) => safeLocalStorageSetItem(storageKey, width);
+    const getPreferredWidth = () => {
+        const saved = parseInt(safeLocalStorageGetItem(storageKey, null), 10);
+        return (Number.isFinite(saved) && saved >= minWidth) ? saved : defaultWidth;
+    };
+
+    // Initialize WAI-ARIA separator attributes
+    resizer.setAttribute('aria-valuemin', String(minWidth));
+    resizer.setAttribute('aria-valuemax', String(maxWidth));
+
+    // Clamp saved width against current viewport space on load without destroying desktop preference
+    const initialWidth = clamp(getPreferredWidth());
+    root.style.setProperty(cssVar, `${initialWidth}px`);
+    resizer.setAttribute('aria-valuenow', String(initialWidth));
 
     let isDragging = false;
     let startX = 0;
@@ -545,13 +582,24 @@ function setupPanelResizer({ resizer, cssVar, defaultWidth, minWidth, maxWidth, 
         resizer.classList.remove('is-dragging');
         layout.classList.remove('is-resizing');
         rememberWidth(readWidth());
-        notifyResize();
+        notifyThrottledResize();
     };
 
     const resetWidth = () => {
         applyWidth(defaultWidth);
         rememberWidth(defaultWidth);
     };
+
+    // Re-adapt active panel width when the viewport changes, preserving minimum content space
+    const onWindowResize = () => {
+        if (isDragging) return;
+        const current = readWidth();
+        const clamped = clamp(getPreferredWidth());
+        if (current !== clamped) {
+            applyWidth(clamped);
+        }
+    };
+    window.addEventListener('resize', onWindowResize);
 
     // Arrow keys nudge the width; Enter/Space restores the default.
     const growKeys = invert ? ['ArrowLeft', 'ArrowUp'] : ['ArrowRight', 'ArrowUp'];
@@ -588,16 +636,6 @@ function setupPanelResizer({ resizer, cssVar, defaultWidth, minWidth, maxWidth, 
  * Initializes resizable side panels (sidebar on the left, project inspector on the right).
  */
 function initializeResizablePanels() {
-    const restoreWidth = (storageKey, cssVar, minWidth, maxWidth) => {
-        const saved = parseInt(safeLocalStorageGetItem(storageKey, null), 10);
-        if (Number.isFinite(saved) && saved >= minWidth && saved <= maxWidth) {
-            document.documentElement.style.setProperty(cssVar, `${saved}px`);
-        }
-    };
-
-    restoreWidth('ui.sidebarWidth', '--sidebar-width', SIDEBAR_WIDTH_MIN, SIDEBAR_WIDTH_MAX);
-    restoreWidth('ui.inspectorWidth', '--inspector-width', INSPECTOR_WIDTH_MIN, INSPECTOR_WIDTH_MAX);
-
     setupPanelResizer({
         resizer: document.getElementById('sidebar-resizer'),
         cssVar: '--sidebar-width',
@@ -630,10 +668,13 @@ export function bindStaticUIEvents() {
     restoreUIAccentColor();
     initializeResizablePanels();
 
-    // UI Accent Color Picker
+    // UI Accent Color Picker (updates in real-time, persists only on change)
     const accentPicker = document.getElementById('ui-accent-color-picker');
     if (accentPicker) {
         accentPicker.addEventListener('input', (e) => {
+            setUIAccentColor(e.target.value, false);
+        });
+        accentPicker.addEventListener('change', (e) => {
             setUIAccentColor(e.target.value, true);
         });
     }

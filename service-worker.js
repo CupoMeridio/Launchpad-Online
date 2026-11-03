@@ -162,8 +162,8 @@ self.addEventListener('fetch', event => {
 
     // STRATEGY 1: NETWORK-FIRST for configuration files (.json)
     // The latest project configuration is requested if online, while allowing offline work.
-    // If the request fails (e.g., offline) and the resource is not cached, we return a JSON error
-    // that can be interpreted by the app to show a notification to the user.
+    // If the network request fails or returns an HTTP error, we fall back to cache if available.
+    // If not cached, we return a JSON error response that can be interpreted by the app.
     if (url.pathname.endsWith('.json')) {
         event.respondWith(
             fetch(request)
@@ -174,10 +174,13 @@ self.addEventListener('fetch', event => {
                             return networkResponse;
                         });
                     }
-                    return networkResponse;
+                    // Network returned an HTTP error (e.g., 404, 500): fall back to cache if available
+                    return caches.match(request).then(cached => {
+                        return cached || networkResponse;
+                    });
                 })
                 .catch(() => {
-                    // Try to serve from cache first
+                    // Network failure (offline, timeout, DNS error): fall back to cache
                     return caches.match(request).then(cached => {
                         if (cached) {
                             return cached;

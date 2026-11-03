@@ -89,13 +89,27 @@ export class Visualizer {
         const rectTop = this.canvasTop.getBoundingClientRect();
         const rectBottom = this.canvasBottom.getBoundingClientRect();
 
-        this.canvasTop.width = rectTop.width;
-        this.canvasTop.height = rectTop.height;
+        let changed = false;
+        if (this.canvasTop.width !== rectTop.width) {
+            this.canvasTop.width = rectTop.width;
+            changed = true;
+        }
+        if (this.canvasTop.height !== rectTop.height) {
+            this.canvasTop.height = rectTop.height;
+            changed = true;
+        }
+        if (this.canvasBottom.width !== rectBottom.width) {
+            this.canvasBottom.width = rectBottom.width;
+            changed = true;
+        }
+        if (this.canvasBottom.height !== rectBottom.height) {
+            this.canvasBottom.height = rectBottom.height;
+            changed = true;
+        }
 
-        this.canvasBottom.width = rectBottom.width;
-        this.canvasBottom.height = rectBottom.height;
-
-        this.needsGradientUpdate = true;
+        if (changed) {
+            this.needsGradientUpdate = true;
+        }
     }
 
     /**

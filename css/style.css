@@ -680,24 +680,25 @@ main {
 .menu-dropdown .accent-reset-btn {
     flex: 1;
     min-height: 32px;
-    padding: 6px 12px !important;
-    font-size: 12px !important;
-    font-weight: 500 !important;
-    text-align: center !important;
-    background: #2b2b2b !important;
-    color: #cccccc !important;
-    border: 1px solid var(--border-dark) !important;
-    border-radius: var(--radius-sm) !important;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    text-align: center;
+    background: var(--bg-panel);
+    color: var(--text-muted);
+    border: 1px solid var(--border-dark);
+    border-radius: var(--radius-sm);
     cursor: pointer;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
 .menu-dropdown .accent-reset-btn:hover {
-    background: #383838 !important;
-    color: #ffffff !important;
-    border-color: var(--accent-blue) !important;
+    background: var(--border-dark);
+    color: var(--text-primary);
+    border-color: var(--accent-blue);
 }
 
 
@@ -764,9 +765,9 @@ main {
     display: block;
     width: 100%;
     text-align: center;
-    background: #2b2b2b;
-    color: #ccc;
-    border: 1px solid #444;
+    background: var(--bg-panel);
+    color: var(--text-muted);
+    border: 1px solid var(--border-dark);
     border-radius: var(--radius-sm);
     padding: 8px 12px;
     font-size: 12px;
@@ -776,8 +777,8 @@ main {
 }
 
 .menu-dropdown .customization-reset-btn:hover {
-    background: #383838;
-    color: #fff;
+    background: var(--border-dark);
+    color: var(--text-primary);
     border-color: var(--accent-blue);
 }
 

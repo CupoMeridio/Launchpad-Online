@@ -82,11 +82,26 @@ test('main menu integrates personalization tabs, subpanels, and appearance reset
     assert.match(html, /id="reset-project-appearance"/);
 });
 
-test('application defines resizers for sidebar and project inspector', () => {
+test('application defines resizers for sidebar and project inspector with accessibility attributes', () => {
     const html = readFileSync(path.join(workspaceRoot, 'index.html'), 'utf8');
 
-    assert.match(html, /id="sidebar-resizer"/);
-    assert.match(html, /id="inspector-resizer"/);
+    assert.match(html, /id="sidebar-resizer"[^>]*role="separator"/);
+    assert.match(html, /id="sidebar-resizer"[^>]*aria-valuenow="260"/);
+    assert.match(html, /id="sidebar-resizer"[^>]*aria-valuemin="200"/);
+    assert.match(html, /id="sidebar-resizer"[^>]*aria-valuemax="520"/);
+
+    assert.match(html, /id="inspector-resizer"[^>]*role="separator"/);
+    assert.match(html, /id="inspector-resizer"[^>]*aria-valuenow="310"/);
+    assert.match(html, /id="inspector-resizer"[^>]*aria-valuemin="260"/);
+    assert.match(html, /id="inspector-resizer"[^>]*aria-valuemax="650"/);
+});
+
+test('accent reset button does not use !important or hardcoded colors', () => {
+    const css = readFileSync(path.join(workspaceRoot, 'css', 'style.css'), 'utf8');
+    const resetRuleMatch = css.match(/\.menu-dropdown \.accent-reset-btn\s*\{([^}]+)\}/);
+    assert.ok(resetRuleMatch, 'accent-reset-btn rule exists in style.css');
+    assert.strictEqual(resetRuleMatch[1].includes('!important'), false, 'accent-reset-btn should not have !important declarations');
+    assert.strictEqual(resetRuleMatch[1].includes('#2b2b2b'), false, 'accent-reset-btn should use CSS custom properties instead of hardcoded hex');
 });
 
 test('customization menu defines UI accent color picker and reset button', () => {
