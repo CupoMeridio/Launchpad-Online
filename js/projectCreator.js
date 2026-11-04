@@ -1,5 +1,5 @@
 import { getTranslation, showNotification, syncInputSlider, getLaunchpadRotation, getLaunchpadSize } from './ui.js';
-import { buildAnimationCatalog, createProjectPage, createDraft, isDraftDirty, assignPadSample, removePadSample } from './projectCreatorModel.js';
+import { buildAnimationCatalog, createProjectPage, createDraft, isDraftDirty, assignPadSample, removePadSample, filterCatalogByDevice, resolveLightColors } from './projectCreatorModel.js';
 import { exportProjectToZip, importProjectFromZip } from './projectZip.js';
 import { normalizeAppearance } from './appearanceModel.js';
 import {
@@ -24,19 +24,19 @@ import {
     MAX_LIGHT_DURATION_SEC, 
     DEFAULT_LIGHT_DURATION_SEC,
     ANIMATION_COLORS,
+    ANIMATION_COLOR_TIERS,
+    DEFAULT_ANIMATION_SWATCH_COLOR,
+    DEFAULT_TARGET_DEVICE,
     LAUNCHPAD_ROTATION_MIN,
     LAUNCHPAD_ROTATION_MAX,
     LAUNCHPAD_SIZE_MIN,
     LAUNCHPAD_SIZE_MAX
 } from './constants.js';
 
-const LIGHT_COLOR_SWATCHES = {
-    red: webColorMap.red.full,
-    orange: webColorMap.orange.full,
-    amber: webColorMap.amber.full,
-    yellow: webColorMap.yellow.full,
-    green: webColorMap.green.full
-};
+// Swatch previews derive from the shared palette so the two can never drift apart.
+const LIGHT_COLOR_SWATCHES = Object.fromEntries(
+    ANIMATION_COLORS.map(color => [color, webColorMap[color].baseColor])
+);
 
 const LIGHT_CATEGORY_KEYS = ['all', 'basic', 'geometric', 'directional', 'multicolor', 'characters', 'special', 'text'];
 const DYNAMIC_TEXT_PRESETS = [
@@ -64,6 +64,7 @@ let activeMomentaryPreview = null;
 
 let lastRenderedCategory = null;
 let lastRenderedSearch = null;
+let lastRenderedTargetDevice = null;
 
 const creatorPadSource = {
     getPadConfig: (index) => {
@@ -96,7 +97,7 @@ function getAnimationGroups() {
             labelKey: preset.labelKey,
             category: 'text',
             dynamicTemplate: preset.template,
-            variants: ANIMATION_COLORS.map(color => ({ animation: null, color, supportsDuration: true }))
+            variants: ANIMATION_COLORS.map(color => ({ animation: null, color, tier: ANIMATION_COLOR_TIERS[color], supportsDuration: true }))
         }));
         allAnimationGroups = [...animationGroups, ...dynamicTextGroups];
     }
@@ -232,6 +233,8 @@ function renderSelectedPad() {
     const padInspector = document.getElementById('creator-pad-inspector');
     const sampleCount = page.samples.filter(Boolean).length;
     document.getElementById('project-creator-name').value = draft.name;
+    const targetDeviceEl = document.getElementById('creator-target-device');
+    if (targetDeviceEl) targetDeviceEl.value = draft.targetDevice || DEFAULT_TARGET_DEVICE;
     document.getElementById('creator-page-count').textContent = `${activePageIndex + 1} / ${draft.pages.length}`;
     document.getElementById('creator-sample-count').textContent = translate('creator.sampleCount', {
         count: sampleCount
@@ -275,13 +278,10 @@ function renderSelectedPad() {
     if (animation) {
         assignedCard.hidden = false;
         assignedName.textContent = getAnimationDisplayName(animation);
-        if (animation.includes('red_to_green')) {
-            assignedSwatch.style.background = `linear-gradient(135deg, ${LIGHT_COLOR_SWATCHES.red}, ${LIGHT_COLOR_SWATCHES.green})`;
-        } else if (animation.includes('green_to_red')) {
-            assignedSwatch.style.background = `linear-gradient(135deg, ${LIGHT_COLOR_SWATCHES.green}, ${LIGHT_COLOR_SWATCHES.red})`;
-        } else {
-            assignedSwatch.style.background = getAnimationColor(animation);
-        }
+        const swatchColors = getAnimationSwatchColors(animation);
+        assignedSwatch.style.background = swatchColors.length > 1
+            ? getAnimationSwatchGradient(swatchColors)
+            : getAnimationColor(animation);
         removeLightBtn.disabled = false;
 
         if (isMomentary) {
@@ -740,7 +740,9 @@ function renderLightPresets() {
 
     // Optimization: if category and search have not changed and items are already rendered,
     // only update the .selected state on swatches instead of recreating ~1,700 DOM nodes!
-    if (activeLightCategory === lastRenderedCategory && search === lastRenderedSearch && presetContainer.children.length > 0) {
+    const targetDevice = draft?.targetDevice || DEFAULT_TARGET_DEVICE;
+
+    if (activeLightCategory === lastRenderedCategory && search === lastRenderedSearch && targetDevice === lastRenderedTargetDevice && presetContainer.children.length > 0) {
         presetContainer.querySelectorAll('.creator-animation-swatch').forEach(button => {
             const isDynamic = button.dataset.isDynamic === 'true';
             const template = button.dataset.template;
@@ -754,14 +756,16 @@ function renderLightPresets() {
 
     lastRenderedCategory = activeLightCategory;
     lastRenderedSearch = search;
+    lastRenderedTargetDevice = targetDevice;
 
-    const groups = getAnimationGroups().filter(group => {
-        const groupLabel = group.labelKey ? getTranslation(group.labelKey) : group.label;
-        const matchesCategory = activeLightCategory === 'all' || group.category === activeLightCategory;
-        const matchesSearch = !search || `${groupLabel} ${group.id} ${group.variants.map(variant => `${variant.color || ''} ${variant.sequence || ''}`).join(' ')}`
-            .toLowerCase().includes(search);
-        return matchesCategory && matchesSearch;
-    });
+    const groups = filterCatalogByDevice(getAnimationGroups(), targetDevice)
+        .filter(group => {
+            const groupLabel = group.labelKey ? getTranslation(group.labelKey) : group.label;
+            const matchesCategory = activeLightCategory === 'all' || group.category === activeLightCategory;
+            const matchesSearch = !search || `${groupLabel} ${group.id} ${group.variants.map(variant => `${variant.color || ''} ${variant.sequence || ''}`).join(' ')}`
+                .toLowerCase().includes(search);
+            return matchesCategory && matchesSearch;
+        });
 
     const fragment = document.createDocumentFragment();
 
@@ -789,6 +793,9 @@ function renderLightPresets() {
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'creator-animation-swatch';
+            if (variant.tier === 'rgb') {
+                button.classList.add('is-rgb');
+            }
             button.classList.toggle('selected', isSelected);
             button.dataset.isDynamic = String(isDynamic);
             if (isDynamic) {
@@ -802,18 +809,19 @@ function renderLightPresets() {
                 : variant.sequence
                     ? getTranslation(`creator.light.sequence.${variant.sequence}`)
                     : groupLabel;
-            button.setAttribute('aria-label', `${groupLabel} ${colorLabel}`);
-            button.title = `${groupLabel} · ${colorLabel}`;
+            const tierBadge = variant.tier === 'rgb' ? ` (${getTranslation('creator.targetDevice.badgeRgb')})` : '';
+            button.setAttribute('aria-label', `${groupLabel} ${colorLabel}${tierBadge}`);
+            button.title = `${groupLabel} · ${colorLabel}${tierBadge}`;
 
             const swatch = document.createElement('span');
             swatch.className = 'creator-light-swatch';
-            if (variant.sequence) {
-                const sequenceColors = variant.sequence === 'red_to_green' ? ['red', 'green'] : ['green', 'red'];
-                swatch.style.background = `linear-gradient(135deg, ${LIGHT_COLOR_SWATCHES[sequenceColors[0]]}, ${LIGHT_COLOR_SWATCHES[sequenceColors[1]]})`;
-                swatch.style.setProperty('--preset-color', LIGHT_COLOR_SWATCHES[sequenceColors[0]]);
-            } else {
-                swatch.style.setProperty('--preset-color', variant.color ? LIGHT_COLOR_SWATCHES[variant.color] : '#59bfe8');
+            const swatchColors = variant.swatchColors ?? resolveLightColors(variant);
+            if (swatchColors.length > 1) {
+                swatch.style.background = getAnimationSwatchGradient(swatchColors);
             }
+            swatch.style.setProperty('--preset-color', swatchColors.length
+                ? LIGHT_COLOR_SWATCHES[swatchColors[0]]
+                : DEFAULT_ANIMATION_SWATCH_COLOR);
             button.appendChild(swatch);
             button.addEventListener('click', () => {
                 if (isDynamic) {
@@ -1136,6 +1144,15 @@ export function initializeProjectCreator() {
         }
     });
 
+    document.getElementById('creator-target-device')?.addEventListener('change', event => {
+        if (draft) {
+            draft.targetDevice = event.target.value;
+            markDraftModified();
+            lastRenderedCategory = null;
+            renderLightPresets();
+        }
+    });
+
     document.getElementById('project-creator-name').addEventListener('input', event => {
         if (draft) {
             draft.name = event.target.value;
@@ -1423,9 +1440,23 @@ export function initializeProjectCreator() {
     });
 }
 
+// Ordered LED colors for a light: declared metadata when available, otherwise
+// derived from the animation-name suffix (covers dynamic text/scroll lights).
+function getAnimationSwatchColors(animationName) {
+    const colors = resolveLightColors(animations[animationName] ?? {});
+    if (colors.length) return colors;
+    const suffix = ANIMATION_COLORS.find(name => animationName.endsWith(`_${name}`));
+    return suffix ? [suffix] : [];
+}
+
+function getAnimationSwatchGradient(colors) {
+    return `linear-gradient(135deg, ${colors.map(name => LIGHT_COLOR_SWATCHES[name]).join(', ')})`;
+}
+
 function getAnimationColor(animationName) {
-    const color = ANIMATION_COLORS.find(name => animationName.endsWith(`_${name}`));
-    return color ? LIGHT_COLOR_SWATCHES[color] : '#59bfe8';
+    const colors = getAnimationSwatchColors(animationName);
+    if (!colors.length) return DEFAULT_ANIMATION_SWATCH_COLOR;
+    return LIGHT_COLOR_SWATCHES[colors[Math.floor(colors.length / 2)]];
 }
 
 function previewAnimation(animationName, index) {

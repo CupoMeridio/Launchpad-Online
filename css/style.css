@@ -755,10 +755,10 @@ main {
     display: block;
 }
 
-.customization-footer {
-    padding: 8px 12px 10px 12px;
-    border-top: 1px solid #333;
-    margin-top: 6px;
+.customization-header {
+    padding: 10px 12px 8px 12px;
+    border-bottom: 1px solid #333;
+    margin-bottom: 6px;
 }
 
 .menu-dropdown .customization-reset-btn {
@@ -1301,6 +1301,7 @@ main {
 }
 
 .creator-animation-swatch {
+    position: relative;
     display: grid;
     place-items: center;
     width: 32px;
@@ -1315,6 +1316,22 @@ main {
 .creator-animation-swatch.selected {
     border-color: var(--accent-blue);
     box-shadow: inset 0 0 0 1px var(--accent-blue);
+}
+
+.creator-animation-swatch.is-rgb::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent-blue);
+    pointer-events: none;
+}
+
+.creator-animation-swatch.selected.is-rgb::after {
+    background: #ffffff;
 }
 
 .creator-light-swatch {
@@ -1360,12 +1377,12 @@ main {
 }
 
 .layout[data-studio="edit"] #Launchpad .grid-item {
-    background-color: var(--bg-input);
+    --pad-base: var(--bg-input);
     box-shadow: inset 0 0 0 1px var(--border-dark);
 }
 
 .layout[data-studio="edit"] #Launchpad .grid-item.creator-pad-assigned {
-    background-color: #1c3547;
+    --pad-base: #1c3547;
 }
 
 .layout[data-studio="edit"] #Launchpad .grid-item.creator-pad-assigned::after {

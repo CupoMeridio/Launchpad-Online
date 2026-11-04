@@ -2,12 +2,46 @@ import {
     LAUNCHPAD_PADS, 
     MAX_PROJECT_PAGES, 
     DEFAULT_LIGHT_DURATION_SEC, 
-    ANIMATION_COLORS
+    ANIMATION_COLORS,
+    ANIMATION_COLOR_TIERS,
+    TARGET_DEVICES,
+    DEFAULT_TARGET_DEVICE
 } from './constants.js';
 import { validateProject } from './projectValidator.js';
 import { normalizeVisualizer, normalizeLayout, getBackgroundMedia } from './appearanceModel.js';
 
-export function buildAnimationCatalog(animationRegistry) {
+/**
+ * Drops the color variants a target device cannot display.
+ * Legacy Launchpads only support the five base colors, so RGB-only variants
+ * (and any group left with no variants) are removed for a 'legacy' target.
+ * @param {Array<object>} groups - Catalog groups whose `variants[].tier` marks the required hardware.
+ * @param {string} [targetDevice] - 'universal' | 'legacy' | 'rgb'.
+ * @returns {Array<object>} Groups compatible with the target device.
+ */
+export function filterCatalogByDevice(groups, targetDevice = DEFAULT_TARGET_DEVICE) {
+    if (targetDevice !== 'legacy') return groups;
+    return groups
+        .map(group => group.variants.some(variant => variant.tier === 'rgb')
+            ? { ...group, variants: group.variants.filter(variant => variant.tier !== 'rgb') }
+            : group)
+        .filter(group => group.variants.length > 0);
+}
+
+/**
+ * Ordered LED colors an animation blends, used to paint its light swatch.
+ * Prefers the explicit `swatchColors` list declared on the animation (needed by
+ * color-blending names such as `eq_real` that carry no single-color suffix),
+ * then falls back to the color / sequence metadata derived from the key.
+ * @param {object} [anim] - Animation metadata ({ color, sequence, swatchColors }).
+ * @returns {string[]} Ordered palette color names (empty when unresolved).
+ */
+export function resolveLightColors(anim = {}) {
+    if (anim.swatchColors?.length) return anim.swatchColors;
+    if (anim.sequence) return anim.sequence === 'red_to_green' ? ['red', 'green'] : ['green', 'red'];
+    return anim.color ? [anim.color] : [];
+}
+
+export function buildAnimationCatalog(animationRegistry, targetDevice = DEFAULT_TARGET_DEVICE) {
     const groups = new Map();
 
     Object.entries(animationRegistry).forEach(([animationName, anim]) => {
@@ -15,7 +49,9 @@ export function buildAnimationCatalog(animationRegistry) {
         const category = anim.category || 'special';
         const color = anim.color ?? null;
         const sequence = anim.sequence ?? null;
+        const tier = anim.tier ?? ANIMATION_COLOR_TIERS[color] ?? 'legacy';
         const supportsDuration = anim.supportsDuration ?? (anim.type === 'fixed');
+        const swatchColors = resolveLightColors({ color, sequence, swatchColors: anim.swatchColors });
 
         if (!groups.has(baseName)) {
             groups.set(baseName, { id: baseName, category, variants: [] });
@@ -24,11 +60,13 @@ export function buildAnimationCatalog(animationRegistry) {
             animation: animationName,
             color,
             sequence,
-            supportsDuration
+            tier,
+            supportsDuration,
+            swatchColors
         });
     });
 
-    return [...groups.values()]
+    return filterCatalogByDevice([...groups.values()], targetDevice)
         .map(group => ({
             ...group,
             label: group.id.split('_').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' '),
@@ -161,6 +199,9 @@ export function createDraft(name = '', pages = null, theme = {}) {
 
     return {
         name: typeof name === 'string' ? name.trim() : '',
+        targetDevice: (typeof theme?.targetDevice === 'string' && TARGET_DEVICES.includes(theme.targetDevice))
+            ? theme.targetDevice
+            : DEFAULT_TARGET_DEVICE,
         changeCount: 0,
         savedChangeCount: 0,
         pages: Array.isArray(pages) && pages.length > 0 ? pages : [createProjectPage(1)],
@@ -295,6 +336,7 @@ export function buildDraftFromProject(projectData, fileMap = new Map()) {
     const backgroundFile = typeof bgSource === 'string' ? getFile(bgSource) : null;
 
     const theme = {
+        targetDevice: projectData.targetDevice || DEFAULT_TARGET_DEVICE,
         coverImage: coverFile ? projectData.coverImage : '',
         iconImage: iconFile ? projectData.iconImage : '',
         backgroundMedia: backgroundFile ? bgSource : '',
@@ -350,7 +392,10 @@ export function buildProjectExport(draft) {
     });
 
     const id = createProjectId(name);
-    const project = { id, name, pages };
+    const targetDevice = (typeof draft?.targetDevice === 'string' && TARGET_DEVICES.includes(draft.targetDevice))
+        ? draft.targetDevice
+        : DEFAULT_TARGET_DEVICE;
+    const project = { id, name, targetDevice, pages };
 
     const getFileExt = (fileName, defaultExt) => {
         const match = (fileName || '').match(/\.([a-zA-Z0-9]+)$/);

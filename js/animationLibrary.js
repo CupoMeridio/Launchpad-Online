@@ -11,7 +11,7 @@ import * as directional from './animations/directional.js';
 import * as special from './animations/special.js';
 import * as multi from './animations/multi.js';
 import * as characters from './animations/characters.js';
-import { ANIMATION_COLORS } from './constants.js';
+import { ANIMATION_COLORS, ANIMATION_COLOR_TIERS } from './constants.js';
 
 /**
  * Registry of available animations.
@@ -61,6 +61,7 @@ export function createAnimationLibrary() {
                 color,
                 sequence,
                 baseName,
+                tier: ANIMATION_COLOR_TIERS[color] ?? 'legacy',
                 supportsDuration: rawAnim.type === 'fixed'
             };
         }

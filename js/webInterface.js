@@ -7,35 +7,33 @@
 import { LAUNCHPAD_COLS } from './constants.js';
 
 /**
- * Map Launchpad hardware colors to CSS colors for the web UI.
+ * Map Launchpad hardware colors to pure saturated hues for the web UI.
+ * Intensity/dimming is applied by the emissive --led-level layer in CSS,
+ * so every color exposes a single `baseColor` hue.
  */
 export const webColorMap = {
-    // HSL: Hue (colore), Saturation (intensità), Lightness (chiarezza)
-    'red': {
-        full: 'hsl(0, 100%, 50%)',
-        medium: 'hsla(0, 98%, 60%, 1.00)',
-        low: 'hsla(0, 100%, 73%, 1.00)'
-    },
-    'green': {
-        full: 'hsl(120, 100%, 50%)',
-        medium: 'hsla(120, 100%, 68%, 1.00)',
-        low: 'hsla(120, 100%, 78%, 1.00)'
-    },
-    'amber': {
-        full: 'hsl(45, 100%, 50%)',
-        medium: 'hsla(45, 92%, 67%, 1.00)',
-        low: 'hsla(44, 100%, 77%, 1.00)'
-    },
-    'yellow': {
-        full: 'hsl(60, 100%, 50%)',
-        medium: 'hsla(60, 100%, 70%, 1.00)',
-        low: 'hsla(60, 100%, 78%, 1.00)'
-    },
-    'orange': {
-        full: 'hsl(30, 100%, 50%)',
-        medium: 'hsla(30, 100%, 67%, 1.00)',
-        low: 'hsla(30, 100%, 77%, 1.00)'
-    }
+    'red': { baseColor: 'hsl(0, 100%, 50%)' },
+    'green': { baseColor: 'hsl(120, 100%, 50%)' },
+    'amber': { baseColor: 'hsl(45, 100%, 50%)' },
+    'yellow': { baseColor: 'hsl(60, 100%, 50%)' },
+    'orange': { baseColor: 'hsl(30, 100%, 50%)' },
+    // Modern RGB palette extensions
+    'blue': { baseColor: 'hsl(210, 100%, 50%)' },
+    'cyan': { baseColor: 'hsl(180, 100%, 50%)' },
+    'purple': { baseColor: 'hsl(280, 100%, 50%)' },
+    'pink': { baseColor: 'hsl(330, 100%, 50%)' },
+    'white': { baseColor: 'hsl(0, 0%, 100%)' }
+};
+
+/**
+ * Emissive levels applied through the --led-level CSS custom property.
+ * Shared by the fade engine so numeric levels never drift from these names.
+ */
+export const LED_LEVELS = {
+    full: 1.0,
+    medium: 0.65,
+    low: 0.35,
+    off: 0
 };
 
 let cachedPads = null;
@@ -73,21 +71,32 @@ export function getPadElement(index) {
  * Sets color on the digital (web) launchpad.
  * @param {string} color - CSS color or 'off'.
  * @param {number[]} p - [x, y] coordinates.
+ * @param {number|string} [level] - Emission level, either a 0..1 number or an LED_LEVELS name.
  */
-export function setWebColor(color, p) {
+export function setWebColor(color, p, level = 1.0) {
     const index = p[1] * LAUNCHPAD_COLS + p[0];
     const pad = getPadElement(index);
-    if (pad) {
-        if (color === 'off') {
-            pad.style.backgroundColor = '';
-            pad.style.boxShadow = '';
-            pad.classList.remove('active');
-        } else {
-            pad.style.backgroundColor = color;
-            pad.style.boxShadow = `0 0 10px ${color}`;
-            pad.classList.add('active');
-        }
+    if (!pad) return;
+
+    const numericLevel = typeof level === 'number'
+        ? Math.max(0, Math.min(1, level))
+        : (LED_LEVELS[level] ?? 1.0);
+
+    // 'off' and a zero level both clear the emissive layer.
+    if (color === 'off' || numericLevel <= 0) {
+        pad.style.removeProperty('--led-color');
+        pad.style.removeProperty('--led-level');
+        pad.style.removeProperty('background-color');
+        pad.style.removeProperty('box-shadow');
+        pad.classList.remove('active');
+        return;
     }
+
+    pad.style.setProperty('--led-color', color);
+    pad.style.setProperty('--led-level', String(numericLevel));
+    if (pad.style.backgroundColor) pad.style.removeProperty('background-color');
+    if (pad.style.boxShadow) pad.style.removeProperty('box-shadow');
+    pad.classList.add('active');
 }
 
 /**

@@ -220,3 +220,24 @@ test('validates launchpad layout configuration options (rotation and size)', () 
     errors = validateProject(project).errors.join('\n');
     assert.match(errors, /"launchpadSize" must be a number between 50 and 140/);
 });
+test('validates optional targetDevice configuration option', () => {
+    const project = createValidProject();
+    assert.equal(validateProject(project).isValid, true);
+
+    project.targetDevice = 'universal';
+    assert.equal(validateProject(project).isValid, true);
+
+    project.targetDevice = 'legacy';
+    assert.equal(validateProject(project).isValid, true);
+
+    project.targetDevice = 'rgb';
+    assert.equal(validateProject(project).isValid, true);
+
+    project.targetDevice = 'invalid-device';
+    let errors = validateProject(project).errors.join('\n');
+    assert.match(errors, /"targetDevice" must be one of: universal, legacy, rgb/);
+
+    project.targetDevice = 123;
+    errors = validateProject(project).errors.join('\n');
+    assert.match(errors, /"targetDevice" must be one of: universal, legacy, rgb/);
+});

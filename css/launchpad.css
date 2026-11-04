@@ -45,78 +45,59 @@
 }
 
 /*
-  GRID PADS (8x8 Buttons)
-  - Base style for square pads that play sounds.
-  - CUSTOMIZATION:
-    - `background-color`: Pad color at rest.
-    - `border-radius`: Corner rounding of pads.
-    - `box-shadow`: Inner shadow to give an "inset" effect.
+  PADS AND MENU BUTTONS (shared geometry + emissive LED layer)
+  - Shared by the 8x8 grid pads and the round menu buttons.
+  - The lit color is composed from three custom properties in a single color-mix,
+    so the LED can be dimmed without recomputing the base color:
+      --pad-base : pad color when the LED is off (CUSTOMIZATION: unlit color)
+      --led-color: current LED hue
+      --led-level: emission level, 0 (off) to 1 (full)
+  - `aspect-ratio: 1 / 1` keeps them square; corner rounding differs below.
 */
-.grid-item {
-  width: 100%;
-  height: 100%;
-  min-width: 0;
-  min-height: 0;
-  aspect-ratio: 1 / 1;
-  /* Keeps pads square to avoid distortion. */
-  background-color: #d3d3d3;
-  /* Light gray by default. */
-  border-radius: 12%;
-  cursor: pointer;
-  transition: background-color 0.1s ease;
-  /* Quick transition for color change. */
-  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
-  border: none;
-  /* Removes default button border. */
-  position: relative;
-  /* Necessary to position the 'sticker' pseudo-element. */
-}
-
-/* Pad style on mouse hover. */
-.grid-item:hover {
-  background-color: #bfbfbf;
-  /* A slightly darker gray. */
-}
-
-/*
-  Pad style when active (i.e., while playing).
-  - The `.active` class is added and removed via JavaScript.
-  - CUSTOMIZATION: This is the most important style for visual feedback.
-    - `background-color`: Pad color when pressed. #00aaff is a bright blue.
-    - `box-shadow`: Adds a glow of the same color for a neon effect.
-*/
-.grid-item.active {
-  background-color: #00aaff;
-  box-shadow: 0 0 10px #00aaff;
-}
-
-/*
-  MENU BUTTONS (side and top)
-  - Style for round buttons.
-  - CUSTOMIZATION:
-    - `background-color`: Button color at rest.
-    - `:hover` and `.selected`: Style on mouse hover or when a sound page is selected.
-      Change `background-color` and `box-shadow` to customize the effect.
-*/
+.grid-item,
 .grid-item-menu {
   width: 100%;
   height: 100%;
   min-width: 0;
   min-height: 0;
   aspect-ratio: 1 / 1;
-  /* Keeps pads square for perfect circles. */
-  background-color: #d3d3d3;
-  border-radius: 50%;
-  /* Makes them perfectly round. */
+  --pad-base: #d3d3d3;
+  --led-color: transparent;
+  --led-level: 0;
+  background-color: color-mix(in srgb, var(--led-color) calc(var(--led-level) * 100%), var(--pad-base));
   cursor: pointer;
-  transition: background-color 0.1s ease;
+  transition: background-color 0.03s linear, box-shadow 0.03s linear;
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5),
+              0 0 calc(var(--led-level) * 12px) color-mix(in srgb, var(--led-color) calc(var(--led-level) * 100%), transparent);
   border: none;
   position: relative;
-  /* Necessary to position the 'sticker' pseudo-element. */
 }
 
+/*
+  CORNER SHAPE
+  - Grid pads are slightly rounded squares; menu buttons are perfect circles.
+*/
+.grid-item {
+  border-radius: 12%;
+}
+
+.grid-item-menu {
+  border-radius: 50%;
+}
+
+/* Unlit state on mouse hover, shared by pads and menu buttons. */
+.grid-item:hover,
 .grid-item-menu:hover {
-  background-color: #bfbfbf;
+  --pad-base: #bfbfbf;
+}
+
+/*
+  Pad style when active (i.e., while playing).
+  - Emissive layer lights up with the user's UI accent color at full emission.
+*/
+.grid-item.active {
+  --led-color: var(--accent-blue);
+  --led-level: 1;
 }
 
 /*
@@ -270,7 +251,7 @@
 .Launchpad.launchpad-model-mk3 .grid-item,
 .Launchpad.launchpad-model-pro-mk3 .grid-item {
   border-radius: 9%;
-  background-color: #e2e4e8;
+  --pad-base: #e2e4e8;
 }
 
 .Launchpad.launchpad-model-mk3 .grid-item-menu,
@@ -407,7 +388,7 @@
 
 .Launchpad.launchpad-model-pro .grid-item {
   border-radius: 10%;
-  background-color: #dce0e6;
+  --pad-base: #dce0e6;
 }
 
 .Launchpad.launchpad-model-pro .grid-item-menu {

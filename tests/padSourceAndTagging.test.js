@@ -53,6 +53,7 @@ test('all registered animations are pre-tagged with correct metadata', () => {
         assert.ok(typeof anim.baseName === 'string' && anim.baseName.length > 0, `Animation ${key} must have a baseName`);
         assert.equal(typeof anim.supportsDuration, 'boolean', `Animation ${key} must have boolean supportsDuration`);
         assert.equal(anim.supportsDuration, anim.type === 'fixed', `supportsDuration must match type === 'fixed' for ${key}`);
+        assert.ok(anim.tier === 'legacy' || anim.tier === 'rgb', `Animation ${key} must have tier legacy or rgb`);
     }
 
     // Specific category checks
@@ -63,6 +64,12 @@ test('all registered animations are pre-tagged with correct metadata', () => {
     assert.equal(animations['wave_red'].category, 'geometric');
     assert.equal(animations['arrow_up_red'].category, 'directional');
     assert.equal(animations['wave_multi_red_to_green'].category, 'multicolor');
+    assert.equal(animations['fade_red'].tier, 'legacy');
+    assert.equal(animations['fade_blue'].tier, 'rgb');
+    assert.equal(animations['fade_cyan'].tier, 'rgb');
+    assert.equal(animations['fade_purple'].tier, 'rgb');
+    assert.equal(animations['fade_pink'].tier, 'rgb');
+    assert.equal(animations['fade_white'].tier, 'rgb');
 });
 
 test('pad source provider correctly routes pad presses and releases', () => {

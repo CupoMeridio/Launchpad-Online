@@ -24,6 +24,7 @@ test('creates a project with schema-compatible pages and stable sample paths', (
     assert.equal(result.folderName, 'citta-test');
     assert.equal(result.configFileName, 'citta-test.json');
     assert.equal(result.project.id, 'citta-test');
+    assert.equal(result.project.targetDevice, 'universal');
     assert.equal(Object.hasOwn(result.project, 'bpm'), false);
     assert.equal(result.project.pages.length, 2);
     assert.equal(result.project.pages[0].sounds.length, 64);
@@ -70,6 +71,7 @@ test('createDraft initializes draft and isDraftDirty detects modified or untouch
 
     const freshDraft = createDraft();
     assert.equal(freshDraft.name, '');
+    assert.equal(freshDraft.targetDevice, 'universal');
     assert.equal(freshDraft.pages.length, 1);
     assert.equal(freshDraft.changeCount, 0);
     assert.equal(freshDraft.savedChangeCount, 0);
@@ -117,6 +119,9 @@ test('buildDraftFromProject reconstructs editor draft from project schema and fi
 
     const draft = buildDraftFromProject(project, fileMap);
     assert.equal(draft.name, 'Test Project');
+    assert.equal(draft.targetDevice, 'universal');
+    const rgbDraft = buildDraftFromProject({ ...project, targetDevice: 'rgb' }, fileMap);
+    assert.equal(rgbDraft.targetDevice, 'rgb');
     assert.equal(draft.pages.length, 2);
     assert.equal(draft.pages[0].samples[0]?.name, 'pad-01.wav');
     // Page 2 must NOT fall back to page 1's pad-01.wav!
@@ -136,6 +141,7 @@ test('projectZip roundtrips draft export to zip and import from zip', async () =
 
     const originalDraft = {
         name: 'Roundtrip Zip Project',
+        targetDevice: 'rgb',
         pages: [page]
     };
 
@@ -145,6 +151,7 @@ test('projectZip roundtrips draft export to zip and import from zip', async () =
 
     const importResult = await importProjectFromZip(exportResult.blob, JSZip);
     assert.equal(importResult.draft.name, 'Roundtrip Zip Project');
+    assert.equal(importResult.draft.targetDevice, 'rgb');
     assert.equal(importResult.draft.pages.length, 1);
     assert.ok(importResult.draft.pages[0].samples[0]);
     assert.equal(importResult.draft.pages[0].lights[0], 'fade_red');

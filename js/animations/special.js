@@ -7,7 +7,8 @@ export function register(animations, colors) {
         on: (x, y, duration) => {
             activeAnimations.add(new RealEQAnimation(duration));
         },
-        type: 'fixed'
+        type: 'fixed',
+        swatchColors: ['green', 'amber', 'red']
     };
 
     colors.forEach(colorName => {
@@ -521,7 +522,8 @@ export function register(animations, colors) {
                 return events;
             }));
         },
-        type: 'fixed'
+        type: 'fixed',
+        swatchColors: ['red', 'amber', 'green']
     };
 
     const getHeartPoints = () => [
@@ -544,7 +546,8 @@ export function register(animations, colors) {
                 return events;
             }));
         },
-        type: 'fixed'
+        type: 'fixed',
+        swatchColors: ['red']
     };
 
     // HEART_SIMPLE
@@ -560,7 +563,8 @@ export function register(animations, colors) {
                 return events;
             }));
         },
-        type: 'fixed'
+        type: 'fixed',
+        swatchColors: ['red']
     };
 
     // HEART_WAVE
@@ -580,6 +584,7 @@ export function register(animations, colors) {
                 return events;
             }));
         },
-        type: 'fixed'
+        type: 'fixed',
+        swatchColors: ['red']
     };
 }

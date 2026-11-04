@@ -110,4 +110,11 @@ test('customization menu defines UI accent color picker and reset button', () =>
     assert.match(html, /id="ui-accent-color-picker"/);
     assert.match(html, /id="ui-accent-reset-btn"/);
 });
-
+
+test('launchpad pads use color-mix emissive LED layer and synchronized glow', () => {
+    const css = readFileSync(path.join(workspaceRoot, 'css', 'launchpad.css'), 'utf8');
+
+    assert.ok(css.includes('--led-color'), 'launchpad.css defines --led-color custom property');
+    assert.ok(css.includes('--led-level'), 'launchpad.css defines --led-level custom property');
+    assert.ok(css.includes('color-mix(in srgb, var(--led-color'), 'launchpad.css mixes LED layer with pad base');
+});

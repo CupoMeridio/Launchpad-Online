@@ -4,7 +4,7 @@
  * Contains various animation logic classes.
  */
 
-import { fader, getLpColor, webColorMap } from './animationEngine.js';
+import { fader } from './animationEngine.js';
 import { alphabetCoords, numberCoords, symbolCoords } from './animationData.js';
 
 export class BaseMatrixRainAnimation {
@@ -102,7 +102,6 @@ export class BaseStrobeBurstAnimation {
 
         this.currentFlashIdx = 0;
         this.state = 'waiting'; // waiting, on, off
-        this.lpOff = getLpColor('off');
     }
 
     _triggerFlashForIndex(flashIndex) {
@@ -146,17 +145,9 @@ export class StrobeBurstAnimation extends BaseStrobeBurstAnimation {
     constructor(colorName, duration) {
         super(duration);
         this.colorName = colorName;
-        this.flashes = [0, 1, 2, 3]; // 4 flashes
-        this.flashEndTime = 0;
-        this.baseColor = getLpColor(colorName);
-        this.webColors = webColorMap[colorName];
     }
 
     _triggerFlashForIndex() {
-        this._fillGrid(this.colorName);
-    }
-
-    _triggerFlash() {
         this._fillGrid(this.colorName);
     }
 }
@@ -170,10 +161,6 @@ export class StrobeBurstMultiAnimation extends BaseStrobeBurstAnimation {
     _triggerFlashForIndex(flashIndex) {
         const colorConfig = this.config.sequence[Math.min(flashIndex, this.config.sequence.length - 1)];
         this._fillGrid(colorConfig.color);
-    }
-
-    _triggerFlash(colorName) {
-        this._fillGrid(colorName);
     }
 }
 

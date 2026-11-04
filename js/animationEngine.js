@@ -4,7 +4,7 @@
  * Contains the core logic for scheduling and fading lights.
  */
 
-import { setWebColor, webColorMap } from './webInterface.js';
+import { setWebColor, webColorMap, LED_LEVELS } from './webInterface.js';
 import { setPhysicalColor, getLpColor, flushPhysicalColors } from './physicalInterface.js';
 
 export { setWebColor, webColorMap, setPhysicalColor, getLpColor, flushPhysicalColors };
@@ -106,15 +106,15 @@ class FadeSystem {
 
                 if (elapsed < s1Time) {
                     const step = sequence[0];
-                    setWebColor(webColorMap[step.color][step.level], p);
+                    setWebColor(webColorMap[step.color].baseColor, p, step.level);
                     setPhysicalColor(getLpColor(step.color, step.level), p);
                 } else if (elapsed < s2Time) {
                     const step = sequence[1];
-                    setWebColor(webColorMap[step.color][step.level], p);
+                    setWebColor(webColorMap[step.color].baseColor, p, step.level);
                     setPhysicalColor(getLpColor(step.color, step.level), p);
                 } else if (elapsed < state.dur) {
                     const step = sequence[2];
-                    setWebColor(webColorMap[step.color][step.level], p);
+                    setWebColor(webColorMap[step.color].baseColor, p, step.level);
                     setPhysicalColor(getLpColor(step.color, step.level), p);
                 } else {
                     setWebColor('off', p);
@@ -140,7 +140,7 @@ class FadeSystem {
             if (state.mode === 'instant') {
                 // Instant Mode: Full -> Off (No fading, strictly for duration)
                 if (elapsed < state.dur) {
-                    setWebColor(webColors.full, p);
+                    setWebColor(webColors.baseColor, p, LED_LEVELS.full);
                     setPhysicalColor(state.base?.full, p);
                 } else {
                     setWebColor('off', p);
@@ -152,13 +152,13 @@ class FadeSystem {
                 const step1 = state.dur * (1 / 3);
                 const step2 = state.dur * (2 / 3);
                 if (elapsed < step1) {
-                    setWebColor(webColors.full, p);
+                    setWebColor(webColors.baseColor, p, LED_LEVELS.full);
                     setPhysicalColor(state.base?.full || state.base, p);
                 } else if (elapsed < step2) {
-                    setWebColor(webColors.medium, p);
+                    setWebColor(webColors.baseColor, p, LED_LEVELS.medium);
                     setPhysicalColor(state.base?.medium || state.base, p);
                 } else if (elapsed < state.dur) {
-                    setWebColor(webColors.low, p);
+                    setWebColor(webColors.baseColor, p, LED_LEVELS.low);
                     setPhysicalColor(state.base?.low || state.base, p);
                 } else {
                     setWebColor('off', p);

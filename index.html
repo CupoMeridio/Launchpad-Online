@@ -172,6 +172,11 @@
           <button class="menu-toggle" data-menu="customization-menu"
             data-i18n="menu.customization.toggle">Personalizzazione</button>
           <div class="menu-dropdown" id="customization-menu">
+            <!-- Reset Project Appearance Action (top of the menu) -->
+            <div class="customization-header">
+              <button type="button" class="customization-reset-btn" id="reset-project-appearance"
+                data-i18n="menu.resetAppearance">Ripristina aspetto progetto</button>
+            </div>
             <!-- Tabs Bar -->
             <div class="customization-tabs" role="tablist" aria-label="Personalizzazione"
               data-i18n-aria-label="a11y.customizationTabs">
@@ -409,12 +414,6 @@
                 </div>
               </div>
             </div>
-
-            <!-- Reset Project Appearance Footer Action -->
-            <div class="customization-footer">
-              <button type="button" class="customization-reset-btn" id="reset-project-appearance"
-                data-i18n="menu.resetAppearance">Ripristina aspetto progetto</button>
-            </div>
           </div>
         </div>
       </div>
@@ -488,6 +487,12 @@
       <section id="creator-project-details" class="inspector-section">
         <label for="project-creator-name" data-i18n="creator.projectName">Nome progetto</label>
         <input type="text" id="project-creator-name" maxlength="60" autocomplete="off">
+        <label for="creator-target-device" data-i18n="creator.targetDevice" style="margin-top: 8px;">Dispositivo di riferimento</label>
+        <select id="creator-target-device">
+          <option value="universal" data-i18n="creator.targetDevice.universal">Universale (tutti i modelli)</option>
+          <option value="legacy" data-i18n="creator.targetDevice.legacy">Legacy (Classic / S / Mini)</option>
+          <option value="rgb" data-i18n="creator.targetDevice.rgb">RGB (Mk2 / Pro / X / Mini Mk3)</option>
+        </select>
         <div class="inspector-actions" style="margin-top: 8px;">
           <button type="button" class="inspector-action" id="creator-import-project" data-i18n="creator.import">Importa progetto</button>
         </div>

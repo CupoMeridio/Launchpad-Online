@@ -142,5 +142,29 @@ export const DEFAULT_LIGHT_DURATION_SEC = 2.5;
 export const MIN_LIGHT_DURATION_SEC = 0.1;
 export const MAX_LIGHT_DURATION_SEC = 60.0;
 
-export const ANIMATION_COLORS = ['red', 'orange', 'amber', 'yellow', 'green'];
+// Single source of truth for the LED palette: each color maps to the hardware
+// tier it requires. 'legacy' colors work on every Launchpad, 'rgb' colors need
+// an RGB-capable device (Mk2 / Pro / X / Mini Mk3).
+export const ANIMATION_COLOR_TIERS = {
+    red: 'legacy',
+    orange: 'legacy',
+    amber: 'legacy',
+    yellow: 'legacy',
+    green: 'legacy',
+    blue: 'rgb',
+    cyan: 'rgb',
+    purple: 'rgb',
+    pink: 'rgb',
+    white: 'rgb'
+};
+
+// Palette order derives from the tier map, so the two never drift apart.
+export const ANIMATION_COLORS = Object.keys(ANIMATION_COLOR_TIERS);
+
+// Fallback swatch/ring color for a light whose LED colors cannot be resolved
+// (e.g. an unknown or legacy animation name loaded from a project file).
+export const DEFAULT_ANIMATION_SWATCH_COLOR = '#59bfe8';
+
+export const TARGET_DEVICES = ['universal', 'legacy', 'rgb'];
+export const DEFAULT_TARGET_DEVICE = 'universal';
 

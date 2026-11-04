@@ -17,7 +17,8 @@ import {
     LAUNCHPAD_SIZE_MIN,
     LAUNCHPAD_SIZE_MAX,
     VISUALIZER_MODES,
-    VISUALIZER_GRADIENT_DIRECTIONS
+    VISUALIZER_GRADIENT_DIRECTIONS,
+    TARGET_DEVICES
 } from './constants.js';
 
 const HEX_COLOR_PATTERN = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
@@ -162,6 +163,12 @@ export function validateProject(project) {
         if (typeof project.launchpadSize !== 'number' || Number.isNaN(project.launchpadSize) || 
             project.launchpadSize < LAUNCHPAD_SIZE_MIN || project.launchpadSize > LAUNCHPAD_SIZE_MAX) {
             errors.push(`Project field "launchpadSize" must be a number between ${LAUNCHPAD_SIZE_MIN} and ${LAUNCHPAD_SIZE_MAX} if provided`);
+        }
+    }
+
+    if (project.targetDevice !== undefined && project.targetDevice !== null) {
+        if (typeof project.targetDevice !== 'string' || !TARGET_DEVICES.includes(project.targetDevice)) {
+            errors.push(`Project field "targetDevice" must be one of: ${TARGET_DEVICES.join(', ')} if provided`);
         }
     }
 
