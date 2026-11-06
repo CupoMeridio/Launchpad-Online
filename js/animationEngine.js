@@ -4,10 +4,12 @@
  * Contains the core logic for scheduling and fading lights.
  */
 
-import { setWebColor, webColorMap, LED_LEVELS } from './webInterface.js';
+import { setWebColor, getWebColor, LED_LEVELS } from './webInterface.js';
 import { setPhysicalColor, getLpColor, flushPhysicalColors } from './physicalInterface.js';
 
-export { setWebColor, webColorMap, setPhysicalColor, getLpColor, flushPhysicalColors };
+// Only the physical flush needs to be re-exported (used by lights.js);
+// the other color helpers are imported directly from their source modules.
+export { flushPhysicalColors };
 
 /**
  * Handles delayed callbacks without creating new object instances for every call.
@@ -106,15 +108,18 @@ class FadeSystem {
 
                 if (elapsed < s1Time) {
                     const step = sequence[0];
-                    setWebColor(webColorMap[step.color].baseColor, p, step.level);
+                    const webColors = getWebColor(step.color);
+                    if (webColors) setWebColor(step.color, p, step.level);
                     setPhysicalColor(getLpColor(step.color, step.level), p);
                 } else if (elapsed < s2Time) {
                     const step = sequence[1];
-                    setWebColor(webColorMap[step.color].baseColor, p, step.level);
+                    const webColors = getWebColor(step.color);
+                    if (webColors) setWebColor(step.color, p, step.level);
                     setPhysicalColor(getLpColor(step.color, step.level), p);
                 } else if (elapsed < state.dur) {
                     const step = sequence[2];
-                    setWebColor(webColorMap[step.color].baseColor, p, step.level);
+                    const webColors = getWebColor(step.color);
+                    if (webColors) setWebColor(step.color, p, step.level);
                     setPhysicalColor(getLpColor(step.color, step.level), p);
                 } else {
                     setWebColor('off', p);
@@ -131,7 +136,7 @@ class FadeSystem {
                 continue;
             }
 
-            const webColors = webColorMap[state.color];
+            const webColors = getWebColor(state.color);
             if (!webColors) {
                 this._recycle(key, state);
                 continue;
@@ -140,7 +145,7 @@ class FadeSystem {
             if (state.mode === 'instant') {
                 // Instant Mode: Full -> Off (No fading, strictly for duration)
                 if (elapsed < state.dur) {
-                    setWebColor(webColors.baseColor, p, LED_LEVELS.full);
+                    setWebColor(state.color, p, LED_LEVELS.full);
                     setPhysicalColor(state.base?.full, p);
                 } else {
                     setWebColor('off', p);
@@ -152,13 +157,13 @@ class FadeSystem {
                 const step1 = state.dur * (1 / 3);
                 const step2 = state.dur * (2 / 3);
                 if (elapsed < step1) {
-                    setWebColor(webColors.baseColor, p, LED_LEVELS.full);
+                    setWebColor(state.color, p, LED_LEVELS.full);
                     setPhysicalColor(state.base?.full || state.base, p);
                 } else if (elapsed < step2) {
-                    setWebColor(webColors.baseColor, p, LED_LEVELS.medium);
+                    setWebColor(state.color, p, LED_LEVELS.medium);
                     setPhysicalColor(state.base?.medium || state.base, p);
                 } else if (elapsed < state.dur) {
-                    setWebColor(webColors.baseColor, p, LED_LEVELS.low);
+                    setWebColor(state.color, p, LED_LEVELS.low);
                     setPhysicalColor(state.base?.low || state.base, p);
                 } else {
                     setWebColor('off', p);

@@ -186,3 +186,46 @@ test('physicalInterface delegates to active DeviceProfile with batching', () => 
 
     setDeviceProfile(null);
 });
+
+test('DeviceProfile.readStatusBytes extracts status and data bytes with boundary checks and channel masking', () => {
+    // Rejects null, undefined, and short messages
+    assert.equal(DeviceProfile.readStatusBytes(null), null);
+    assert.equal(DeviceProfile.readStatusBytes(undefined), null);
+    assert.equal(DeviceProfile.readStatusBytes([]), null);
+    assert.equal(DeviceProfile.readStatusBytes([0x90]), null);
+    assert.equal(DeviceProfile.readStatusBytes([0x90, 0x10]), null);
+
+    // Valid 3-byte array
+    assert.deepEqual(DeviceProfile.readStatusBytes([0x90, 0x24, 0x7F]), {
+        status: 0x90,
+        data1: 0x24,
+        data2: 0x7F
+    });
+
+    // Valid Uint8Array
+    assert.deepEqual(DeviceProfile.readStatusBytes(new Uint8Array([0x80, 0x3C, 0x00])), {
+        status: 0x80,
+        data1: 0x3C,
+        data2: 0x00
+    });
+
+    // Correctly strips channel nibble via 0xF0 mask
+    // Note On channel 3 (0x92) -> status 0x90
+    assert.deepEqual(DeviceProfile.readStatusBytes([0x92, 0x10, 0x64]), {
+        status: 0x90,
+        data1: 0x10,
+        data2: 0x64
+    });
+    // Control Change channel 16 (0xBF) -> status 0xB0
+    assert.deepEqual(DeviceProfile.readStatusBytes([0xBF, 0x68, 0x7F]), {
+        status: 0xB0,
+        data1: 0x68,
+        data2: 0x7F
+    });
+    // Note Off channel 5 (0x84) -> status 0x80
+    assert.deepEqual(DeviceProfile.readStatusBytes([0x84, 0x20, 0x00]), {
+        status: 0x80,
+        data1: 0x20,
+        data2: 0x00
+    });
+});

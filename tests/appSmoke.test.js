@@ -118,3 +118,57 @@ test('launchpad pads use color-mix emissive LED layer and synchronized glow', ()
     assert.ok(css.includes('--led-level'), 'launchpad.css defines --led-level custom property');
     assert.ok(css.includes('color-mix(in srgb, var(--led-color'), 'launchpad.css mixes LED layer with pad base');
 });
+
+test('white LED styling provides dynamic dark contrast ring and monotonic glow', () => {
+    const css = readFileSync(path.join(workspaceRoot, 'css', 'launchpad.css'), 'utf8');
+    assert.match(css, /\[data-led-color="white"\]/);
+    assert.match(css, /var\(--led-level\) \* 1\.5px/);
+    assert.match(css, /0 0 calc\(var\(--led-level\) \* 16px\) rgba\(255, 255, 255/);
+});
+
+test('creator target warning element exists and uses CSS custom properties', () => {
+    const html = readFileSync(path.join(workspaceRoot, 'index.html'), 'utf8');
+    assert.match(html, /id="creator-target-warning"/);
+    const css = readFileSync(path.join(workspaceRoot, 'css', 'style.css'), 'utf8');
+    assert.match(css, /--warning-color:\s*#ffaa00;/);
+    assert.match(css, /--warning-bg:\s*rgba\(255,\s*170,\s*0,\s*0\.12\);/);
+    assert.match(css, /--warning-border:\s*rgba\(255,\s*170,\s*0,\s*0\.3\);/);
+    assert.match(css, /color:\s*var\(--warning-color\);/);
+});
+
+test('--pad-rest is declared per model skin and wired to white LED styling for monotonic brightness', () => {
+    const css = readFileSync(path.join(workspaceRoot, 'css', 'launchpad.css'), 'utf8');
+
+    // Base skin pad-rest
+    assert.match(css, /--pad-rest:\s*#d3d3d3;/);
+    // MK3 skin pad-rest
+    assert.match(css, /\.launchpad-model-mk3[\s\S]*?--pad-rest:\s*#e2e4e8;/);
+    // Pro skin pad-rest
+    assert.match(css, /\.launchpad-model-pro[\s\S]*?--pad-rest:\s*#dce0e6;/);
+
+    // White LED rules map pad-base to pad-rest
+    assert.match(css, /\[data-led-color="white"\][\s\S]*?--pad-base:\s*var\(--pad-rest\);/);
+});
+
+test('resizer bars use dedicated handle color custom properties and avoid text-bright for backgrounds', () => {
+    const css = readFileSync(path.join(workspaceRoot, 'css', 'style.css'), 'utf8');
+
+    assert.match(css, /--resizer-handle-color:\s*rgba\(255,\s*255,\s*255,\s*0\.2\);/);
+    assert.match(css, /--resizer-handle-active:\s*#ffffff;/);
+    assert.match(css, /\.sidebar-resizer::after\s*\{[^}]*background-color:\s*var\(--resizer-handle-color\);/);
+    assert.match(css, /\.sidebar-resizer:hover::after[^}]*background-color:\s*var\(--resizer-handle-active\);/);
+    assert.match(css, /\.inspector-resizer::after\s*\{[^}]*background-color:\s*var\(--resizer-handle-color\);/);
+    assert.match(css, /\.inspector-resizer:hover::after[^}]*background-color:\s*var\(--resizer-handle-active\);/);
+
+    // Ensure --text-bright is strictly used for text color across the entire stylesheet
+    const backgroundWithTextBright = css.match(/background(?:-color)?:\s*var\(--text-bright\)/);
+    assert.equal(backgroundWithTextBright, null, '--text-bright must not be used as a background color');
+});
+
+test('app entrypoint forwards ?debug query to service-worker registration in debug mode', () => {
+    const appJs = readFileSync(path.join(workspaceRoot, 'js', 'app.js'), 'utf8');
+    const swJs = readFileSync(path.join(workspaceRoot, 'service-worker.js'), 'utf8');
+
+    assert.match(appJs, /service-worker\.js\?debug=1/);
+    assert.match(swJs, /new URL\(self\.location\.href\)\.searchParams\.has\('debug'\)/);
+});

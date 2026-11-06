@@ -10,23 +10,45 @@ globalThis.window = {
         createBufferSource() { return { connect() {}, start() {}, stop() {}, buffer: null }; }
     }
 };
-const dummyPads = Array.from({ length: 64 }, (_, i) => ({
-    id: `pad-${i}`,
-    classList: {
-        add() {},
-        remove() {},
-        toggle() {},
-        contains() { return false; }
-    },
-    setAttribute() {},
-    getAttribute() { return null; }
-}));
+
+function makeMockElement(id = '') {
+    return {
+        id,
+        classList: {
+            add() {},
+            remove() {},
+            toggle() {},
+            contains() { return false; }
+        },
+        setAttribute() {},
+        getAttribute() { return null; },
+        dataset: {},
+        style: {
+            setProperty(k, v) { this[k] = v; },
+            removeProperty(k) { delete this[k]; }
+        },
+        children: [],
+        appendChild() {},
+        querySelector() { return null; },
+        querySelectorAll() { return []; },
+        addEventListener() {},
+        value: '',
+        disabled: false,
+        textContent: '',
+        hidden: false
+    };
+}
+
+const dummyPads = Array.from({ length: 64 }, (_, i) => makeMockElement(`pad-${i}`));
 
 globalThis.document = {
     visibilityState: 'visible',
     addEventListener() {},
     getElementById(id) {
-        return dummyPads[0];
+        return makeMockElement(id);
+    },
+    querySelector() {
+        return null;
     },
     querySelectorAll(selector) {
         if (selector === '.grid-item') return dummyPads;
@@ -38,7 +60,11 @@ globalThis.cancelAnimationFrame = () => {};
 
 const { animations } = await import('../js/lights.js');
 const { setPadSource, getPadSource, triggerPad, releasePad } = await import('../js/interaction.js');
-const { buildAnimationCatalog, createProjectPage, assignPadSample, removePadSample } = await import('../js/projectCreatorModel.js');
+const { setWebColor, webColorMap, setWebModel, isLegacyModeActive, getWebColor, getEffectiveWebColorName } = await import('../js/webInterface.js');
+const { setDeviceProfile, getActiveDeviceProfile } = await import('../js/physicalInterface.js');
+const { buildAnimationCatalog, createProjectPage, assignPadSample, removePadSample, createDraft } = await import('../js/projectCreatorModel.js');
+const { assignSample, getDraft, setDraftForTesting } = await import('../js/projectCreator.js');
+const { audioEngine } = await import('../js/audio.js');
 const { ANIMATION_COLORS } = await import('../js/constants.js');
 
 test('all registered animations are pre-tagged with correct metadata', () => {
@@ -188,3 +214,127 @@ test('creator sample token logic rejects superseded or canceled audio decodes', 
     assert.equal(page.soundBuffers[targetIndex], 'goodBuffer', 'Previous buffer must remain intact on decode error');
 });
 
+test('setWebColor sets dataset.ledColor and --led-level for monotonic white LED steps and clears on off', () => {
+    setWebModel('mk3'); // RGB mode
+
+    // 1. Full brightness (level 1.0)
+    setWebColor('white', [0, 0], 1.0);
+    assert.equal(dummyPads[0].dataset.ledColor, 'white');
+    assert.equal(dummyPads[0].style['--led-level'], '1');
+    assert.equal(dummyPads[0].style['--led-color'], webColorMap.white.baseColor);
+
+    // 2. Medium brightness (level 0.65)
+    setWebColor('white', [0, 0], 0.65);
+    assert.equal(dummyPads[0].dataset.ledColor, 'white');
+    assert.equal(dummyPads[0].style['--led-level'], '0.65');
+    assert.equal(dummyPads[0].style['--led-color'], webColorMap.white.baseColor);
+
+    // 3. Low brightness (level 0.35)
+    setWebColor('white', [0, 0], 0.35);
+    assert.equal(dummyPads[0].dataset.ledColor, 'white');
+    assert.equal(dummyPads[0].style['--led-level'], '0.35');
+    assert.equal(dummyPads[0].style['--led-color'], webColorMap.white.baseColor);
+
+    // 4. Non-white color (should NOT be tagged with data-led-color="white")
+    setWebColor('hsl(120, 100%, 50%)', [0, 0], 1.0);
+    assert.equal(dummyPads[0].dataset.ledColor, undefined);
+    assert.equal(dummyPads[0].style['--led-level'], '1');
+    assert.equal(dummyPads[0].style['--led-color'], 'hsl(120, 100%, 50%)');
+
+    // 5. Off state via 'off'
+    setWebColor('off', [0, 0]);
+    assert.equal(dummyPads[0].dataset.ledColor, undefined);
+    assert.equal(dummyPads[0].style['--led-level'], undefined);
+    assert.equal(dummyPads[0].style['--led-color'], undefined);
+
+    // 6. Off state via level 0
+    setWebColor('white', [0, 0], 0);
+    assert.equal(dummyPads[0].dataset.ledColor, undefined);
+    assert.equal(dummyPads[0].style['--led-level'], undefined);
+    assert.equal(dummyPads[0].style['--led-color'], undefined);
+});
+
+test('digital Launchpad faithfully maps RGB colors to legacy bicolor on Classic skin or hardware', () => {
+    setWebModel('classic'); // Legacy mode active
+    assert.equal(isLegacyModeActive(), true);
+
+    assert.equal(getEffectiveWebColorName('blue'), 'green');
+    assert.equal(getEffectiveWebColorName('cyan'), 'green');
+    assert.equal(getEffectiveWebColorName('purple'), 'red');
+    assert.equal(getEffectiveWebColorName('pink'), 'red');
+    assert.equal(getEffectiveWebColorName('white'), 'amber');
+    assert.equal(getEffectiveWebColorName('red'), 'red');
+    assert.equal(getEffectiveWebColorName('green'), 'green');
+
+    assert.equal(getWebColor('blue').baseColor, webColorMap.green.baseColor);
+    assert.equal(getWebColor('white').baseColor, webColorMap.amber.baseColor);
+
+    // When setting blue on legacy, it appears green on the digital pad
+    setWebColor('blue', [0, 0], 1.0);
+    assert.equal(dummyPads[0].style['--led-color'], webColorMap.green.baseColor);
+
+    // When setting white on legacy, it appears amber and is not tagged as white LED
+    setWebColor('white', [0, 0], 1.0);
+    assert.equal(dummyPads[0].style['--led-color'], webColorMap.amber.baseColor);
+    assert.equal(dummyPads[0].dataset.ledColor, undefined);
+
+    // Switch back to modern MK3 model
+    setWebModel('mk3');
+    assert.equal(isLegacyModeActive(), false);
+    assert.equal(getEffectiveWebColorName('blue'), 'blue');
+    assert.equal(getEffectiveWebColorName('white'), 'white');
+    assert.equal(getWebColor('blue').baseColor, webColorMap.blue.baseColor);
+    setWebColor('blue', [0, 0], 1.0);
+    assert.equal(dummyPads[0].style['--led-color'], webColorMap.blue.baseColor);
+});
+
+test('setDeviceProfile updates active profile and dispatches deviceprofilechange event', () => {
+    let receivedEvent = null;
+    globalThis.window.dispatchEvent = (evt) => { receivedEvent = evt; };
+    const mockProfile = { name: 'Launchpad X', type: 'rgb' };
+    setDeviceProfile(mockProfile);
+    assert.equal(getActiveDeviceProfile(), mockProfile);
+    assert.equal(receivedEvent?.type, 'deviceprofilechange');
+    assert.equal(receivedEvent?.detail?.profile, mockProfile);
+
+    setDeviceProfile(null);
+    assert.equal(getActiveDeviceProfile(), null);
+    assert.equal(receivedEvent?.detail?.profile, null);
+});
+
+test('assignSample discards decode results if active draft changed during decoding (draft !== targetDraft)', async () => {
+    const draftA = createDraft('Draft A');
+    const draftB = createDraft('Draft B');
+
+    setDraftForTesting(draftA);
+    assert.equal(getDraft(), draftA);
+
+    let resolveDecode = null;
+    const decodePromise = new Promise(resolve => { resolveDecode = resolve; });
+    const originalDecode = audioEngine.decodeAudioFile;
+    audioEngine.decodeAudioFile = () => decodePromise;
+
+    try {
+        const fakeFile = { name: 'delayed.wav' };
+        const assignPromise = assignSample(fakeFile);
+
+        // While decode is in-flight, user switches active draft to Draft B
+        setDraftForTesting(draftB);
+        assert.equal(getDraft(), draftB);
+
+        // Decode finishes late for Draft A
+        resolveDecode('decodedAudioBuffer');
+        await assignPromise;
+
+        // Draft B must remain pristine (never mutated by Draft A's late decode)
+        assert.equal(draftB.changeCount, 0, 'New draft changeCount must not increment');
+        assert.equal(draftB.pages[0].samples[0], null, 'New draft pad 0 must not receive sample');
+        assert.equal(draftB.pages[0].soundBuffers[0], null, 'New draft pad 0 must not receive buffer');
+
+        // Draft A also must not have had markDraftModified called on it
+        assert.equal(draftA.changeCount, 0, 'Stale draft changeCount must not be incremented by markDraftModified');
+    } finally {
+        audioEngine.decodeAudioFile = originalDecode;
+        setDraftForTesting(null);
+    }
+});

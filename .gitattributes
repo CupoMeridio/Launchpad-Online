@@ -1,0 +1,4 @@
+# Normalizza i fine riga a LF in tutto il repository, indipendentemente dal
+# sistema operativo. Così il progetto resta identico su Windows, macOS e Linux
+# e git non riscrive più CRLF nei file di lavoro.
+* text=auto eol=lf

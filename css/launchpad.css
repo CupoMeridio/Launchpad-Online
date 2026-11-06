@@ -62,12 +62,16 @@
   min-height: 0;
   aspect-ratio: 1 / 1;
   --pad-base: #d3d3d3;
+  /* Unlit skin color, kept apart from --pad-base so dimmed LEDs always blend
+     with the real pad surface instead of the darkened active base. */
+  --pad-rest: #d3d3d3;
   --led-color: transparent;
   --led-level: 0;
   background-color: color-mix(in srgb, var(--led-color) calc(var(--led-level) * 100%), var(--pad-base));
   cursor: pointer;
-  transition: background-color 0.03s linear, box-shadow 0.03s linear;
-  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5),
+  /* Instant LED toggling without CSS interpolation overhead */
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.22),
+              inset 0 0 5px rgba(0, 0, 0, 0.5),
               0 0 calc(var(--led-level) * 12px) color-mix(in srgb, var(--led-color) calc(var(--led-level) * 100%), transparent);
   border: none;
   position: relative;
@@ -95,9 +99,30 @@
   Pad style when active (i.e., while playing).
   - Emissive layer lights up with the user's UI accent color at full emission.
 */
-.grid-item.active {
+.grid-item.active,
+.grid-item-menu.active {
+  --pad-base: #989898;
   --led-color: var(--accent-blue);
   --led-level: 1;
+}
+
+/*
+  Dedicated styling for white LEDs:
+  White is mixed with the skin's real rest color (--pad-rest) instead of the
+  darkened active base (.grid-item.active sets #989898). Mixing against #989898
+  made a dimmed white darker than the unlit pad, breaking monotonicity; blending
+  with the true pad surface keeps the 3 emission steps (100%, 65%, 35%) monotonic
+  down to the unlit color, e.g. on the Classic skin:
+  Full (L* ~100) -> Medium (~95) -> Low (~90) -> Off (~85).
+  An inner dark contrast ring + intense white glow, both scaled by --led-level,
+  keep the steps clearly separated.
+*/
+.grid-item[data-led-color="white"],
+.grid-item-menu[data-led-color="white"] {
+  --pad-base: var(--pad-rest);
+  box-shadow: inset 0 0 0 calc(1px + var(--led-level) * 1.5px) rgba(0, 0, 0, calc(0.3 + var(--led-level) * 0.35)),
+              inset 0 0 calc(var(--led-level) * 5px) rgba(0, 0, 0, calc(var(--led-level) * 0.45)),
+              0 0 calc(var(--led-level) * 16px) rgba(255, 255, 255, calc(var(--led-level) * 0.95));
 }
 
 /*
@@ -248,19 +273,20 @@
 }
 
 /* Shared squircle geometry for the modern models (MK3 / X and Pro MK3) */
-.Launchpad.launchpad-model-mk3 .grid-item,
-.Launchpad.launchpad-model-pro-mk3 .grid-item {
+:where(.Launchpad.launchpad-model-mk3, .Launchpad.launchpad-model-pro-mk3) .grid-item {
   border-radius: 9%;
   --pad-base: #e2e4e8;
+  --pad-rest: #e2e4e8;
 }
 
-.Launchpad.launchpad-model-mk3 .grid-item-menu,
-.Launchpad.launchpad-model-pro-mk3 .grid-item-menu {
+:where(.Launchpad.launchpad-model-mk3, .Launchpad.launchpad-model-pro-mk3) .grid-item-menu {
   border-radius: 9%;
 }
 
-.Launchpad.launchpad-model-mk3 .grid-item {
-  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+:where(.Launchpad.launchpad-model-mk3) .grid-item {
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.3),
+              inset 0 1px 1px rgba(255, 255, 255, 0.25),
+              0 0 calc(var(--led-level) * 12px) color-mix(in srgb, var(--led-color) calc(var(--led-level) * 100%), transparent);
 }
 
 .Launchpad.launchpad-model-mk3 .grid-item-menu {
@@ -327,9 +353,10 @@
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
-.Launchpad.launchpad-model-pro .grid-item,
-.Launchpad.launchpad-model-pro-mk3 .grid-item {
-  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+:where(.Launchpad.launchpad-model-pro, .Launchpad.launchpad-model-pro-mk3) .grid-item {
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.35),
+              inset 0 1px 1px rgba(255, 255, 255, 0.2),
+              0 0 calc(var(--led-level) * 12px) color-mix(in srgb, var(--led-color) calc(var(--led-level) * 100%), transparent);
 }
 
 .Launchpad.launchpad-model-pro .pro-round-btn {
@@ -386,9 +413,10 @@
   background-color: #121316;
 }
 
-.Launchpad.launchpad-model-pro .grid-item {
+:where(.Launchpad.launchpad-model-pro) .grid-item {
   border-radius: 10%;
   --pad-base: #dce0e6;
+  --pad-rest: #dce0e6;
 }
 
 .Launchpad.launchpad-model-pro .grid-item-menu {

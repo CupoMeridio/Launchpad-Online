@@ -131,11 +131,10 @@ export class LaunchpadRGB extends DeviceProfile {
      * @returns {{ x: number, y: number, pressed: boolean }|null}
      */
     parseMessage(msg) {
-        if (!msg || msg.length < 3) return null;
+        const header = DeviceProfile.readStatusBytes(msg);
+        if (!header) return null;
 
-        const status = msg[0] & 0xF0;
-        const data1 = msg[1];
-        const data2 = msg[2];
+        const { status, data1, data2 } = header;
 
         if (status === 0x90 || status === 0x80) {
             const pressed = (status === 0x90 && data2 > 0);

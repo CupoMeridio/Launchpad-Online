@@ -16,6 +16,8 @@ import { webColorMap, getPadElement, updatePageButtonHighlight } from './webInte
 import { audioEngine } from './audio.js';
 import { setPadSource, updatePhysicalPageLights, syncPerformancePageButtons, syncPerformanceModeButtons } from './interaction.js';
 import { currentPage, currentMode, getStaticData } from './app.js';
+import { checkProjectDeviceConsistency } from './projectValidator.js';
+import { getActiveDeviceProfile } from './physicalInterface.js';
 import { 
     LAUNCHPAD_COLS, 
     LAUNCHPAD_PADS, 
@@ -27,6 +29,7 @@ import {
     ANIMATION_COLOR_TIERS,
     DEFAULT_ANIMATION_SWATCH_COLOR,
     DEFAULT_TARGET_DEVICE,
+    getColorFromAnimationName,
     LAUNCHPAD_ROTATION_MIN,
     LAUNCHPAD_ROTATION_MAX,
     LAUNCHPAD_SIZE_MIN,
@@ -225,6 +228,33 @@ function stopAllDraftPads() {
     for (let i = 0; i < LAUNCHPAD_PADS; i++) {
         const pad = getPadElement(i);
         if (pad) pad.classList.remove('active');
+    }
+}
+
+function updateTargetDeviceWarnings() {
+    const warningEl = document.getElementById('creator-target-warning');
+    if (!warningEl || !draft) return;
+    const messages = [];
+    const { rgbLightCount } = checkProjectDeviceConsistency(draft);
+    if (rgbLightCount > 0) {
+        messages.push(translate('creator.warning.legacyWithRgb', { count: rgbLightCount }));
+    }
+    const connectedProfile = getActiveDeviceProfile();
+    if (connectedProfile) {
+        const connectedType = connectedProfile.type;
+        const target = draft.targetDevice || DEFAULT_TARGET_DEVICE;
+        if (target === 'legacy' && connectedType === 'rgb') {
+            messages.push(translate('creator.warning.hardwareMismatch', { connected: 'RGB', target: 'Legacy' }));
+        } else if (target === 'rgb' && connectedType === 'legacy') {
+            messages.push(translate('creator.warning.hardwareMismatch', { connected: 'Legacy', target: 'RGB' }));
+        }
+    }
+    if (messages.length > 0) {
+        warningEl.hidden = false;
+        warningEl.textContent = messages.join(' ');
+    } else {
+        warningEl.hidden = true;
+        warningEl.textContent = '';
     }
 }
 
@@ -512,6 +542,7 @@ function renderEditor() {
     renderPadGrid();
     renderSelectedPad();
     renderThemeView();
+    updateTargetDeviceWarnings();
 }
 
 function requestCloseCreator() {
@@ -739,7 +770,7 @@ function renderLightPresets() {
     }
 
     // Optimization: if category and search have not changed and items are already rendered,
-    // only update the .selected state on swatches instead of recreating ~1,700 DOM nodes!
+    // only update the .selected state on swatches instead of recreating ~2,900 DOM nodes!
     const targetDevice = draft?.targetDevice || DEFAULT_TARGET_DEVICE;
 
     if (activeLightCategory === lastRenderedCategory && search === lastRenderedSearch && targetDevice === lastRenderedTargetDevice && presetContainer.children.length > 0) {
@@ -892,13 +923,28 @@ function selectProjectPage(index, updateVisuals = true) {
     return true;
 }
 
-async function assignSample(file) {
+export function getDraft() {
+    return draft;
+}
+
+export function setDraftForTesting(newDraft) {
+    draft = newDraft;
+}
+
+export async function assignSample(file) {
     const targetIndex = activePadIndex;
     const targetPage = getCurrentPage();
+    const targetDraft = draft;
     if (!file || targetIndex === null || !targetPage) return;
 
     stopPreview();
     const result = await assignPadSample(targetPage, targetIndex, file, (f) => audioEngine.decodeAudioFile(f));
+
+    // The draft (or the whole editor session) may have been replaced while the
+    // file was being decoded; discard stale results so we never mutate or
+    // re-render a different draft than the one this assignment started on.
+    if (draft !== targetDraft) return;
+
     if (result === 'failed') {
         showNotification(getTranslation('creator.errorDecode'), 'error');
         renderPadGrid();
@@ -1150,6 +1196,7 @@ export function initializeProjectCreator() {
             markDraftModified();
             lastRenderedCategory = null;
             renderLightPresets();
+            updateTargetDeviceWarnings();
         }
     });
 
@@ -1247,6 +1294,7 @@ export function initializeProjectCreator() {
         markDraftModified();
         renderPadGrid();
         renderSelectedPad();
+        updateTargetDeviceWarnings();
     });
 
     document.getElementById('creator-light-sync').addEventListener('change', event => {
@@ -1283,7 +1331,13 @@ export function initializeProjectCreator() {
         }
     });
 
-    document.getElementById('creator-light-search').addEventListener('input', renderLightPresets);
+    let searchDebounceTimer = null;
+    document.getElementById('creator-light-search')?.addEventListener('input', () => {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => {
+            renderLightPresets();
+        }, 150);
+    });
     document.getElementById('creator-assign-text-animation').addEventListener('click', assignTextAnimation);
 
     document.getElementById('creator-export').addEventListener('click', exportProject);
@@ -1438,6 +1492,12 @@ export function initializeProjectCreator() {
             updatePhysicalPageLights(activePageIndex);
         }
     });
+
+    window.addEventListener('deviceprofilechange', () => {
+        if (editorActive && draft) {
+            updateTargetDeviceWarnings();
+        }
+    });
 }
 
 // Ordered LED colors for a light: declared metadata when available, otherwise
@@ -1445,7 +1505,7 @@ export function initializeProjectCreator() {
 function getAnimationSwatchColors(animationName) {
     const colors = resolveLightColors(animations[animationName] ?? {});
     if (colors.length) return colors;
-    const suffix = ANIMATION_COLORS.find(name => animationName.endsWith(`_${name}`));
+    const suffix = getColorFromAnimationName(animationName);
     return suffix ? [suffix] : [];
 }
 
@@ -1478,5 +1538,6 @@ function assignLightAnimation(animationName) {
     markDraftModified();
     renderPadGrid();
     renderSelectedPad();
+    updateTargetDeviceWarnings();
     if (animationName) previewAnimation(animationName, activePadIndex);
 }

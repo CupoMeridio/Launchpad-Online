@@ -88,22 +88,26 @@ export class Visualizer {
     resize() {
         const rectTop = this.canvasTop.getBoundingClientRect();
         const rectBottom = this.canvasBottom.getBoundingClientRect();
+        const targetTopWidth = Math.round(rectTop.width);
+        const targetTopHeight = Math.round(rectTop.height);
+        const targetBottomWidth = Math.round(rectBottom.width);
+        const targetBottomHeight = Math.round(rectBottom.height);
 
         let changed = false;
-        if (this.canvasTop.width !== rectTop.width) {
-            this.canvasTop.width = rectTop.width;
+        if (this.canvasTop.width !== targetTopWidth) {
+            this.canvasTop.width = targetTopWidth;
             changed = true;
         }
-        if (this.canvasTop.height !== rectTop.height) {
-            this.canvasTop.height = rectTop.height;
+        if (this.canvasTop.height !== targetTopHeight) {
+            this.canvasTop.height = targetTopHeight;
             changed = true;
         }
-        if (this.canvasBottom.width !== rectBottom.width) {
-            this.canvasBottom.width = rectBottom.width;
+        if (this.canvasBottom.width !== targetBottomWidth) {
+            this.canvasBottom.width = targetBottomWidth;
             changed = true;
         }
-        if (this.canvasBottom.height !== rectBottom.height) {
-            this.canvasBottom.height = rectBottom.height;
+        if (this.canvasBottom.height !== targetBottomHeight) {
+            this.canvasBottom.height = targetBottomHeight;
             changed = true;
         }
 

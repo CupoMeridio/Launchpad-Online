@@ -1,5 +1,5 @@
 import { fader, activeAnimations } from '../animationEngine.js';
-import { PrecomputedAnimation, StrobeBurstMultiAnimation, MatrixRainMultiAnimation } from '../animationClasses.js';
+import { PrecomputedAnimation, StrobeBurstMultiAnimation, MatrixRainMultiAnimation, maxCornerDistance, buildCrossEvents, buildReverseCrossEvents, buildWaveEvents } from '../animationClasses.js';
 
 export function register(animations, colors) {
     const multiColorConfigs = [
@@ -31,18 +31,7 @@ export function register(animations, colors) {
                 activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
                     const stepDelay = dur ? dur / 10 : 70;
                     const fadeDuration = dur ? stepDelay * 4.5 : 450;
-                    const events = [];
-                    events.push({ p: [x, y], time: 0, dur: fadeDuration });
-                    for (let dist = 1; dist < 8; dist++) {
-                        const time = dist * stepDelay;
-                        const directions = [[x + dist, y], [x - dist, y], [x, y + dist], [x, y - dist]];
-                        directions.forEach(p => {
-                            if (p[0] >= 0 && p[0] < 8 && p[1] >= 0 && p[1] < 8) {
-                                events.push({ p, time, dur: fadeDuration });
-                            }
-                        });
-                    }
-                    return events;
+                    return buildCrossEvents(x, y, stepDelay, fadeDuration);
                 }, triggerMultiFade));
             },
             type: 'fixed'
@@ -54,21 +43,7 @@ export function register(animations, colors) {
                     const maxDist = Math.max(x, 7 - x, y, 7 - y);
                     const stepDelay = dur ? dur / (maxDist + 3) : 70;
                     const fadeDuration = dur ? stepDelay * 4.5 : 450;
-                    const events = [];
-                    for (let dist = maxDist; dist >= 0; dist--) {
-                        const time = (maxDist - dist) * stepDelay;
-                        if (dist === 0) {
-                            events.push({ p: [x, y], time, dur: fadeDuration });
-                        } else {
-                            const directions = [[x + dist, y], [x - dist, y], [x, y + dist], [x, y - dist]];
-                            directions.forEach(p => {
-                                if (p[0] >= 0 && p[0] < 8 && p[1] >= 0 && p[1] < 8) {
-                                    events.push({ p, time, dur: fadeDuration });
-                                }
-                            });
-                        }
-                    }
-                    return events;
+                    return buildReverseCrossEvents(x, y, stepDelay, fadeDuration);
                 }, triggerMultiFade));
             },
             type: 'fixed'
@@ -82,16 +57,7 @@ export function register(animations, colors) {
                 activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
                     const stepDelay = dur ? dur / 12 : 60;
                     const fadeDuration = dur ? stepDelay * 4.5 : 450;
-                    const events = [];
-                    for (let targetY = 0; targetY < 8; targetY++) {
-                        for (let targetX = 0; targetX < 8; targetX++) {
-                            const dx = targetX - x;
-                            const dy = targetY - y;
-                            const distance = Math.sqrt(dx * dx + dy * dy);
-                            events.push({ p: [targetX, targetY], time: distance * stepDelay, dur: fadeDuration });
-                        }
-                    }
-                    return events;
+                    return buildWaveEvents(x, y, stepDelay, fadeDuration);
                 }, triggerMultiFade));
             },
             type: 'fixed'
@@ -100,24 +66,10 @@ export function register(animations, colors) {
         animations[`wave_multi_reverse_${config.name}`] = {
             on: (x, y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
-                    const maxDistance = Math.max(
-                        Math.sqrt(x * x + y * y),
-                        Math.sqrt(Math.pow(7 - x, 2) + y * y),
-                        Math.sqrt(x * x + Math.pow(7 - y, 2)),
-                        Math.sqrt(Math.pow(7 - x, 2) + Math.pow(7 - y, 2))
-                    );
+                    const maxDistance = maxCornerDistance(x, y);
                     const stepDelay = dur ? dur / (maxDistance + 3) : 60;
                     const fadeDuration = dur ? stepDelay * 4.5 : 450;
-                    const events = [];
-                    for (let targetY = 0; targetY < 8; targetY++) {
-                        for (let targetX = 0; targetX < 8; targetX++) {
-                            const dx = targetX - x;
-                            const dy = targetY - y;
-                            const distance = Math.sqrt(dx * dx + dy * dy);
-                            events.push({ p: [targetX, targetY], time: (maxDistance - distance) * stepDelay, dur: fadeDuration });
-                        }
-                    }
-                    return events;
+                    return buildWaveEvents(x, y, stepDelay, fadeDuration, true, maxDistance);
                 }, triggerMultiFade));
             },
             type: 'fixed'
@@ -126,20 +78,9 @@ export function register(animations, colors) {
         animations[`wave_center_multi_${config.name}`] = {
             on: (x, y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
-                    const centerX = 3.5;
-                    const centerY = 3.5;
                     const stepDelay = dur ? dur / 7.5 : 60;
                     const fadeDuration = dur ? stepDelay * 4.5 : 450;
-                    const events = [];
-                    for (let targetY = 0; targetY < 8; targetY++) {
-                        for (let targetX = 0; targetX < 8; targetX++) {
-                            const dx = targetX - centerX;
-                            const dy = targetY - centerY;
-                            const distance = Math.sqrt(dx * dx + dy * dy);
-                            events.push({ p: [targetX, targetY], time: distance * stepDelay, dur: fadeDuration });
-                        }
-                    }
-                    return events;
+                    return buildWaveEvents(3.5, 3.5, stepDelay, fadeDuration);
                 }, triggerMultiFade));
             },
             type: 'fixed'
@@ -148,20 +89,9 @@ export function register(animations, colors) {
         animations[`wave_center_multi_reverse_${config.name}`] = {
             on: (x, y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
-                    const centerX = 3.5;
-                    const centerY = 3.5;
                     const stepDelay = dur ? dur / 7.5 : 60;
                     const fadeDuration = dur ? stepDelay * 4.5 : 450;
-                    const events = [];
-                    for (let targetY = 0; targetY < 8; targetY++) {
-                        for (let targetX = 0; targetX < 8; targetX++) {
-                            const dx = targetX - centerX;
-                            const dy = targetY - centerY;
-                            const distance = Math.sqrt(dx * dx + dy * dy);
-                            events.push({ p: [targetX, targetY], time: (5 - distance) * stepDelay, dur: fadeDuration });
-                        }
-                    }
-                    return events;
+                    return buildWaveEvents(3.5, 3.5, stepDelay, fadeDuration, true, 5);
                 }, triggerMultiFade));
             },
             type: 'fixed'

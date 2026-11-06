@@ -11,6 +11,7 @@
  */
 
 import { DeviceProfile } from './DeviceProfile.js';
+import { LEGACY_COLOR_FALLBACKS } from '../constants.js';
 
 export class LaunchpadLegacy extends DeviceProfile {
     /**
@@ -32,13 +33,7 @@ export class LaunchpadLegacy extends DeviceProfile {
         };
 
         // Fallback substitutions for colors not physically available on bi-color LEDs
-        this.colorFallbacks = {
-            'blue': 'green',
-            'cyan': 'green',
-            'purple': 'red',
-            'pink': 'red',
-            'white': 'amber'
-        };
+        this.colorFallbacks = { ...LEGACY_COLOR_FALLBACKS };
     }
 
     /**
@@ -64,11 +59,10 @@ export class LaunchpadLegacy extends DeviceProfile {
      * @returns {{ x: number, y: number, pressed: boolean }|null}
      */
     parseMessage(msg) {
-        if (!msg || msg.length < 3) return null;
+        const header = DeviceProfile.readStatusBytes(msg);
+        if (!header) return null;
 
-        const status = msg[0] & 0xF0;
-        const data1 = msg[1];
-        const data2 = msg[2];
+        const { status, data1, data2 } = header;
 
         // 0x90 = Note On, 0x80 = Note Off
         if (status === 0x90 || status === 0x80) {

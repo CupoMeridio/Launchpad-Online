@@ -23,6 +23,7 @@
     --bg-input: #333333;
     --border-dark: #3a3a3a;
     --border-subtle: #303030;
+    --border-panel: #333333;
     --text-primary: #f0f0f0;
     --text-muted: #aaaaaa;
     --radius-xs: 3px;
@@ -33,6 +34,43 @@
     --radius-card: 12px;
     --sidebar-width: 260px;
     --inspector-width: 310px;
+    --warning-color: #ffaa00;
+    --warning-bg: rgba(255, 170, 0, 0.12);
+    --warning-border: rgba(255, 170, 0, 0.3);
+    /* Semantic feedback colors (status dots, notifications, actions) */
+    --success-color: #4CAF50;
+    --error-color: #f44336;
+    --info-color: #2196F3;
+    --danger-color: #ff6b6b;
+    --warning-note-color: #ffbb45;
+    /* Surfaces used by the creator / inspector panels */
+    --surface-recessed: #181818;
+    --surface-muted: #2a2a2a;
+    --surface-button: #2b2b2b;
+    --surface-raised: #383838;
+    --surface-active: #3a3a3a;
+    /* Text shades used across the creator / inspector panels */
+    --text-bright: #ffffff;
+    --text-strong: #f4f6f7;
+    --text-secondary: #cccccc;
+    --text-label: #c5cdd1;
+    --text-subtle: #aab3b8;
+    --text-faint: #999999;
+    --text-dim: #888888;
+    --text-accent-dim: #8c989e;
+    --text-live-title: #f0f4f6;
+    --text-dialog: #e5ebed;
+    --text-toggle: #e9edef;
+    --text-sample-name: #b8c0c4;
+    /* Creator pad assignment & live-mode accents */
+    --pad-assigned-bg: #1c3547;
+    --pad-assigned-ring: #aadeff;
+    --live-banner-text: #88d4ff;
+    /* Media-control sliders (opacity, blur, brightness) */
+    --slider-accent: #00ff88;
+    /* Resizer drag handles */
+    --resizer-handle-color: rgba(255, 255, 255, 0.2);
+    --resizer-handle-active: #ffffff;
 }
 
 *,
@@ -52,12 +90,12 @@ body {
 }
 
 .midi-status-dot.connected {
-    background-color: #4CAF50;
+    background-color: var(--success-color);
     /* Green */
 }
 
 .midi-status-dot.disconnected {
-    background-color: #f44336;
+    background-color: var(--error-color);
     /* Red */
 }
 
@@ -66,7 +104,7 @@ body {
     /* Uses a set of modern and clean system fonts. */
     background-color: var(--bg-dark);
     /* Main background color, a very dark gray. */
-    color: #f0f0f0;
+    color: var(--text-primary);
     /* Main text color, a very light gray for contrast. */
     margin: 0;
     /* Removes default browser margins for complete control over layout. */
@@ -108,13 +146,13 @@ body {
     width: 2px;
     height: 36px;
     border-radius: 1px;
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: var(--resizer-handle-color);
     transition: background-color 0.15s ease, height 0.15s ease;
 }
 
 .sidebar-resizer:hover::after,
 .sidebar-resizer.is-dragging::after {
-    background-color: #fff;
+    background-color: var(--resizer-handle-active);
     height: 48px;
 }
 
@@ -149,13 +187,13 @@ body {
     width: 2px;
     height: 36px;
     border-radius: 1px;
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: var(--resizer-handle-color);
     transition: background-color 0.15s ease, height 0.15s ease;
 }
 
 .inspector-resizer:hover::after,
 .inspector-resizer.is-dragging::after {
-    background-color: #fff;
+    background-color: var(--resizer-handle-active);
     height: 48px;
 }
 
@@ -200,7 +238,7 @@ h2 {
 
 .sidebar-header h2 {
     margin: 0;
-    color: #fff;
+    color: var(--text-bright);
     /* White text for menu title. */
     font-size: 16px;
     font-weight: normal;
@@ -318,7 +356,7 @@ main {
   - The appear/disappear animation is created with `max-height` and `padding`.
 */
 .media-controls {
-    background-color: #252525;
+    background-color: var(--bg-panel);
     /* Slightly different background from menu to distinguish it. */
     border-radius: var(--radius-sm);
     margin-top: 5px;
@@ -357,7 +395,7 @@ main {
 .control-group .section-title {
     display: block;
     font-size: 12px;
-    color: #ccc;
+    color: var(--text-secondary);
     margin-bottom: 5px;
     font-weight: 500;
     white-space: nowrap;
@@ -382,7 +420,7 @@ main {
 .input-with-unit {
     display: flex;
     align-items: center;
-    background: #333;
+    background: var(--bg-input);
     border: 1px solid var(--border-dark);
     border-radius: var(--radius-sm);
     padding: 0 6px;
@@ -404,7 +442,7 @@ main {
 .control-group input[type="range"] {
     width: calc(100% - 85px);
     height: 4px;
-    background: #333;
+    background: var(--bg-input);
     /* Slider bar color. */
     border-radius: 2px;
     outline: none;
@@ -422,7 +460,7 @@ main {
     height: 100%;
     background: transparent;
     border: none;
-    color: #ccc;
+    color: var(--text-secondary);
     font-size: 11px;
     text-align: right;
     padding: 0;
@@ -444,7 +482,7 @@ main {
 /* Text showing the unit of measurement (e.g., 'px', '%'). */
 .value-display {
     font-size: 11px;
-    color: #888;
+    color: var(--text-dim);
     margin-left: 2px;
     white-space: nowrap;
     flex-shrink: 0;
@@ -456,7 +494,7 @@ main {
     -webkit-appearance: none;
     width: 14px;
     height: 14px;
-    background: #00ff88;
+    background: var(--slider-accent);
     /* Thumb color (neon green). */
     border-radius: 50%;
     /* Makes it round. */
@@ -467,7 +505,7 @@ main {
 .control-group input[type="range"]::-moz-range-thumb {
     width: 14px;
     height: 14px;
-    background: #00ff88;
+    background: var(--slider-accent);
     border-radius: 50%;
     cursor: pointer;
     border: none;
@@ -501,8 +539,8 @@ main {
 
 /* Styles for dropdown menu (select) */
 .control-group select {
-    background-color: #333;
-    color: #ccc;
+    background-color: var(--bg-input);
+    color: var(--text-secondary);
     border: 1px solid var(--border-dark);
     border-radius: var(--radius-sm);
     padding: 4px 8px;
@@ -572,8 +610,8 @@ main {
     The `:hover` color defines the appearance on mouse hover.
 */
 .menu-toggle {
-    background: #2a2a2a;
-    color: white;
+    background: var(--surface-muted);
+    color: var(--text-bright);
     border: none;
     padding: 12px 15px;
     border-radius: var(--radius-sm);
@@ -590,12 +628,12 @@ main {
 }
 
 .menu-toggle:hover {
-    background: #3a3a3a;
+    background: var(--surface-active);
     /* Lighter color on mouse hover. */
 }
 
 .menu-toggle.active {
-    background: #3a3a3a;
+    background: var(--surface-active);
     border-left: 3px solid var(--accent-blue);
 }
 
@@ -609,7 +647,7 @@ main {
     /* Initially closed. */
     overflow: hidden;
     transition: max-height 0.3s ease;
-    background: #252525;
+    background: var(--bg-panel);
     border-radius: var(--radius-sm);
     margin-top: 5px;
     max-width: 100%;
@@ -637,7 +675,7 @@ main {
     display: block;
     width: 100%;
     background: none;
-    color: #ccc;
+    color: var(--text-secondary);
     border: none;
     padding: 10px 15px;
     text-align: left;
@@ -652,8 +690,8 @@ main {
 
 .menu-dropdown button:hover,
 .menu-dropdown button.selected {
-    background: #333;
-    color: white;
+    background: var(--bg-input);
+    color: var(--text-bright);
 }
 
 /*
@@ -708,8 +746,8 @@ main {
 .customization-tabs {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    background: #181818;
-    border: 1px solid #333;
+    background: var(--surface-recessed);
+    border: 1px solid var(--border-panel);
     border-radius: var(--radius-sm);
     padding: 3px;
     gap: 3px;
@@ -724,7 +762,7 @@ main {
     padding: 6px 4px;
     font-size: 11px;
     font-weight: 500;
-    color: #999;
+    color: var(--text-faint);
     background: transparent;
     border: none;
     border-radius: var(--radius-xs);
@@ -737,12 +775,12 @@ main {
 }
 
 .menu-dropdown .customization-tabs .customization-tab:hover {
-    color: #fff;
-    background: #2a2a2a;
+    color: var(--text-bright);
+    background: var(--surface-muted);
 }
 
 .menu-dropdown .customization-tabs .customization-tab.selected {
-    color: #fff;
+    color: var(--text-bright);
     background: var(--accent-blue);
     font-weight: 600;
 }
@@ -757,7 +795,7 @@ main {
 
 .customization-header {
     padding: 10px 12px 8px 12px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--border-panel);
     margin-bottom: 6px;
 }
 
@@ -852,7 +890,7 @@ main {
     background-color: var(--accent-blue);
     /* Blue color. */
     border: none;
-    color: white;
+    color: var(--text-bright);
     padding: 10px;
     border-radius: var(--radius-sm);
     cursor: pointer;
@@ -982,7 +1020,7 @@ main {
 .notification {
     padding: 10px 15px;
     border-radius: var(--radius-sm);
-    color: white;
+    color: var(--text-bright);
     opacity: 0;
     transition: opacity 0.5s ease-in-out;
     pointer-events: auto;
@@ -993,15 +1031,15 @@ main {
 }
 
 .notification.success {
-    background-color: #4CAF50;
+    background-color: var(--success-color);
 }
 
 .notification.error {
-    background-color: #f44336;
+    background-color: var(--error-color);
 }
 
 .notification.info {
-    background-color: #2196F3;
+    background-color: var(--info-color);
 }
 
 .midi-status-fixed {
@@ -1013,7 +1051,7 @@ main {
     /* Limits maximum width */
     display: flex;
     align-items: center;
-    color: #fff;
+    color: var(--text-bright);
     font-size: 0.85em;
     /* Slightly reduced to fit better */
     background-color: rgba(0, 0, 0, 0.3);
@@ -1087,7 +1125,7 @@ main {
 
 .inspector-header h2 {
     margin: 3px 0 0;
-    color: #ffffff;
+    color: var(--text-bright);
     font-size: 16px;
     font-weight: normal;
 }
@@ -1102,8 +1140,8 @@ main {
 .inspector-close {
     width: 30px;
     height: 30px;
-    color: #cccccc;
-    background: #2a2a2a;
+    color: var(--text-secondary);
+    background: var(--surface-muted);
     border: 1px solid var(--border-dark);
     border-radius: var(--radius-sm);
     cursor: pointer;
@@ -1115,8 +1153,8 @@ main {
 }
 
 .inspector-close:hover {
-    background: #3a3a3a;
-    color: #ffffff;
+    background: var(--surface-active);
+    color: var(--text-bright);
     border-color: var(--accent-blue);
 }
 
@@ -1130,7 +1168,7 @@ main {
 }
 
 .inspector-section label {
-    color: #c5cdd1;
+    color: var(--text-label);
     font-size: 12px;
 }
 
@@ -1142,7 +1180,7 @@ main {
     min-width: 0;
     min-height: 34px;
     padding: 7px 10px;
-    color: #ffffff;
+    color: var(--text-bright);
     background: var(--bg-input);
     border: 1px solid var(--border-dark);
     border-radius: var(--radius-sm);
@@ -1156,7 +1194,18 @@ main {
 .inspector-section select:focus {
     outline: none;
     border-color: var(--accent-blue);
-    background: #383838;
+    background: var(--surface-raised);
+}
+
+.creator-target-warning {
+    margin: 0;
+    padding: 6px 8px;
+    font-size: 11px;
+    line-height: 1.35;
+    color: var(--warning-color);
+    background: var(--warning-bg);
+    border: 1px solid var(--warning-border);
+    border-radius: var(--radius-sm);
 }
 
 .inspector-page-heading {
@@ -1171,7 +1220,7 @@ main {
 }
 
 .inspector-page-heading strong {
-    color: #f4f6f7;
+    color: var(--text-strong);
     font-size: 13px;
 }
 
@@ -1188,7 +1237,7 @@ main {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: #cccccc;
+    color: var(--text-secondary);
     background: var(--bg-panel);
     border: 1px solid var(--border-dark);
     border-radius: var(--radius-sm);
@@ -1202,8 +1251,8 @@ main {
 .inspector-export {
     min-height: 34px;
     padding: 8px 12px;
-    color: #cccccc;
-    background: #2b2b2b;
+    color: var(--text-secondary);
+    background: var(--surface-button);
     border: 1px solid var(--border-dark);
     border-radius: var(--radius-sm);
     cursor: pointer;
@@ -1213,7 +1262,7 @@ main {
 }
 
 .creator-page-tab.selected {
-    color: #ffffff;
+    color: var(--text-bright);
     background: var(--accent-blue);
     border-color: var(--accent-blue);
     font-weight: 600;
@@ -1221,8 +1270,8 @@ main {
 
 .creator-page-tab:hover,
 .inspector-action:hover {
-    background: #383838;
-    color: #ffffff;
+    background: var(--surface-raised);
+    color: var(--text-bright);
     border-color: var(--accent-blue);
 }
 
@@ -1240,7 +1289,7 @@ main {
     min-height: 30px;
     margin: 0;
     overflow-wrap: anywhere;
-    color: #b8c0c4;
+    color: var(--text-sample-name);
     font-size: 12px;
 }
 
@@ -1259,7 +1308,7 @@ main {
 .creator-light-category {
     flex: 0 0 auto;
     padding: 5px 8px;
-    color: #aaaaaa;
+    color: var(--text-muted);
     background: var(--bg-panel);
     border: 1px solid var(--border-dark);
     border-radius: var(--radius-sm);
@@ -1269,12 +1318,12 @@ main {
 }
 
 .creator-light-category:hover {
-    color: #ffffff;
-    background: #333333;
+    color: var(--text-bright);
+    background: var(--bg-input);
 }
 
 .creator-light-category.selected {
-    color: #ffffff;
+    color: var(--text-bright);
     background: var(--accent-blue);
     border-color: var(--accent-blue);
     font-weight: 600;
@@ -1289,7 +1338,7 @@ main {
 
 .creator-animation-group h4 {
     margin: 0;
-    color: #c5cdd1;
+    color: var(--text-label);
     font-size: 11px;
     font-weight: 600;
 }
@@ -1331,7 +1380,7 @@ main {
 }
 
 .creator-animation-swatch.selected.is-rgb::after {
-    background: #ffffff;
+    background: var(--text-primary);
 }
 
 .creator-light-swatch {
@@ -1365,12 +1414,12 @@ main {
 }
 
 .inspector-footer span {
-    color: #aab3b8;
+    color: var(--text-subtle);
     font-size: 11px;
 }
 
 .inspector-export {
-    color: #ffffff;
+    color: var(--text-bright);
     background: var(--accent-blue);
     border-color: var(--accent-blue);
     font-weight: 600;
@@ -1382,7 +1431,7 @@ main {
 }
 
 .layout[data-studio="edit"] #Launchpad .grid-item.creator-pad-assigned {
-    --pad-base: #1c3547;
+    --pad-base: var(--pad-assigned-bg);
 }
 
 .layout[data-studio="edit"] #Launchpad .grid-item.creator-pad-assigned::after {
@@ -1393,7 +1442,7 @@ main {
     height: clamp(4px, 16%, 7px);
     content: '';
     background: var(--accent-blue);
-    border: 1px solid #aadeff;
+    border: 1px solid var(--pad-assigned-ring);
     border-radius: 50%;
     pointer-events: none;
 }
@@ -1422,7 +1471,7 @@ main {
     align-items: center;
     gap: 8px;
     font-size: 12px;
-    color: #e9edef;
+    color: var(--text-toggle);
     cursor: pointer;
 }
 
@@ -1440,7 +1489,7 @@ main {
 
 .creator-duration-note {
     margin: 0;
-    color: #ffbb45;
+    color: var(--warning-note-color);
     font-size: 11px;
 }
 
@@ -1450,7 +1499,7 @@ main {
     border-radius: var(--radius-card);
     background: rgba(21, 23, 25, 0.95);
     backdrop-filter: blur(12px);
-    color: #e5ebed;
+    color: var(--text-dialog);
     padding: 0;
     max-width: 440px;
     width: 90vw;
@@ -1473,14 +1522,14 @@ main {
 .creator-dialog-content h3 {
     margin: 0;
     font-size: 16px;
-    color: #ffffff;
+    color: var(--text-bright);
 }
 
 .creator-dialog-content p {
     margin: 0;
     font-size: 13px;
     line-height: 1.5;
-    color: #aab3b8;
+    color: var(--text-subtle);
 }
 
 .creator-dialog-actions {
@@ -1492,7 +1541,7 @@ main {
 
 .inspector-action.primary {
     background: var(--accent-blue);
-    color: #ffffff;
+    color: var(--text-bright);
     font-weight: 600;
     border-color: var(--accent-blue);
 }
@@ -1504,13 +1553,13 @@ main {
 
 .inspector-action.danger {
     background: rgba(230, 60, 60, 0.15);
-    color: #ff6b6b;
+    color: var(--danger-color);
     border-color: rgba(230, 60, 60, 0.4);
 }
 
 .inspector-action.danger:hover {
     background: rgba(230, 60, 60, 0.3);
-    border-color: #ff6b6b;
+    border-color: var(--danger-color);
 }
 
 .layout[data-studio="edit"] #openSidebar,
@@ -1528,7 +1577,7 @@ main {
 .studio-submode-toggle {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    background: #181818;
+    background: var(--surface-recessed);
     border: 1px solid var(--border-dark);
     border-radius: var(--radius-sm);
     padding: 3px;
@@ -1543,7 +1592,7 @@ main {
     padding: 6px 8px;
     font-size: 11px;
     font-weight: 500;
-    color: #999999;
+    color: var(--text-faint);
     background: transparent;
     border: none;
     border-radius: var(--radius-xs);
@@ -1552,12 +1601,12 @@ main {
 }
 
 .studio-submode-btn:hover {
-    color: #ffffff;
-    background: #2a2a2a;
+    color: var(--text-bright);
+    background: var(--surface-muted);
 }
 
 .studio-submode-btn.selected {
-    color: #ffffff;
+    color: var(--text-bright);
     background: var(--accent-blue);
     font-weight: 600;
 }
@@ -1568,7 +1617,7 @@ main {
     background: var(--accent-blue-dim);
     border: 1px solid var(--accent-blue-glow);
     border-radius: var(--radius-sm);
-    color: #88d4ff;
+    color: var(--live-banner-text);
     font-size: 11px;
     text-align: center;
 }
@@ -1576,7 +1625,7 @@ main {
 .creator-view-tab-bar {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    background: #181818;
+    background: var(--surface-recessed);
     border: 1px solid var(--border-dark);
     border-radius: var(--radius-sm);
     padding: 3px;
@@ -1593,7 +1642,7 @@ main {
     padding: 6px 8px;
     font-size: 11px;
     font-weight: 500;
-    color: #999999;
+    color: var(--text-faint);
     background: transparent;
     border: none;
     border-radius: var(--radius-xs);
@@ -1602,12 +1651,12 @@ main {
 }
 
 .creator-view-tab:hover {
-    color: #ffffff;
-    background: #2a2a2a;
+    color: var(--text-bright);
+    background: var(--surface-muted);
 }
 
 .creator-view-tab.selected {
-    color: #ffffff;
+    color: var(--text-bright);
     background: var(--accent-blue);
     font-weight: 600;
 }
@@ -1618,7 +1667,7 @@ main {
     background: var(--bg-input);
     border: 1px solid var(--border-dark);
     border-radius: var(--radius-sm);
-    color: #ffffff;
+    color: var(--text-bright);
     font-size: 12px;
     margin-top: 4px;
     transition: border-color 0.2s ease, background-color 0.2s ease;
@@ -1627,7 +1676,7 @@ main {
 .creator-select:focus {
     outline: none;
     border-color: var(--accent-blue);
-    background: #383838;
+    background: var(--surface-raised);
 }
 
 .creator-assigned-light {
@@ -1655,7 +1704,7 @@ main {
 
 .creator-assigned-light-info strong {
     font-size: 12px;
-    color: #f4f6f7;
+    color: var(--text-strong);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1728,7 +1777,7 @@ main {
 }
 
 .studio-live-title {
-    color: #f0f4f6;
+    color: var(--text-live-title);
     font-size: 13px;
     font-weight: 600;
     max-width: 200px;
@@ -1738,7 +1787,7 @@ main {
 }
 
 .studio-live-page-badge {
-    color: #8c989e;
+    color: var(--text-accent-dim);
     font-size: 12px;
     font-weight: 500;
 }
@@ -1750,7 +1799,7 @@ main {
     padding: 6px 14px;
     font-size: 12px;
     font-weight: 600;
-    color: #ffffff;
+    color: var(--text-bright);
     background: var(--accent-blue);
     border: none;
     border-radius: var(--radius-pill);

@@ -11,7 +11,7 @@ import * as directional from './animations/directional.js';
 import * as special from './animations/special.js';
 import * as multi from './animations/multi.js';
 import * as characters from './animations/characters.js';
-import { ANIMATION_COLORS, ANIMATION_COLOR_TIERS } from './constants.js';
+import { ANIMATION_COLORS, ANIMATION_COLOR_TIERS, getColorFromAnimationName } from './constants.js';
 
 /**
  * Registry of available animations.
@@ -51,7 +51,7 @@ export function createAnimationLibrary() {
                 sequence = seqMatch[2];
                 baseName = seqMatch[1];
             } else {
-                color = colors.find(c => key.endsWith(`_${c}`)) || null;
+                color = getColorFromAnimationName(key);
                 baseName = color ? key.slice(0, -(color.length + 1)) : key;
             }
 

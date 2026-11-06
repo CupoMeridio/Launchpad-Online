@@ -142,6 +142,8 @@
     "creator.targetDevice.legacy": "Legacy (Classic / S / Mini)",
     "creator.targetDevice.rgb": "RGB (Mk2 / Pro / X / Mini Mk3)",
     "creator.targetDevice.badgeRgb": "Nur RGB",
+    "creator.warning.legacyWithRgb": "Warnung: Dieses Projekt zielt auf Legacy-Hardware ab, enthält jedoch {count} Pad(s) mit RGB-Animationen. Auf Legacy-Geräten werden die Farben auf die Basisfarbpalette (Rot/Grün/Bernstein) abgebildet.",
+    "creator.warning.hardwareMismatch": "Die angeschlossene Hardware ({connected}) weicht vom Zielgerät ({target}) ab. Animationen werden möglicherweise mit abweichenden Farben oder Verhaltensweisen angezeigt.",
     "creator.backToEdit": "Zurück zum Bearbeiten",
     "creator.untitledProject": "Unbenannter Entwurf",
     "creator.liveTestBadge": "LIVE-TEST",

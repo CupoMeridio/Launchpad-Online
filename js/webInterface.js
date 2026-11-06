@@ -4,7 +4,8 @@
  * Handles all visual updates for the digital Launchpad in the web UI.
  */
 
-import { LAUNCHPAD_COLS } from './constants.js';
+import { LAUNCHPAD_COLS, LEGACY_COLOR_FALLBACKS } from './constants.js';
+import { getActiveDeviceProfile } from './physicalInterface.js';
 
 /**
  * Map Launchpad hardware colors to pure saturated hues for the web UI.
@@ -37,6 +38,67 @@ export const LED_LEVELS = {
 };
 
 let cachedPads = null;
+let currentModelPreference = 'classic';
+
+/**
+ * Updates the virtual model preference for the web UI ('classic', 'mk3', 'pro', 'pro-mk3').
+ * @param {string} model
+ */
+export function setWebModel(model) {
+    if (typeof model === 'string') {
+        currentModelPreference = model;
+    }
+}
+
+/**
+ * Checks whether the active display mode simulates Legacy bicolore hardware (Classic)
+ * or has a physical Legacy Launchpad connected.
+ * @returns {boolean}
+ */
+export function isLegacyModeActive() {
+    const profile = getActiveDeviceProfile();
+    if (profile?.type === 'legacy') return true;
+    if (profile?.type === 'rgb') return false;
+
+    if (typeof document !== 'undefined') {
+        const lp = document.getElementById('Launchpad');
+        if (lp) {
+            if (lp.classList.contains('launchpad-model-classic')) return true;
+            if (lp.classList.contains('launchpad-model-mk3') ||
+                lp.classList.contains('launchpad-model-pro') ||
+                lp.classList.contains('launchpad-model-pro-mk3')) {
+                return false;
+            }
+        }
+    }
+    return currentModelPreference === 'classic';
+}
+
+/**
+ * Resolves the effective color name, taking into account hardware/skin bicolore limitations.
+ * On legacy Launchpads (Classic), RGB colors map to the closest physical LED:
+ * blue/cyan -> green, purple/pink -> red, white -> amber.
+ * @param {string} colorName
+ * @returns {string}
+ */
+export function getEffectiveWebColorName(colorName) {
+    if (!colorName || colorName === 'off') return 'off';
+    if (isLegacyModeActive() && LEGACY_COLOR_FALLBACKS[colorName]) {
+        return LEGACY_COLOR_FALLBACKS[colorName];
+    }
+    return colorName;
+}
+
+/**
+ * Gets the webColorMap entry for a given color name, applying legacy fallback if active.
+ * @param {string} colorName
+ * @returns {{ baseColor: string } | null}
+ */
+export function getWebColor(colorName) {
+    if (!colorName || colorName === 'off') return null;
+    const effective = getEffectiveWebColorName(colorName);
+    return webColorMap[effective] || webColorMap[colorName] || null;
+}
 
 /**
  * Clears the cached pad DOM elements so that subsequent queries re-read the DOM.
@@ -86,16 +148,23 @@ export function setWebColor(color, p, level = 1.0) {
     if (color === 'off' || numericLevel <= 0) {
         pad.style.removeProperty('--led-color');
         pad.style.removeProperty('--led-level');
-        pad.style.removeProperty('background-color');
-        pad.style.removeProperty('box-shadow');
+        delete pad.dataset.ledColor;
         pad.classList.remove('active');
         return;
     }
 
-    pad.style.setProperty('--led-color', color);
+    const resolved = getWebColor(color);
+    const effectiveCssColor = resolved ? resolved.baseColor : color;
+    const isWhite = (getEffectiveWebColorName(color) === 'white');
+
+    pad.style.setProperty('--led-color', effectiveCssColor);
     pad.style.setProperty('--led-level', String(numericLevel));
-    if (pad.style.backgroundColor) pad.style.removeProperty('background-color');
-    if (pad.style.boxShadow) pad.style.removeProperty('box-shadow');
+
+    if (isWhite) {
+        pad.dataset.ledColor = 'white';
+    } else {
+        delete pad.dataset.ledColor;
+    }
     pad.classList.add('active');
 }
 
@@ -121,4 +190,3 @@ export function updateModeButtonHighlight(modeIndex) {
         btn.classList.toggle('selected', btnMode === modeIndex);
     });
 }
-

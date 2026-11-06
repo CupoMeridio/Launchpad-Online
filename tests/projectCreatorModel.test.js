@@ -6,8 +6,9 @@ import {
     createProjectPage, 
     createDraft,
     isDraftDirty, 
-    buildDraftFromProject 
+    buildDraftFromProject
 } from '../js/projectCreatorModel.js';
+import { normalizeTargetDevice } from '../js/constants.js';
 import { exportProjectToZip, importProjectFromZip } from '../js/projectZip.js';
 import { resolveLightDuration } from '../js/animationData.js';
 import { validateProject } from '../js/projectValidator.js';
@@ -294,4 +295,14 @@ test('projectZip roundtrips image background files and builds correct draft fall
     // Rotation/size stay unset so the user's personal preference is preserved.
     assert.equal(importResult.draft.launchpadRotation, null);
     assert.equal(importResult.draft.launchpadSize, null);
+});
+
+test('normalizeTargetDevice validates and normalizes target device names', () => {
+    assert.equal(normalizeTargetDevice('universal'), 'universal');
+    assert.equal(normalizeTargetDevice('legacy'), 'legacy');
+    assert.equal(normalizeTargetDevice('rgb'), 'rgb');
+    assert.equal(normalizeTargetDevice('unknown'), 'universal');
+    assert.equal(normalizeTargetDevice(null), 'universal');
+    assert.equal(normalizeTargetDevice(undefined), 'universal');
+    assert.equal(normalizeTargetDevice(123), 'universal');
 });

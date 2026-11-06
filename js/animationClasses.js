@@ -7,7 +7,94 @@
 import { fader } from './animationEngine.js';
 import { alphabetCoords, numberCoords, symbolCoords } from './animationData.js';
 
-export class BaseMatrixRainAnimation {
+/**
+ * Computes the greatest Euclidean distance from a pad (x, y) to the four
+ * corners of the 8x8 grid. Reverse-wave animations use it to normalize the
+ * per-pad timing so the wave crosses the whole board.
+ * @param {number} x - Column index (0..7).
+ * @param {number} y - Row index (0..7).
+ * @returns {number} Maximum corner distance.
+ */
+export function maxCornerDistance(x, y) {
+    const dx = Math.max(x, 7 - x);
+    const dy = Math.max(y, 7 - y);
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+/**
+ * Builds precomputed animation events for an expanding cross from pad (x, y).
+ * @param {number} x - Center column (0..7).
+ * @param {number} y - Center row (0..7).
+ * @param {number} stepDelay - Delay per ring.
+ * @param {number} fadeDuration - Fade duration per pad.
+ * @returns {Array<{ p: [number, number], time: number, dur: number }>}
+ */
+export function buildCrossEvents(x, y, stepDelay, fadeDuration) {
+    const events = [{ p: [x, y], time: 0, dur: fadeDuration }];
+    for (let dist = 1; dist < 8; dist++) {
+        const time = dist * stepDelay;
+        const directions = [[x + dist, y], [x - dist, y], [x, y + dist], [x, y - dist]];
+        for (const p of directions) {
+            if (p[0] >= 0 && p[0] < 8 && p[1] >= 0 && p[1] < 8) {
+                events.push({ p, time, dur: fadeDuration });
+            }
+        }
+    }
+    return events;
+}
+
+/**
+ * Builds precomputed animation events for a contracting cross converging onto pad (x, y).
+ * @param {number} x - Target column (0..7).
+ * @param {number} y - Target row (0..7).
+ * @param {number} stepDelay - Delay per ring.
+ * @param {number} fadeDuration - Fade duration per pad.
+ * @returns {Array<{ p: [number, number], time: number, dur: number }>}
+ */
+export function buildReverseCrossEvents(x, y, stepDelay, fadeDuration) {
+    const maxDist = Math.max(x, 7 - x, y, 7 - y);
+    const events = [];
+    for (let dist = maxDist; dist >= 0; dist--) {
+        const time = (maxDist - dist) * stepDelay;
+        if (dist === 0) {
+            events.push({ p: [x, y], time, dur: fadeDuration });
+        } else {
+            const directions = [[x + dist, y], [x - dist, y], [x, y + dist], [x, y - dist]];
+            for (const p of directions) {
+                if (p[0] >= 0 && p[0] < 8 && p[1] >= 0 && p[1] < 8) {
+                    events.push({ p, time, dur: fadeDuration });
+                }
+            }
+        }
+    }
+    return events;
+}
+
+/**
+ * Builds precomputed wave events propagating from or toward an origin point.
+ * @param {number} originX - Wave origin column (can be fractional, e.g. 3.5 for center).
+ * @param {number} originY - Wave origin row (can be fractional).
+ * @param {number} stepDelay - Delay per distance unit.
+ * @param {number} fadeDuration - Fade duration per pad.
+ * @param {boolean} [reverse=false] - When true, wave contracts toward origin.
+ * @param {number} [maxDistance=0] - Distance offset for reverse waves.
+ * @returns {Array<{ p: [number, number], time: number, dur: number }>}
+ */
+export function buildWaveEvents(originX, originY, stepDelay, fadeDuration, reverse = false, maxDistance = 0) {
+    const events = [];
+    for (let targetY = 0; targetY < 8; targetY++) {
+        for (let targetX = 0; targetX < 8; targetX++) {
+            const dx = targetX - originX;
+            const dy = targetY - originY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const time = (reverse ? (maxDistance - distance) : distance) * stepDelay;
+            events.push({ p: [targetX, targetY], time, dur: fadeDuration });
+        }
+    }
+    return events;
+}
+
+class BaseMatrixRainAnimation {
     constructor(duration, direction = 'down') {
         this.startTime = performance.now();
         this.baseDuration = 1450;
@@ -93,7 +180,7 @@ export class MatrixRainMultiAnimation extends BaseMatrixRainAnimation {
     }
 }
 
-export class BaseStrobeBurstAnimation {
+class BaseStrobeBurstAnimation {
     constructor(duration) {
         this.startTime = performance.now();
         this.totalDuration = duration || 480;

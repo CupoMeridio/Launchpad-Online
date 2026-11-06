@@ -278,8 +278,16 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (!window.serviceWorkerRegistered) {
             window.serviceWorkerRegistered = true;
             registerListener(window, 'load', () => {
+                let isDebug = false;
+                try {
+                    isDebug = new URLSearchParams(window.location.search).has('debug') ||
+                              window.localStorage?.getItem('launchpad.debug') === '1';
+                } catch {
+                    isDebug = false;
+                }
+                const swUrl = isDebug ? './service-worker.js?debug=1' : './service-worker.js';
                 // Use a relative path so the SW works regardless of the deployment subdirectory
-                navigator.serviceWorker.register('./service-worker.js')
+                navigator.serviceWorker.register(swUrl)
                     .then(registration => debug('Service Worker registered: ', registration))
                     .catch(registrationError => console.error('Service Worker registration failed: ', registrationError));
             });

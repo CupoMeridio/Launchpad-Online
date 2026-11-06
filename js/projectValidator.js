@@ -18,7 +18,10 @@ import {
     LAUNCHPAD_SIZE_MAX,
     VISUALIZER_MODES,
     VISUALIZER_GRADIENT_DIRECTIONS,
-    TARGET_DEVICES
+    TARGET_DEVICES,
+    ANIMATION_COLOR_TIERS,
+    normalizeTargetDevice,
+    getColorFromAnimationName
 } from './constants.js';
 
 const HEX_COLOR_PATTERN = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
@@ -280,4 +283,32 @@ export function getErrorSummary(errors) {
         .join('\n');
 
     return `Project validation failed with ${errors.length} error(s):\n${errorList}`;
+}
+
+/**
+ * Counts RGB-only lights used by a project that targets legacy hardware.
+ * This is non-fatal (the schema stays valid) but those pads will fall back
+ * to bicolor LEDs on physical legacy devices.
+ * The caller composes the localized user-facing message.
+ * @param {object} project
+ * @returns {{ rgbLightCount: number }}
+ */
+export function checkProjectDeviceConsistency(project) {
+    if (!project || typeof project !== 'object') return { rgbLightCount: 0 };
+
+    let rgbLightCount = 0;
+    if (normalizeTargetDevice(project.targetDevice) === 'legacy' && Array.isArray(project.pages)) {
+        project.pages.forEach((page) => {
+            if (!Array.isArray(page?.lights)) return;
+            page.lights.forEach((light) => {
+                if (typeof light !== 'string' || !light) return;
+                const color = getColorFromAnimationName(light);
+                if (color && ANIMATION_COLOR_TIERS[color] === 'rgb') {
+                    rgbLightCount++;
+                }
+            });
+        });
+    }
+
+    return { rgbLightCount };
 }

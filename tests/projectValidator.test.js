@@ -3,7 +3,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import { validateProject } from '../js/projectValidator.js';
+import { validateProject, checkProjectDeviceConsistency } from '../js/projectValidator.js';
 
 const workspaceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const projectsRoot = path.join(workspaceRoot, 'projects');
@@ -240,4 +240,17 @@ test('validates optional targetDevice configuration option', () => {
     project.targetDevice = 123;
     errors = validateProject(project).errors.join('\n');
     assert.match(errors, /"targetDevice" must be one of: universal, legacy, rgb/);
+});
+
+test('checkProjectDeviceConsistency counts RGB animations on legacy projects', () => {
+    const project = createValidProject();
+    project.targetDevice = 'universal';
+    project.pages[0].lights[0] = 'fade_blue';
+    assert.deepEqual(checkProjectDeviceConsistency(project), { rgbLightCount: 0 });
+
+    project.targetDevice = 'legacy';
+    assert.deepEqual(checkProjectDeviceConsistency(project), { rgbLightCount: 1 });
+
+    project.pages[0].lights[0] = 'fade_red';
+    assert.deepEqual(checkProjectDeviceConsistency(project), { rgbLightCount: 0 });
 });

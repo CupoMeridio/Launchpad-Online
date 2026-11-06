@@ -5,7 +5,7 @@
  * between Classic/MK2, Modern MK3/X, Launchpad Pro (2015), and Launchpad Pro MK3 representations.
  */
 
-import { invalidatePadCache } from './webInterface.js';
+import { invalidatePadCache, setWebModel } from './webInterface.js';
 import { debug } from './logger.js';
 
 export const LAUNCHPAD_MODELS = {
@@ -340,6 +340,7 @@ function renderLaunchpad(model) {
     const launchpad = document.getElementById('Launchpad');
     if (!launchpad) return;
 
+    setWebModel(model);
     if (currentRenderedModel === model) {
         return;
     }
@@ -402,6 +403,7 @@ export function initLaunchpadView() {
     }
 
     const effective = getEffectiveModel();
+    setWebModel(effective);
     renderLaunchpad(effective);
     syncModelSelectUI();
 }

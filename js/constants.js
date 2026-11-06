@@ -168,3 +168,33 @@ export const DEFAULT_ANIMATION_SWATCH_COLOR = '#59bfe8';
 export const TARGET_DEVICES = ['universal', 'legacy', 'rgb'];
 export const DEFAULT_TARGET_DEVICE = 'universal';
 
+/**
+ * Validates and normalizes the target hardware declared by a project.
+ * Falls back to 'universal' whenever the value is absent or unrecognized.
+ * @param {string|null} [targetDevice]
+ * @returns {'universal' | 'legacy' | 'rgb'}
+ */
+export function normalizeTargetDevice(targetDevice) {
+    return (typeof targetDevice === 'string' && TARGET_DEVICES.includes(targetDevice))
+        ? targetDevice
+        : DEFAULT_TARGET_DEVICE;
+}
+
+/**
+ * Extracts the color suffix from an animation name (e.g. 'fade_blue' -> 'blue').
+ * @param {string|null} animationName
+ * @returns {string|null}
+ */
+export function getColorFromAnimationName(animationName) {
+    if (typeof animationName !== 'string' || !animationName) return null;
+    return ANIMATION_COLORS.find(color => animationName.endsWith(`_${color}`)) || null;
+}
+
+// Fallback substitutions for colors not physically available on bi-color LEDs (Legacy Launchpad)
+export const LEGACY_COLOR_FALLBACKS = {
+    blue: 'green',
+    cyan: 'green',
+    purple: 'red',
+    pink: 'red',
+    white: 'amber'
+};

@@ -64,6 +64,17 @@ export class DeviceProfile {
     }
 
     /**
+     * Validates a raw MIDI message and extracts its nibble status plus data bytes.
+     * Shared by concrete profile parsers to avoid duplicating the boundary check.
+     * @param {Uint8Array|number[]} msg
+     * @returns {{ status: number, data1: number, data2: number }|null}
+     */
+    static readStatusBytes(msg) {
+        if (!msg || msg.length < 3) return null;
+        return { status: msg[0] & 0xF0, data1: msg[1], data2: msg[2] };
+    }
+
+    /**
      * Builds raw MIDI message bytes to set an LED at (x, y) with colorCode.
      * @param {number} x - Horizontal coordinate (0..8).
      * @param {number} y - Vertical coordinate (0..8).

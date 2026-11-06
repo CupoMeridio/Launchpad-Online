@@ -484,16 +484,17 @@
         </div>
         <p id="studio-live-banner" class="studio-live-banner" hidden data-i18n="creator.studioMode.liveHint">Suona i pad della tua bozza in tempo reale</p>
       </div>
-      <section id="creator-project-details" class="inspector-section">
+      <section class="inspector-section">
         <label for="project-creator-name" data-i18n="creator.projectName">Nome progetto</label>
         <input type="text" id="project-creator-name" maxlength="60" autocomplete="off">
-        <label for="creator-target-device" data-i18n="creator.targetDevice" style="margin-top: 8px;">Dispositivo di riferimento</label>
+        <label for="creator-target-device" data-i18n="creator.targetDevice">Dispositivo di riferimento</label>
         <select id="creator-target-device">
           <option value="universal" data-i18n="creator.targetDevice.universal">Universale (tutti i modelli)</option>
           <option value="legacy" data-i18n="creator.targetDevice.legacy">Legacy (Classic / S / Mini)</option>
           <option value="rgb" data-i18n="creator.targetDevice.rgb">RGB (Mk2 / Pro / X / Mini Mk3)</option>
         </select>
-        <div class="inspector-actions" style="margin-top: 8px;">
+        <p id="creator-target-warning" class="creator-target-warning" hidden></p>
+        <div class="inspector-actions">
           <button type="button" class="inspector-action" id="creator-import-project" data-i18n="creator.import">Importa progetto</button>
         </div>
         <input type="file" id="creator-project-zip-input" class="file-input-hidden" accept=".zip,application/zip,application/x-zip-compressed">
@@ -508,7 +509,7 @@
         </button>
       </div>
       <div id="creator-pads-view" class="creator-view-panel">
-        <section id="creator-bank-details" class="inspector-section">
+        <section class="inspector-section">
           <div class="inspector-page-heading">
             <span data-i18n="creator.pages">Pagine progetto</span>
             <span id="creator-page-count"></span>
@@ -578,7 +579,7 @@
           <select id="creator-bg-select" class="creator-select">
             <option value="" data-i18n="creator.theme.none">Nessuno sfondo</option>
           </select>
-          <div class="inspector-actions" style="margin-top: 8px;">
+          <div class="inspector-actions">
             <button type="button" class="inspector-action" id="creator-upload-bg-trigger" data-i18n="creator.theme.uploadCustom">Carica video/immagine</button>
           </div>
           <input type="file" id="creator-bg-file" class="file-input-hidden">
@@ -592,7 +593,7 @@
           <select id="creator-skin-select" class="creator-select">
             <option value="" data-i18n="creator.theme.default">Predefinita</option>
           </select>
-          <div class="inspector-actions" style="margin-top: 8px;">
+          <div class="inspector-actions">
             <button type="button" class="inspector-action" id="creator-upload-skin-trigger" data-i18n="creator.theme.uploadCustom">Carica skin personalizzata</button>
           </div>
           <input type="file" id="creator-skin-file" class="file-input-hidden">

@@ -13,12 +13,28 @@
  * 3. Fetch (`fetch`): Executed every time the application makes a network request (e.g., for a CSS file, an image, an API).
  */
 
+// Service workers run as classic scripts without access to localStorage and
+// cannot import logger.js. Diagnostics stay silent unless the worker script
+// URL carries a `?debug` parameter, which app.js forwards when debug mode is
+// enabled (via `?debug` in the page URL or `launchpad.debug` in localStorage).
+const DEBUG = new URL(self.location.href).searchParams.has('debug');
+
+/**
+ * Emits a debug log only when the DEBUG flag is enabled.
+ * @param {...*} args - Values forwarded to console.log
+ */
+function debug(...args) {
+    if (DEBUG) {
+        console.log(...args);
+    }
+}
+
 // CACHE NAME
 // Format: 'launchpad-pwa-cache-YYYY-MM-DD-HHMM'
 // CUSTOMIZATION: When you make changes to App Shell files, update this timestamp.
 // This invalidates the old cache and forces the Service Worker to download new files.
 // Example: 'launchpad-pwa-cache-2026-03-21-1430' → update to → 'launchpad-pwa-cache-2026-03-21-1505'
-const CACHE_NAME = 'launchpad-pwa-cache-2026-11-04-1808';
+const CACHE_NAME = 'launchpad-pwa-cache-2026-11-06-1512';
 
 // Get the base path dynamically to support both local dev and GitHub Pages
 const basePath = self.registration.scope.replace(self.location.origin, '');
@@ -94,12 +110,12 @@ const APP_SHELL_FILES = [
 
 // 1. 'INSTALL' EVENT: Caching the App Shell
 self.addEventListener('install', event => {
-    console.log('Service Worker: Installing...');
+    debug('Service Worker: Installing...');
     // `event.waitUntil` tells the browser to wait for the operation inside to complete
     // before considering the installation finished.
     event.waitUntil(
         caches.open(CACHE_NAME).then(cache => {
-            console.log('Service Worker: Caching App Shell files');
+            debug('Service Worker: Caching App Shell files');
             // `cache.addAll` takes an array of URLs, downloads them and adds them to the cache.
             // If even one file fails to download, the entire operation fails.
             return cache.addAll(APP_SHELL_FILES);
@@ -111,7 +127,7 @@ self.addEventListener('install', event => {
 
 // 2. 'ACTIVATE' EVENT: Cleaning up old caches
 self.addEventListener('activate', event => {
-    console.log('Service Worker: Activating...');
+    debug('Service Worker: Activating...');
     event.waitUntil(
         caches.keys().then(cacheNames => {
             return Promise.all(
@@ -119,7 +135,7 @@ self.addEventListener('activate', event => {
                     // If a cache name doesn't match the current one, it gets deleted.
                     // This is crucial for removing obsolete files and freeing up space.
                     if (cacheName !== CACHE_NAME) {
-                        console.log('Service Worker: Removing old cache', cacheName);
+                        debug('Service Worker: Removing old cache', cacheName);
                         return caches.delete(cacheName);
                     }
                 })

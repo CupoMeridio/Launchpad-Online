@@ -20,9 +20,18 @@ export function setDeviceProfile(profile) {
     activeProfile = profile;
     colorCache.clear();
     pendingUpdates.clear();
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('deviceprofilechange', { detail: { profile } }));
+    }
 }
 
-
+/**
+ * Returns the active physical Launchpad profile or null if not connected.
+ * @returns {import('./midi-profiles/DeviceProfile.js').DeviceProfile|null}
+ */
+export function getActiveDeviceProfile() {
+    return activeProfile;
+}
 
 /**
  * Sets color on the physical Launchpad using a batching system.

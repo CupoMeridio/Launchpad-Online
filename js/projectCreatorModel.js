@@ -3,9 +3,8 @@ import {
     MAX_PROJECT_PAGES, 
     DEFAULT_LIGHT_DURATION_SEC, 
     ANIMATION_COLORS,
-    ANIMATION_COLOR_TIERS,
-    TARGET_DEVICES,
-    DEFAULT_TARGET_DEVICE
+    DEFAULT_TARGET_DEVICE,
+    normalizeTargetDevice
 } from './constants.js';
 import { validateProject } from './projectValidator.js';
 import { normalizeVisualizer, normalizeLayout, getBackgroundMedia } from './appearanceModel.js';
@@ -49,7 +48,7 @@ export function buildAnimationCatalog(animationRegistry, targetDevice = DEFAULT_
         const category = anim.category || 'special';
         const color = anim.color ?? null;
         const sequence = anim.sequence ?? null;
-        const tier = anim.tier ?? ANIMATION_COLOR_TIERS[color] ?? 'legacy';
+        const tier = anim.tier || 'legacy';
         const supportsDuration = anim.supportsDuration ?? (anim.type === 'fixed');
         const swatchColors = resolveLightColors({ color, sequence, swatchColors: anim.swatchColors });
 
@@ -199,9 +198,7 @@ export function createDraft(name = '', pages = null, theme = {}) {
 
     return {
         name: typeof name === 'string' ? name.trim() : '',
-        targetDevice: (typeof theme?.targetDevice === 'string' && TARGET_DEVICES.includes(theme.targetDevice))
-            ? theme.targetDevice
-            : DEFAULT_TARGET_DEVICE,
+        targetDevice: normalizeTargetDevice(theme?.targetDevice),
         changeCount: 0,
         savedChangeCount: 0,
         pages: Array.isArray(pages) && pages.length > 0 ? pages : [createProjectPage(1)],
@@ -336,7 +333,7 @@ export function buildDraftFromProject(projectData, fileMap = new Map()) {
     const backgroundFile = typeof bgSource === 'string' ? getFile(bgSource) : null;
 
     const theme = {
-        targetDevice: projectData.targetDevice || DEFAULT_TARGET_DEVICE,
+        targetDevice: normalizeTargetDevice(projectData.targetDevice),
         coverImage: coverFile ? projectData.coverImage : '',
         iconImage: iconFile ? projectData.iconImage : '',
         backgroundMedia: backgroundFile ? bgSource : '',
@@ -392,9 +389,7 @@ export function buildProjectExport(draft) {
     });
 
     const id = createProjectId(name);
-    const targetDevice = (typeof draft?.targetDevice === 'string' && TARGET_DEVICES.includes(draft.targetDevice))
-        ? draft.targetDevice
-        : DEFAULT_TARGET_DEVICE;
+    const targetDevice = normalizeTargetDevice(draft?.targetDevice);
     const project = { id, name, targetDevice, pages };
 
     const getFileExt = (fileName, defaultExt) => {
