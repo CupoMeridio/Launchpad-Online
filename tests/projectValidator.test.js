@@ -14,8 +14,8 @@ function createValidProject() {
         name: 'Test Project',
         pages: [{
             name: 'Page 1',
-            sounds: Array(64).fill(''),
-            lights: Array(64).fill('')
+            sounds: Array(64).fill(null).map(() => []),
+            lights: Array(64).fill(null).map(() => [])
         }]
     };
 }
@@ -51,7 +51,7 @@ test('rejects missing project fields and invalid page counts', () => {
     const tooManyPages = createValidProject();
     tooManyPages.pages = Array.from({ length: 9 }, (_, index) => ({
         name: `Page ${index + 1}`,
-        sounds: Array(64).fill('')
+        sounds: Array(64).fill(null).map(() => [])
     }));
     assert.match(validateProject(tooManyPages).errors.join('\n'), /maximum is 8/);
 });
@@ -63,11 +63,23 @@ test('rejects pages with malformed sound and light data', () => {
 
     const invalidSoundEntry = createValidProject();
     invalidSoundEntry.pages[0].sounds[0] = 42;
-    assert.match(validateProject(invalidSoundEntry).errors.join('\n'), /Sound 0: must be a string or empty/);
+    assert.match(validateProject(invalidSoundEntry).errors.join('\n'), /Sound 0: must be an array of steps/);
+
+    const invalidSoundStep = createValidProject();
+    invalidSoundStep.pages[0].sounds[0] = [42];
+    assert.match(validateProject(invalidSoundStep).errors.join('\n'), /Sound 0, Step 0: must be a string or empty/);
 
     const invalidLightEntry = createValidProject();
     invalidLightEntry.pages[0].lights[0] = 42;
-    assert.match(validateProject(invalidLightEntry).errors.join('\n'), /Light 0: must be a string or empty/);
+    assert.match(validateProject(invalidLightEntry).errors.join('\n'), /Light 0: must be an array of steps/);
+
+    const invalidLightStep = createValidProject();
+    invalidLightStep.pages[0].lights[0] = [42];
+    assert.match(validateProject(invalidLightStep).errors.join('\n'), /Light 0, Step 0: must be a string or empty/);
+
+    const tooManySteps = createValidProject();
+    tooManySteps.pages[0].sounds[0] = Array(17).fill('sample.wav');
+    assert.match(validateProject(tooManySteps).errors.join('\n'), /step count exceeds maximum of 16/);
 });
 
 test('rejects optional metadata with an invalid type', () => {
@@ -94,7 +106,7 @@ test('built-in projects pass validation and reference existing assets', () => {
         assert.equal(result.isValid, true, `${path.relative(workspaceRoot, configFile)}: ${result.errors.join('; ')}`);
 
         const assets = [
-            ...project.pages.flatMap(page => page.sounds),
+            ...project.pages.flatMap(page => page.sounds.flat()),
             project.coverImage,
             project.iconImage,
             project.backgroundVideo
@@ -113,18 +125,18 @@ test('built-in projects pass validation and reference existing assets', () => {
 
 test('validates optional LED animation data', () => {
     const project = createValidProject();
-    project.pages[0].lights = Array(64).fill('fade_red');
-    project.pages[0].lightSyncToSound = Array(64).fill(true);
-    project.pages[0].lightDurations = Array(64).fill(2.5);
+    project.pages[0].lights = Array(64).fill(null).map(() => ['fade_red']);
+    project.pages[0].lightSyncToSound = Array(64).fill(null).map(() => [true]);
+    project.pages[0].lightDurations = Array(64).fill(null).map(() => [2.5]);
     assert.equal(validateProject(project).isValid, true);
 
-    project.pages[0].lights[4] = 42;
-    project.pages[0].lightSyncToSound[2] = 'yes';
-    project.pages[0].lightDurations[3] = 120;
+    project.pages[0].lights[4] = [42];
+    project.pages[0].lightSyncToSound[2] = ['yes'];
+    project.pages[0].lightDurations[3] = [120];
     const errors = validateProject(project).errors.join('\n');
-    assert.match(errors, /Light 4: must be a string or empty/);
-    assert.match(errors, /Light sync 2: must be a boolean/);
-    assert.match(errors, /Light duration 3: must be between 0.1 and 60 seconds/);
+    assert.match(errors, /Light 4, Step 0: must be a string or empty/);
+    assert.match(errors, /Light sync 2, Step 0: must be a boolean/);
+    assert.match(errors, /Light duration 3, Step 0: must be between 0.1 and 60 seconds/);
 });
 
 test('validates visualizer configuration options', () => {
@@ -245,12 +257,12 @@ test('validates optional targetDevice configuration option', () => {
 test('checkProjectDeviceConsistency counts RGB animations on legacy projects', () => {
     const project = createValidProject();
     project.targetDevice = 'universal';
-    project.pages[0].lights[0] = 'fade_blue';
+    project.pages[0].lights[0] = ['fade_blue'];
     assert.deepEqual(checkProjectDeviceConsistency(project), { rgbLightCount: 0 });
 
     project.targetDevice = 'legacy';
     assert.deepEqual(checkProjectDeviceConsistency(project), { rgbLightCount: 1 });
 
-    project.pages[0].lights[0] = 'fade_red';
+    project.pages[0].lights[0] = ['fade_red'];
     assert.deepEqual(checkProjectDeviceConsistency(project), { rgbLightCount: 0 });
 });

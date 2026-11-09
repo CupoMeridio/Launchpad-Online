@@ -1285,6 +1285,120 @@ main {
     grid-column: 1 / -1;
 }
 
+/* Multisampling Step Bar */
+.creator-steps-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-dark);
+    border-radius: var(--radius-sm);
+}
+
+.creator-steps-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.creator-steps-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+}
+
+.creator-step-indicator {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent-blue);
+}
+
+.creator-steps-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.creator-step-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.creator-step-pill {
+    min-width: 28px;
+    height: 28px;
+    padding: 0 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-input);
+    border: 1px solid var(--border-dark);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.creator-step-pill:hover {
+    color: var(--text-bright);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: #555;
+}
+
+.creator-step-pill.selected {
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: #fff;
+    box-shadow: 0 0 6px rgba(0, 170, 255, 0.4);
+}
+
+.creator-step-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.creator-step-btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: bold;
+    line-height: 1;
+}
+
+/* Step count badge on Launchpad pad in Creator mode */
+.grid-item[data-steps]::after {
+    content: attr(data-steps);
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    background: var(--accent-blue);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+    pointer-events: none;
+    z-index: 5;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
 .creator-sample-name {
     min-height: 30px;
     margin: 0;

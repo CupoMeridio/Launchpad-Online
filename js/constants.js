@@ -42,6 +42,12 @@ export const TOTAL_AUTOMAP_BUTTONS = 8;
 export const FIRST_MODE_INDEX = 4;
 export const TOTAL_MODES = 4; // 4-7 are official modes
 
+/**
+ * Maximum number of multisample steps per pad in sequential round-robin mode.
+ */
+export const MAX_PAD_STEPS = 16;
+export const DEFAULT_PAD_STEP = 0;
+
 // ============================================================================
 // PROJECT ASSET LOADING TIMEOUTS
 // ============================================================================

@@ -1,5 +1,5 @@
 import { getTranslation, showNotification, syncInputSlider, getLaunchpadRotation, getLaunchpadSize } from './ui.js';
-import { buildAnimationCatalog, createProjectPage, createDraft, isDraftDirty, assignPadSample, removePadSample, filterCatalogByDevice, resolveLightColors } from './projectCreatorModel.js';
+import { buildAnimationCatalog, createProjectPage, createDraft, isDraftDirty, assignPadSample, removePadSample, filterCatalogByDevice, resolveLightColors, getPadSteps, addPadStep, removePadStep, assignPadStepSample, removePadStepSample, assignPadStepLight, setPadStepLightSync, setPadStepLightDuration } from './projectCreatorModel.js';
 import { exportProjectToZip, importProjectFromZip } from './projectZip.js';
 import { normalizeAppearance } from './appearanceModel.js';
 import {
@@ -22,6 +22,7 @@ import {
     LAUNCHPAD_COLS, 
     LAUNCHPAD_PADS, 
     MAX_PROJECT_PAGES, 
+    MAX_PAD_STEPS,
     MIN_LIGHT_DURATION_SEC, 
     MAX_LIGHT_DURATION_SEC, 
     DEFAULT_LIGHT_DURATION_SEC,
@@ -57,6 +58,7 @@ let initialized = false;
 let draft = null;
 let activePageIndex = 0;
 let activePadIndex = null;
+let activeStepIndex = 0;
 let editorActive = false;
 let activeLightCategory = 'all';
 let pendingTextAnimation = null;
@@ -64,6 +66,7 @@ let allAnimationGroups = null;
 let studioSubMode = 'edit';
 let activeCreatorView = 'pads';
 let activeMomentaryPreview = null;
+let creatorLiveStepIndices = new Map();
 
 let lastRenderedCategory = null;
 let lastRenderedSearch = null;
@@ -73,13 +76,35 @@ const creatorPadSource = {
     getPadConfig: (index) => {
         const page = getCurrentPage();
         if (!page) return null;
+        const steps = getPadSteps(page, index);
+        const totalSteps = Math.max(steps.length, 1);
+
+        if (studioSubMode === 'live') {
+            const key = `${activePageIndex}:${index}`;
+            const currentStep = (creatorLiveStepIndices.get(key) || 0) % totalSteps;
+            const stepObj = steps[currentStep] || steps[0] || {};
+            // Advance live step counter on press
+            creatorLiveStepIndices.set(key, (currentStep + 1) % totalSteps);
+            return {
+                soundIndex: undefined,
+                soundBuffer: stepObj.soundBuffer || null,
+                soundKey: `draft:${activePageIndex}:${index}`,
+                animationName: stepObj.light || null,
+                syncToSound: stepObj.lightSyncToSound ?? true,
+                manualDuration: stepObj.lightDuration ?? DEFAULT_LIGHT_DURATION_SEC
+            };
+        }
+
+        // Edit mode: if index is the activePadIndex, return active step; else step 0
+        const stepIdx = (index === activePadIndex) ? activeStepIndex : 0;
+        const stepObj = steps[stepIdx] || steps[0] || {};
         return {
             soundIndex: undefined,
-            soundBuffer: page.soundBuffers[index],
+            soundBuffer: stepObj.soundBuffer || null,
             soundKey: `draft:${activePageIndex}:${index}`,
-            animationName: page.lights[index] || null,
-            syncToSound: page.lightSyncToSound[index] ?? true,
-            manualDuration: getManualLightDuration(page, index)
+            animationName: stepObj.light || null,
+            syncToSound: stepObj.lightSyncToSound ?? true,
+            manualDuration: stepObj.lightDuration ?? DEFAULT_LIGHT_DURATION_SEC
         };
     },
     onPadPress: (index) => {
@@ -177,11 +202,22 @@ function renderPadGrid() {
         const pad = getPadElement(index);
         if (!pad) continue;
 
-        const sample = page.samples[index];
-        const led = page.lights[index];
-        pad.classList.toggle('creator-pad-assigned', !!sample || !!led);
+        const steps = getPadSteps(page, index);
+        const hasContent = steps.some(st => st.sample || st.light);
+        const step0 = steps[0] || {};
+        const sample = step0.sample;
+        const led = step0.light || '';
+
+        pad.classList.toggle('creator-pad-assigned', hasContent);
         pad.classList.toggle('creator-pad-selected', index === activePadIndex);
         pad.setAttribute('aria-pressed', String(index === activePadIndex));
+
+        if (steps.length > 1) {
+            pad.dataset.steps = String(steps.length);
+        } else {
+            delete pad.dataset.steps;
+        }
+
         const labels = [sample
             ? translate('creator.padAssigned', { pad: index + 1, file: sample.name })
             : translate('creator.padEmpty', { pad: index + 1 })];
@@ -261,7 +297,13 @@ function updateTargetDeviceWarnings() {
 function renderSelectedPad() {
     const page = getCurrentPage();
     const padInspector = document.getElementById('creator-pad-inspector');
-    const sampleCount = page.samples.filter(Boolean).length;
+    let sampleCount = 0;
+    for (let i = 0; i < LAUNCHPAD_PADS; i++) {
+        const padSteps = getPadSteps(page, i);
+        if (padSteps.some(st => st.sample)) {
+            sampleCount++;
+        }
+    }
     document.getElementById('project-creator-name').value = draft.name;
     const targetDeviceEl = document.getElementById('creator-target-device');
     if (targetDeviceEl) targetDeviceEl.value = draft.targetDevice || DEFAULT_TARGET_DEVICE;
@@ -274,9 +316,54 @@ function renderSelectedPad() {
     document.getElementById('creator-text-animation').hidden = !pendingTextAnimation;
     if (activePadIndex === null) return;
 
-    const sample = page.samples[activePadIndex];
-    const animation = page.lights[activePadIndex];
+    const steps = getPadSteps(page, activePadIndex);
+    if (activeStepIndex >= steps.length) {
+        activeStepIndex = Math.max(0, steps.length - 1);
+    }
+    const currentStep = steps[activeStepIndex] || steps[0] || {};
+    const sample = currentStep.sample || null;
+    const animation = currentStep.light || '';
     const isMomentary = !!(animation && animations[animation]?.type === 'momentary');
+
+    // Multisampling step pills & controls
+    const stepIndicator = document.getElementById('creator-step-indicator');
+    const stepPillsContainer = document.getElementById('creator-step-pills');
+    const addStepBtn = document.getElementById('creator-add-step');
+    const removeStepBtn = document.getElementById('creator-remove-step');
+
+    if (stepIndicator) {
+        stepIndicator.textContent = translate('creator.stepIndicator', {
+            step: activeStepIndex + 1,
+            total: steps.length
+        });
+    }
+
+    if (addStepBtn) {
+        addStepBtn.disabled = steps.length >= MAX_PAD_STEPS;
+    }
+    if (removeStepBtn) {
+        removeStepBtn.disabled = steps.length <= 1;
+    }
+
+    if (stepPillsContainer) {
+        stepPillsContainer.replaceChildren(
+            ...steps.map((st, idx) => {
+                const pill = document.createElement('button');
+                pill.type = 'button';
+                pill.className = 'creator-step-pill';
+                pill.classList.toggle('selected', idx === activeStepIndex);
+                pill.dataset.step = String(idx);
+                pill.textContent = String(idx + 1);
+                pill.setAttribute('role', 'tab');
+                pill.setAttribute('aria-selected', String(idx === activeStepIndex));
+                pill.addEventListener('click', () => {
+                    activeStepIndex = idx;
+                    renderSelectedPad();
+                });
+                return pill;
+            })
+        );
+    }
 
     document.getElementById('creator-selected-pad').textContent = translate('creator.pad', {
         pad: activePadIndex + 1
@@ -321,10 +408,12 @@ function renderSelectedPad() {
             const manualDurationInput = document.getElementById('creator-light-duration');
             const manualDurationContainer = document.getElementById('creator-manual-light-duration');
 
-            syncCheckbox.checked = page.lightSyncToSound[activePadIndex];
+            const isSync = currentStep.lightSyncToSound ?? true;
+            syncCheckbox.checked = isSync;
             syncCheckbox.disabled = !sample;
 
-            manualDurationInput.value = page.lightDurations[activePadIndex];
+            const durationVal = currentStep.lightDuration ?? DEFAULT_LIGHT_DURATION_SEC;
+            manualDurationInput.value = durationVal;
             manualDurationContainer.hidden = Boolean(sample && syncCheckbox.checked);
         }
     } else {
@@ -585,10 +674,12 @@ function forceCloseCreator() {
     stopAllDraftPads();
     setPadSource(null);
     studioSubMode = 'edit';
+    creatorLiveStepIndices.clear();
 
     // MEMORY PURGE: Release draft, AudioBuffers, and File objects immediately!
     draft = null;
     activePadIndex = null;
+    activeStepIndex = 0;
     pendingTextAnimation = null;
 
     const layout = document.querySelector('.layout');
@@ -602,6 +693,7 @@ function forceCloseCreator() {
         if (pad) {
             pad.classList.remove('creator-pad-assigned', 'creator-pad-selected', 'active');
             delete pad.dataset.creatorLed;
+            delete pad.dataset.steps;
             pad.style.removeProperty('--creator-led-color');
             pad.removeAttribute('aria-pressed');
             pad.removeAttribute('aria-label');
@@ -644,6 +736,8 @@ export function openCreator() {
     editorActive = true;
     activePageIndex = 0;
     activePadIndex = 0;
+    activeStepIndex = 0;
+    creatorLiveStepIndices.clear();
     pendingTextAnimation = null;
 
     setPadSource(creatorPadSource);
@@ -680,6 +774,7 @@ function updateLiveToolbar() {
 function setStudioSubMode(mode) {
     if (mode !== 'edit' && mode !== 'live') return;
     studioSubMode = mode;
+    creatorLiveStepIndices.clear();
     stopPreview();
     stopAllDraftPads();
 
@@ -731,6 +826,7 @@ function selectProjectPad(index, preview = false) {
     }
 
     activePadIndex = index;
+    activeStepIndex = 0;
     pendingTextAnimation = null;
     renderPadGrid();
     renderSelectedPad();
@@ -933,12 +1029,13 @@ export function setDraftForTesting(newDraft) {
 
 export async function assignSample(file) {
     const targetIndex = activePadIndex;
+    const targetStepIndex = activeStepIndex;
     const targetPage = getCurrentPage();
     const targetDraft = draft;
     if (!file || targetIndex === null || !targetPage) return;
 
     stopPreview();
-    const result = await assignPadSample(targetPage, targetIndex, file, (f) => audioEngine.decodeAudioFile(f));
+    const result = await assignPadStepSample(targetPage, targetIndex, targetStepIndex, file, (f) => audioEngine.decodeAudioFile(f));
 
     // The draft (or the whole editor session) may have been replaced while the
     // file was being decoded; discard stale results so we never mutate or
@@ -968,10 +1065,16 @@ function getPadPreviewContext(index = activePadIndex) {
     if (index === null || !getCurrentPage()) return null;
     stopPreview();
     const page = getCurrentPage();
+    const steps = getPadSteps(page, index);
+    const stepIdx = (index === activePadIndex) ? activeStepIndex : 0;
+    const step = steps[stepIdx] || steps[0] || {};
     return {
         page,
-        buffer: page.soundBuffers[index],
-        animation: page.lights[index],
+        step,
+        buffer: step.soundBuffer || null,
+        animation: step.light || '',
+        syncToSound: step.lightSyncToSound ?? true,
+        manualDuration: step.lightDuration ?? DEFAULT_LIGHT_DURATION_SEC,
         x: index % LAUNCHPAD_COLS,
         y: Math.floor(index / LAUNCHPAD_COLS)
     };
@@ -994,19 +1097,16 @@ function previewPad(index = activePadIndex) {
     const ctx = getPadPreviewContext(index);
     if (!ctx) return;
 
-    const manualDuration = getManualLightDuration(ctx.page, index);
-
     let duration = 0;
     if (ctx.buffer) {
         duration = audioEngine.playBuffer(ctx.buffer, 'preview');
     }
 
     if (ctx.animation) {
-        const syncToSound = ctx.page.lightSyncToSound[index] ?? true;
         const animDuration = resolveLightDuration(
-            syncToSound,
+            ctx.syncToSound,
             duration,
-            manualDuration
+            ctx.manualDuration
         );
         triggerAnimation(ctx.animation, ctx.x, ctx.y, animDuration);
     }
@@ -1069,14 +1169,17 @@ async function handleProjectZipFile(file) {
 
         if (currentImportId !== activeImportId || !editorActive) return;
 
-        // Decode audio buffers for all imported samples using assignPadSample
+        // Decode audio buffers for all imported samples across all steps
         for (let pageIdx = 0; pageIdx < importedDraft.pages.length; pageIdx++) {
             const page = importedDraft.pages[pageIdx];
             for (let padIdx = 0; padIdx < LAUNCHPAD_PADS; padIdx++) {
-                const sampleFile = page.samples[padIdx];
-                if (sampleFile) {
-                    await assignPadSample(page, padIdx, sampleFile, (f) => audioEngine.decodeAudioFile(f));
-                    if (currentImportId !== activeImportId || !editorActive) return;
+                const steps = getPadSteps(page, padIdx);
+                for (let stepIdx = 0; stepIdx < steps.length; stepIdx++) {
+                    const sampleFile = steps[stepIdx].sample;
+                    if (sampleFile) {
+                        await assignPadStepSample(page, padIdx, stepIdx, sampleFile, (f) => audioEngine.decodeAudioFile(f));
+                        if (currentImportId !== activeImportId || !editorActive) return;
+                    }
                 }
             }
         }
@@ -1232,10 +1335,17 @@ export function initializeProjectCreator() {
     });
 
     const previewBtn = document.getElementById('creator-preview-pad');
+    const getActiveStepAnimation = () => {
+        const page = getCurrentPage();
+        if (!page || activePadIndex === null) return '';
+        const steps = getPadSteps(page, activePadIndex);
+        const currentStep = steps[activeStepIndex] || steps[0] || {};
+        return currentStep.light || '';
+    };
+
     previewBtn.addEventListener('pointerdown', (e) => {
         if (previewBtn.disabled || e.button !== 0) return;
-        const page = getCurrentPage();
-        const animation = page?.lights[activePadIndex];
+        const animation = getActiveStepAnimation();
         if (animation && animations[animation]?.type === 'momentary') {
             e.preventDefault();
             startHoldPreview(activePadIndex);
@@ -1253,8 +1363,7 @@ export function initializeProjectCreator() {
     previewBtn.addEventListener('pointercancel', handleHoldRelease);
 
     previewBtn.addEventListener('click', () => {
-        const page = getCurrentPage();
-        const animation = page?.lights[activePadIndex];
+        const animation = getActiveStepAnimation();
         if (animation && animations[animation]?.type === 'momentary') {
             return;
         }
@@ -1263,8 +1372,7 @@ export function initializeProjectCreator() {
 
     previewBtn.addEventListener('keydown', (e) => {
         if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) {
-            const page = getCurrentPage();
-            const animation = page?.lights[activePadIndex];
+            const animation = getActiveStepAnimation();
             if (animation && animations[animation]?.type === 'momentary') {
                 e.preventDefault();
                 startHoldPreview(activePadIndex);
@@ -1278,10 +1386,39 @@ export function initializeProjectCreator() {
         }
     });
 
+    document.getElementById('creator-add-step').addEventListener('click', () => {
+        if (activePadIndex === null || !getCurrentPage()) return;
+        const page = getCurrentPage();
+        const steps = getPadSteps(page, activePadIndex);
+        if (steps.length >= MAX_PAD_STEPS) {
+            showNotification(getTranslation('creator.maxStepsReached'), 'warning');
+            return;
+        }
+        const newStepIndex = addPadStep(page, activePadIndex);
+        activeStepIndex = newStepIndex;
+        markDraftModified();
+        renderPadGrid();
+        renderSelectedPad();
+    });
+
+    document.getElementById('creator-remove-step').addEventListener('click', () => {
+        if (activePadIndex === null || !getCurrentPage()) return;
+        const page = getCurrentPage();
+        const removed = removePadStep(page, activePadIndex, activeStepIndex);
+        if (removed) {
+            if (activeStepIndex > 0) {
+                activeStepIndex--;
+            }
+            markDraftModified();
+            renderPadGrid();
+            renderSelectedPad();
+        }
+    });
+
     document.getElementById('creator-remove-sample').addEventListener('click', () => {
         if (activePadIndex === null || !getCurrentPage()) return;
         stopPreview();
-        removePadSample(getCurrentPage(), activePadIndex);
+        removePadStepSample(getCurrentPage(), activePadIndex, activeStepIndex);
         markDraftModified();
         renderPadGrid();
         renderSelectedPad();
@@ -1290,7 +1427,7 @@ export function initializeProjectCreator() {
     document.getElementById('creator-remove-light').addEventListener('click', () => {
         if (activePadIndex === null) return;
         stopPreview();
-        getCurrentPage().lights[activePadIndex] = '';
+        assignPadStepLight(getCurrentPage(), activePadIndex, activeStepIndex, '');
         markDraftModified();
         renderPadGrid();
         renderSelectedPad();
@@ -1301,7 +1438,7 @@ export function initializeProjectCreator() {
         if (activePadIndex === null) return;
         const page = getCurrentPage();
         if (page) {
-            page.lightSyncToSound[activePadIndex] = event.target.checked;
+            setPadStepLightSync(page, activePadIndex, activeStepIndex, event.target.checked);
             markDraftModified();
         }
         renderSelectedPad();
@@ -1314,7 +1451,7 @@ export function initializeProjectCreator() {
         if (!page) return;
         const value = Number.parseFloat(event.target.value);
         if (Number.isFinite(value) && value >= MIN_LIGHT_DURATION_SEC && value <= MAX_LIGHT_DURATION_SEC) {
-            page.lightDurations[activePadIndex] = Math.round(value * 10) / 10;
+            setPadStepLightDuration(page, activePadIndex, activeStepIndex, Math.round(value * 10) / 10);
             markDraftModified();
         }
     });
@@ -1324,10 +1461,12 @@ export function initializeProjectCreator() {
         if (!page) return;
         const value = Number.parseFloat(durationInput.value);
         if (Number.isFinite(value) && value >= MIN_LIGHT_DURATION_SEC && value <= MAX_LIGHT_DURATION_SEC) {
-            page.lightDurations[activePadIndex] = Math.round(value * 10) / 10;
+            setPadStepLightDuration(page, activePadIndex, activeStepIndex, Math.round(value * 10) / 10);
             markDraftModified();
         } else {
-            durationInput.value = String(getManualLightDuration(page, activePadIndex));
+            const steps = getPadSteps(page, activePadIndex);
+            const curStep = steps[activeStepIndex] || steps[0] || {};
+            durationInput.value = String(curStep.lightDuration ?? DEFAULT_LIGHT_DURATION_SEC);
         }
     });
 
@@ -1534,7 +1673,7 @@ function assignLightAnimation(animationName) {
     if (activePadIndex === null) return;
     pendingTextAnimation = null;
     document.getElementById('creator-text-animation').hidden = true;
-    getCurrentPage().lights[activePadIndex] = animationName;
+    assignPadStepLight(getCurrentPage(), activePadIndex, activeStepIndex, animationName);
     markDraftModified();
     renderPadGrid();
     renderSelectedPad();

@@ -16,7 +16,7 @@ import {
     applyAppearance
 } from './appearance.js';
 import { selectedProjectButton, setCurrentProject, setProjectSounds, setProjectLights, setProjectLightSyncToSound, setProjectLightDurations, setSelectedProjectButton, currentProject } from './app.js';
-import { changeSoundSet } from './interaction.js';
+import { changeSoundSet, resetPadStepCounters } from './interaction.js';
 import { stopAnimationLoop, startAnimationLoop } from './lights.js';
 import { validateProject, getErrorSummary } from './projectValidator.js';
 import { 
@@ -142,14 +142,34 @@ async function loadProjectInternal(configPath, button, onProgress = null) {
         const lightDurations = [];
         if (project.pages) {
             project.pages.forEach(page => {
-                sounds.push(...page.sounds.map(s => resolvePath(s)));
-                if (page.lights) {
-                    lights.push(...page.lights);
-                } else {
-                    lights.push(...new Array(LAUNCHPAD_PADS).fill(""));
-                }
-                lightSyncToSound.push(...(page.lightSyncToSound || new Array(LAUNCHPAD_PADS).fill(true)));
-                lightDurations.push(...(page.lightDurations || new Array(LAUNCHPAD_PADS).fill(DEFAULT_LIGHT_DURATION_SEC)));
+                const pageSounds = (page.sounds || []).map(stepEntry => {
+                    if (Array.isArray(stepEntry)) {
+                        return stepEntry.map(s => resolvePath(s));
+                    }
+                    return stepEntry ? [resolvePath(stepEntry)] : [];
+                });
+                sounds.push(...pageSounds);
+
+                const pageLights = (page.lights || []).map(stepEntry => {
+                    if (Array.isArray(stepEntry)) return stepEntry;
+                    return stepEntry ? [stepEntry] : [];
+                });
+                while (pageLights.length < LAUNCHPAD_PADS) pageLights.push([]);
+                lights.push(...pageLights);
+
+                const pageSync = (page.lightSyncToSound || []).map(stepEntry => {
+                    if (Array.isArray(stepEntry)) return stepEntry;
+                    return typeof stepEntry === 'boolean' ? [stepEntry] : [true];
+                });
+                while (pageSync.length < LAUNCHPAD_PADS) pageSync.push([true]);
+                lightSyncToSound.push(...pageSync);
+
+                const pageDurs = (page.lightDurations || []).map(stepEntry => {
+                    if (Array.isArray(stepEntry)) return stepEntry;
+                    return typeof stepEntry === 'number' ? [stepEntry] : [DEFAULT_LIGHT_DURATION_SEC];
+                });
+                while (pageDurs.length < LAUNCHPAD_PADS) pageDurs.push([DEFAULT_LIGHT_DURATION_SEC]);
+                lightDurations.push(...pageDurs);
             });
         }
         setProjectSounds(sounds);
@@ -166,7 +186,8 @@ async function loadProjectInternal(configPath, button, onProgress = null) {
         const hasSkin = !!appearance.skin;
         const hasIcon = !!appearance.icon;
         const hasVideo = !!appearance.background;
-        const totalAssets = sounds.length + (hasSkin ? 1 : 0) + (hasIcon ? 1 : 0) + (hasVideo ? 1 : 0);
+        const totalAudioFiles = sounds.reduce((acc, entry) => acc + (Array.isArray(entry) ? entry.filter(Boolean).length : (entry ? 1 : 0)), 0);
+        const totalAssets = (totalAudioFiles || 1) + (hasSkin ? 1 : 0) + (hasIcon ? 1 : 0) + (hasVideo ? 1 : 0);
 
         const updateOverallProgress = () => {
             const totalLoaded = audioLoaded + skinLoaded + iconLoaded + videoLoaded;
@@ -246,6 +267,7 @@ async function loadProjectInternal(configPath, button, onProgress = null) {
         markProjectReady();
 
         // Reset to first page ONLY AFTER the project is marked as ready
+        resetPadStepCounters();
         changeSoundSet(0);
         
     } catch (error) {

@@ -67,7 +67,7 @@
     -->
   <script>
     // Check for Web Audio API support
-    if (typeof AudioContext === 'undefined' && typeof webkitAudioContext === 'undefined') {
+    if (typeof AudioContext === 'undefined') {
       // Web Audio not supported - show warning after DOM loads
       document.addEventListener('DOMContentLoaded', function() {
         const overlay = document.getElementById('audio-unlock-overlay');
@@ -525,6 +525,22 @@
           <div class="inspector-page-heading">
             <span data-i18n="creator.selectedPad">PAD SELEZIONATO</span>
             <strong id="creator-selected-pad">Pad 1</strong>
+          </div>
+          <div id="creator-steps-bar" class="creator-steps-bar">
+            <div class="creator-steps-header">
+              <span class="creator-steps-title" data-i18n="creator.multisamplingTitle">Campionamento multiplo</span>
+              <span id="creator-step-indicator" class="creator-step-indicator">Step 1 di 1</span>
+            </div>
+            <div class="creator-steps-controls">
+              <div id="creator-step-pills" class="creator-step-pills" role="tablist" aria-label="Step del pad"
+                data-i18n-aria-label="a11y.padSteps"></div>
+              <div class="creator-step-actions">
+                <button type="button" class="inspector-action creator-step-btn" id="creator-add-step"
+                  data-i18n="creator.addStep" aria-label="Aggiungi step">+</button>
+                <button type="button" class="inspector-action creator-step-btn" id="creator-remove-step"
+                  data-i18n="creator.removeStep" aria-label="Rimuovi step">-</button>
+              </div>
+            </div>
           </div>
           <p id="creator-sample-name" class="creator-sample-name"></p>
           <div class="inspector-actions">

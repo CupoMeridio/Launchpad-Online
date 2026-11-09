@@ -56,8 +56,19 @@ class AudioEngine {
      * @throws {Error} If Web Audio API is not supported or initialization fails.
      */
     async init() {
-        if (this.audioContext) return; // Already initialized
+        if (this.isReady()) return; // Already initialized and ready
         
+        // Clean up any partially initialized context from a previous failed attempt
+        if (this.audioContext) {
+            try {
+                if (typeof this.audioContext.close === 'function') {
+                    await this.audioContext.close();
+                }
+            } catch (_) {}
+            this.audioContext = null;
+        }
+        this.analyser = null;
+
         // Check browser support
         if (!isWebAudioSupported()) {
             const errorMsg = "Web Audio API is not supported in this browser. Please use Chrome, Firefox, Edge, or Safari.";
@@ -88,11 +99,21 @@ class AudioEngine {
                 }
             });
 
+            this.initError = null;
             debug("[AUDIO] AudioEngine initialized successfully.");
         } catch (error) {
             const errorMsg = `[AUDIO] Failed to initialize AudioContext: ${error.message}`;
             this.initError = errorMsg;
             console.error(errorMsg);
+            if (this.audioContext) {
+                try {
+                    if (typeof this.audioContext.close === 'function') {
+                        await this.audioContext.close();
+                    }
+                } catch (_) {}
+                this.audioContext = null;
+            }
+            this.analyser = null;
             throw error;
         }
     }
@@ -116,21 +137,21 @@ class AudioEngine {
     /**
      * Loads a single audio file from the specified URL.
      * @param {string|null} url - The URL of the audio file to load.
-     * @param {number} index - The index to store the audio buffer in the `soundBuffers` array.
+     * @param {number} [index] - The index to store the audio buffer in the `soundBuffers` array.
      * @param {boolean} notifyUser - Whether to show error notification to user (default: false for batch operations)
      * @returns {Promise<AudioBuffer|null>} The decoded buffer or null on failure
      */
     async loadSound(url, index, notifyUser = false) {
         // If URL is null or undefined (for empty pads), store `null` and exit.
         if (!url) {
-            this.soundBuffers[index] = null;
+            if (index !== undefined) this.soundBuffers[index] = null;
             return null;
         }
 
         // Ensure audioContext is available
         if (!this.audioContext) {
-            console.warn(`[AUDIO] Cannot load sound at index ${index}: AudioContext not initialized.`);
-            this.soundBuffers[index] = null;
+            console.warn(`[AUDIO] Cannot load sound: AudioContext not initialized.`);
+            if (index !== undefined) this.soundBuffers[index] = null;
             audioLoadingTracker.markFailure(url, AUDIO_ERROR_TYPES.CONTEXT_ERROR, new Error('AudioContext not initialized'));
             return null;
         }
@@ -144,7 +165,9 @@ class AudioEngine {
             if (notifyUser) {
                 showNotification(`${errorInfo.title}: ${errorInfo.message}`, 'error');
             }
-            this.soundBuffers[index] = null;
+            if (index !== undefined && !Array.isArray(this.soundBuffers[index])) {
+                this.soundBuffers[index] = null;
+            }
             return null;
         };
 
@@ -184,8 +207,10 @@ class AudioEngine {
                 return handleLoadError(AUDIO_ERROR_TYPES.CORRUPTED_FILE, new Error(validation.error));
             }
 
-            // Store the decoded buffer in the array at the correct position.
-            this.soundBuffers[index] = audioBuffer;
+            // Store the decoded buffer in the array if index provided
+            if (index !== undefined) {
+                this.soundBuffers[index] = audioBuffer;
+            }
             audioLoadingTracker.markSuccess(url);
             debug(`[AUDIO] Sound loaded successfully: ${url}`);
             return audioBuffer;
@@ -196,42 +221,59 @@ class AudioEngine {
     }
 
     /**
-     * Loads an entire array of sound URLs in batches to avoid saturating connections.
-     * @param {string[]} soundUrls - An array of URLs to load.
+     * Loads an entire array of sound URL entries in batches to avoid saturating connections.
+     * Each entry can be an array of step URLs (`string[]`) or a single URL string.
+     * @param {Array<string[]|string|null>} soundEntries - An array of sound entries to load.
      * @param {function} onProgress - Optional callback for loading progress (loadedCount, totalCount).
      * @returns {Promise<object>} Loading summary with success/failure stats
      */
-    async loadSounds(soundUrls, onProgress = null) {
+    async loadSounds(soundEntries, onProgress = null) {
         this.soundBuffers = []; // Clear previous project buffers.
         audioLoadingTracker.reset(); // Reset loading tracker for new project
-        
-        const total = soundUrls.length;
-        const BATCH_SIZE = 10; // Load 10 sounds at a time
 
-        let successCount = 0;
-        let failureCount = 0;
+        const tasks = [];
+        for (let i = 0; i < soundEntries.length; i++) {
+            const rawEntry = soundEntries[i];
+            const stepUrls = Array.isArray(rawEntry) ? rawEntry : (rawEntry ? [rawEntry] : []);
+            this.soundBuffers[i] = new Array(stepUrls.length).fill(null);
+            for (let s = 0; s < stepUrls.length; s++) {
+                const url = stepUrls[s];
+                if (url) {
+                    tasks.push({ padIndex: i, stepIndex: s, url });
+                }
+            }
+        }
+
+        const total = tasks.length;
+        if (total === 0) {
+            if (onProgress) onProgress(0, 0);
+            return { total: 0, successful: 0, failed: 0, failureDetails: [] };
+        }
+
+        const BATCH_SIZE = 10; // Load 10 sounds at a time
+        let loadedCount = 0;
 
         try {
             for (let i = 0; i < total; i += BATCH_SIZE) {
-                const batch = soundUrls.slice(i, i + BATCH_SIZE);
-                const batchPromises = batch.map((url, index) => 
-                    this.loadSound(url, i + index, false) // Don't notify for each sound in batch
-                        .then(() => {
-                            successCount++;
-                        })
-                        .catch((error) => {
-                            failureCount++;
-                            console.error(`[AUDIO] Batch load error for index ${i + index}:`, error);
-                        })
-                );
+                const batch = tasks.slice(i, i + BATCH_SIZE);
+                const batchPromises = batch.map(async task => {
+                    try {
+                        const buffer = await this.loadSound(task.url, undefined, false);
+                        if (buffer) {
+                            this.soundBuffers[task.padIndex][task.stepIndex] = buffer;
+                        }
+                    } catch (error) {
+                        console.error(`[AUDIO] Batch load error for pad ${task.padIndex}, step ${task.stepIndex}:`, error);
+                    } finally {
+                        loadedCount++;
+                        if (onProgress) {
+                            onProgress(loadedCount, total);
+                        }
+                    }
+                });
 
                 // Wait for batch to complete, but don't let one failure stop the whole batch
                 await Promise.allSettled(batchPromises);
-
-                if (onProgress) {
-                    const loadedCount = Math.min(i + BATCH_SIZE, total);
-                    onProgress(loadedCount, total);
-                }
             }
 
             const stats = audioLoadingTracker.getFailureStats();
@@ -398,12 +440,15 @@ class AudioEngine {
     }
 
     /**
-     * Plays the sound associated with a specific pad.
+     * Plays the sound associated with a specific pad and step.
      * @param {number} padIndex - The index of the pad (0-63) to play.
+     * @param {number} [stepIndex=0] - The step index (0-15) for multisampling.
      * @returns {number} Duration of the sound in seconds, or 0 if no sound was played.
      */
-    playPadSound(padIndex) {
-        return this.playBuffer(this.soundBuffers[padIndex], padIndex);
+    playPadSound(padIndex, stepIndex = 0) {
+        const slot = this.soundBuffers[padIndex];
+        const buffer = Array.isArray(slot) ? (slot[stepIndex] || null) : slot;
+        return this.playBuffer(buffer, padIndex);
     }
 
     /**

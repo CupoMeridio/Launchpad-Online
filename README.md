@@ -33,10 +33,13 @@ The project serves as a specialized alternative to Ableton Live, focusing exclus
 - **Audio Core & Visualizer**: 
   - Audio engine based on Web Audio API for sample playback.
   - Real-time audio visualizer with customizable rendering options.
+- **In-App Studio Creator**: Integrated visual editor to build, customize, and configure projects directly within the application, featuring live preview and complete project ZIP export and import.
+- **Multisampling Support**: Multi-step audio and light sequence assignment per pad with round-robin playback and momentary hold preview.
 - **Customization & Aesthetics**:
   - **Launchpad Skins**: Change the appearance of the digital controller, including support for button stickers/decals.
   - **Dynamic Backgrounds**: Decorative background images and video loops to enhance performance videos.
   - **Layout Control**: Rotation and scalability settings for optimal visuals.
+- **Multi-language Support (Localization)**: Full internationalization support with English, Italian, German, French, and Spanish locales.
 - **PWA Ready**: Installable as a native app on desktop and mobile, with offline support.
 - **Project Management**: Project loading via JSON files with support for up to 8 pages (512 total sounds).
 - **Built-in Project Library**: Access a growing collection of pre-configured projects ready to be played immediately.
@@ -47,13 +50,10 @@ The project serves as a specialized alternative to Ableton Live, focusing exclus
 
 Planned features for future development:
 
-- **Multisampling Support**: Ability to assign multiple audio samples to a single button (e.g., for velocity layering or round-robin).
-- **In-App Project Creator**: Integrated tool to build and configure projects directly within the application without manual JSON editing.
 - **In-App Animation Designer**: Visual interface to create and customize lighting patterns and animations.
 - **Project Library Expansion**: Continuous addition of ready-to-play projects to the built-in library.
 - **Performance Optimization**: Continuous research into app optimization to ensure lightweight and fast execution across browsers and the widest possible range of devices.
 - **Asset Compression & Memory Management**: Implementation of methods to reduce or compress the size of video and audio assets (currently .mp4 and .wav) to make the app lighter and less memory-intensive.
-- **Localization & Multi-language Support**: Implement translations for as many languages as possible to make the application accessible to a global audience.
 
 ---
 

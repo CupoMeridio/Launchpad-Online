@@ -24,6 +24,16 @@ let interactionInitialized = false; // Track if listeners have been set up
 let shakeTimeoutId = null; // Track error shake timeout to prevent stacking
 
 let currentPadSource = null;
+const padStepCounters = new Map();
+const activePressAnimations = new Map();
+
+/**
+ * Resets pad step round-robin counters (e.g. on project load).
+ */
+export function resetPadStepCounters() {
+    padStepCounters.clear();
+    activePressAnimations.clear();
+}
 
 /**
  * Registers an active pad configuration source provider (e.g. Studio Creator).
@@ -43,12 +53,34 @@ function getDefaultPadConfig(index) {
     if (!state.project) return null;
     const soundIndex = state.page * LAUNCHPAD_PADS + index;
     const isReady = isProjectReady();
+
+    const rawSounds = state.sounds?.[soundIndex];
+    const rawLights = state.lights?.[soundIndex];
+    const rawSync = state.lightSyncToSound?.[soundIndex];
+    const rawDur = state.lightDurations?.[soundIndex];
+
+    const soundSteps = Array.isArray(rawSounds) ? rawSounds : (rawSounds ? [rawSounds] : []);
+    const lightSteps = Array.isArray(rawLights) ? rawLights : (rawLights ? [rawLights] : []);
+    const syncSteps = Array.isArray(rawSync) ? rawSync : (typeof rawSync === 'boolean' ? [rawSync] : []);
+    const durSteps = Array.isArray(rawDur) ? rawDur : (typeof rawDur === 'number' ? [rawDur] : []);
+
+    const totalSteps = Math.max(soundSteps.length, lightSteps.length, 1);
+    const counterKey = `${state.page}:${index}`;
+    const currentStep = (padStepCounters.get(counterKey) || 0) % totalSteps;
+
+    const animName = isReady && lightSteps.length > 0 ? (lightSteps[currentStep] || null) : null;
+    const syncToSound = syncSteps[currentStep] !== undefined ? syncSteps[currentStep] : true;
+    const manualDuration = (typeof durSteps[currentStep] === 'number') ? durSteps[currentStep] : DEFAULT_LIGHT_DURATION_SEC;
+
     return {
         soundIndex,
+        stepIndex: currentStep,
+        totalSteps,
+        counterKey,
         soundBuffer: null,
-        animationName: isReady && state.lights ? state.lights[soundIndex] : null,
-        syncToSound: state.lightSyncToSound?.[soundIndex] ?? true,
-        manualDuration: state.lightDurations?.[soundIndex] ?? DEFAULT_LIGHT_DURATION_SEC
+        animationName: animName,
+        syncToSound,
+        manualDuration
     };
 }
 
@@ -72,7 +104,7 @@ export function triggerPad(index) {
         const soundKey = config.soundKey !== undefined ? config.soundKey : `draft:${index}`;
         duration = audioEngine.playBuffer(config.soundBuffer, soundKey);
     } else if (config.soundIndex !== undefined) {
-        duration = audioEngine.playPadSound(config.soundIndex);
+        duration = audioEngine.playPadSound(config.soundIndex, config.stepIndex ?? 0);
     }
 
     if (config.animationName) {
@@ -80,6 +112,14 @@ export function triggerPad(index) {
         const y = Math.floor(index / LAUNCHPAD_COLS);
         const animationDuration = resolveLightDuration(config.syncToSound, duration, config.manualDuration);
         triggerAnimation(config.animationName, x, y, animationDuration);
+        activePressAnimations.set(index, config.animationName);
+    } else {
+        activePressAnimations.delete(index);
+    }
+
+    // Advance round-robin counter if default provider and multi-step
+    if (!currentPadSource && config.counterKey && config.totalSteps > 1) {
+        padStepCounters.set(config.counterKey, ((config.stepIndex ?? 0) + 1) % config.totalSteps);
     }
 
     pad.classList.add('active');
@@ -93,11 +133,20 @@ export function releasePad(index) {
     const pad = getPadElement(index);
     if (!pad) return;
 
-    const config = currentPadSource ? currentPadSource.getPadConfig(index) : getDefaultPadConfig(index);
-    if (config?.animationName) {
+    const animationName = activePressAnimations.get(index);
+    activePressAnimations.delete(index);
+
+    if (animationName) {
         const x = index % LAUNCHPAD_COLS;
         const y = Math.floor(index / LAUNCHPAD_COLS);
-        releaseAnimation(config.animationName, x, y);
+        releaseAnimation(animationName, x, y);
+    } else {
+        const config = currentPadSource ? currentPadSource.getPadConfig(index) : getDefaultPadConfig(index);
+        if (config?.animationName) {
+            const x = index % LAUNCHPAD_COLS;
+            const y = Math.floor(index / LAUNCHPAD_COLS);
+            releaseAnimation(config.animationName, x, y);
+        }
     }
 
     pad.classList.remove('active');

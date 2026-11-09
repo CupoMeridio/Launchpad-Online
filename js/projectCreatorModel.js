@@ -1,6 +1,7 @@
 import { 
     LAUNCHPAD_PADS, 
     MAX_PROJECT_PAGES, 
+    MAX_PAD_STEPS,
     DEFAULT_LIGHT_DURATION_SEC, 
     ANIMATION_COLORS,
     DEFAULT_TARGET_DEVICE,
@@ -80,9 +81,22 @@ export function buildAnimationCatalog(animationRegistry, targetDevice = DEFAULT_
         .sort((first, second) => first.label.localeCompare(second.label));
 }
 
+export function createEmptyPadStep() {
+    return {
+        sample: null,
+        soundBuffer: null,
+        sampleToken: 0,
+        light: '',
+        lightSyncToSound: true,
+        lightDuration: DEFAULT_LIGHT_DURATION_SEC
+    };
+}
+
 export function createProjectPage(pageNumber) {
+    const padSteps = Array.from({ length: LAUNCHPAD_PADS }, () => [createEmptyPadStep()]);
     return {
         name: `Page ${pageNumber}`,
+        padSteps,
         samples: Array(LAUNCHPAD_PADS).fill(null),
         soundBuffers: Array(LAUNCHPAD_PADS).fill(null),
         sampleTokens: Array(LAUNCHPAD_PADS).fill(0),
@@ -92,26 +106,113 @@ export function createProjectPage(pageNumber) {
     };
 }
 
-/**
- * Assigns an audio sample to a specific pad using token-based concurrency protection.
- * If superseded by a newer assignment or removal during decoding, returns 'superseded' and discards result.
- * If decode fails or buffer is null, returns 'failed' and leaves previous sample intact.
- * If successful, assigns sample and buffer and returns 'assigned'.
- * 
- * @param {object} page - The target page object.
- * @param {number} padIndex - Pad index (0..63).
- * @param {Blob|File|object} file - Audio file to decode and assign.
- * @param {Function} [decoder] - Async function (file) => Promise<AudioBuffer|any>.
- * @returns {Promise<'assigned' | 'superseded' | 'failed'>} Result of assignment.
- */
-export async function assignPadSample(page, padIndex, file, decoder = null) {
+export function getPadSteps(page, padIndex) {
+    if (!page) return [];
+    if (!page.padSteps) {
+        page.padSteps = Array.from({ length: LAUNCHPAD_PADS }, (_, i) => [{
+            sample: page.samples?.[i] || null,
+            soundBuffer: page.soundBuffers?.[i] || null,
+            light: page.lights?.[i] || '',
+            lightSyncToSound: page.lightSyncToSound?.[i] ?? true,
+            lightDuration: page.lightDurations?.[i] ?? DEFAULT_LIGHT_DURATION_SEC
+        }]);
+    }
+    if (!page.padSteps[padIndex] || page.padSteps[padIndex].length === 0) {
+        page.padSteps[padIndex] = [{
+            sample: page.samples?.[padIndex] || null,
+            soundBuffer: page.soundBuffers?.[padIndex] || null,
+            light: page.lights?.[padIndex] || '',
+            lightSyncToSound: page.lightSyncToSound?.[padIndex] ?? true,
+            lightDuration: page.lightDurations?.[padIndex] ?? DEFAULT_LIGHT_DURATION_SEC
+        }];
+    }
+    // Reflect mutations between step-0 and legacy page-level mirrors
+    if (page.padSteps[padIndex]?.[0]) {
+        const step0 = page.padSteps[padIndex][0];
+        if (page.samples) {
+            if (page.samples[padIndex] && page.samples[padIndex] !== step0.sample) {
+                step0.sample = page.samples[padIndex];
+            } else if (step0.sample) {
+                page.samples[padIndex] = step0.sample;
+            }
+        }
+        if (page.soundBuffers) {
+            if (page.soundBuffers[padIndex] && page.soundBuffers[padIndex] !== step0.soundBuffer) {
+                step0.soundBuffer = page.soundBuffers[padIndex];
+            } else if (step0.soundBuffer) {
+                page.soundBuffers[padIndex] = step0.soundBuffer;
+            }
+        }
+        if (page.lights) {
+            if (page.lights[padIndex] && page.lights[padIndex] !== step0.light) {
+                step0.light = page.lights[padIndex];
+            } else if (step0.light) {
+                page.lights[padIndex] = step0.light;
+            }
+        }
+        if (page.lightSyncToSound) {
+            if (page.lightSyncToSound[padIndex] === false) {
+                step0.lightSyncToSound = false;
+            } else if (step0.lightSyncToSound === false) {
+                page.lightSyncToSound[padIndex] = false;
+            }
+        }
+        if (page.lightDurations) {
+            if (typeof page.lightDurations[padIndex] === 'number' && page.lightDurations[padIndex] !== DEFAULT_LIGHT_DURATION_SEC) {
+                step0.lightDuration = page.lightDurations[padIndex];
+            } else if (typeof step0.lightDuration === 'number' && step0.lightDuration !== DEFAULT_LIGHT_DURATION_SEC) {
+                page.lightDurations[padIndex] = step0.lightDuration;
+            }
+        }
+    }
+    return page.padSteps[padIndex];
+}
+
+export function addPadStep(page, padIndex) {
+    const steps = getPadSteps(page, padIndex);
+    if (steps.length >= MAX_PAD_STEPS) return steps.length - 1;
+    steps.push(createEmptyPadStep());
+    return steps.length - 1;
+}
+
+export function removePadStep(page, padIndex, stepIndex) {
+    const steps = getPadSteps(page, padIndex);
+    if (steps.length <= 1) return false;
+    if (stepIndex < 0 || stepIndex >= steps.length) return false;
+    const [removedStep] = steps.splice(stepIndex, 1);
+    if (removedStep) {
+        removedStep.sampleToken = (removedStep.sampleToken || 0) + 1;
+    }
+    // Sync step 0 mirror
+    if (page.samples) page.samples[padIndex] = steps[0]?.sample || null;
+    if (page.soundBuffers) page.soundBuffers[padIndex] = steps[0]?.soundBuffer || null;
+    if (page.lights) page.lights[padIndex] = steps[0]?.light || '';
+    if (page.lightSyncToSound) page.lightSyncToSound[padIndex] = steps[0]?.lightSyncToSound ?? true;
+    if (page.lightDurations) page.lightDurations[padIndex] = steps[0]?.lightDuration ?? DEFAULT_LIGHT_DURATION_SEC;
+    return true;
+}
+
+export async function assignPadStepSample(page, padIndex, stepIndex, file, decoder = null) {
     if (!page || typeof padIndex !== 'number' || padIndex < 0 || padIndex >= LAUNCHPAD_PADS || !file) {
         return 'failed';
     }
-    if (!page.sampleTokens) {
-        page.sampleTokens = Array(LAUNCHPAD_PADS).fill(0);
+    const steps = getPadSteps(page, padIndex);
+    if (stepIndex < 0 || stepIndex >= steps.length) {
+        return 'failed';
     }
-    const token = ++page.sampleTokens[padIndex];
+
+    const targetStep = steps[stepIndex];
+    if (!targetStep.sampleToken) {
+        targetStep.sampleToken = 0;
+    }
+    const token = ++targetStep.sampleToken;
+
+    if (stepIndex === 0) {
+        if (!page.sampleTokens) {
+            page.sampleTokens = Array(LAUNCHPAD_PADS).fill(0);
+        }
+        page.sampleTokens[padIndex]++;
+    }
 
     let buffer = null;
     if (typeof decoder === 'function') {
@@ -124,8 +225,8 @@ export async function assignPadSample(page, padIndex, file, decoder = null) {
         buffer = file.soundBuffer;
     }
 
-    // Ignore if superseded by a subsequent file selection or removal
-    if (page.sampleTokens[padIndex] !== token) {
+    const currentSteps = getPadSteps(page, padIndex);
+    if (!currentSteps.includes(targetStep) || targetStep.sampleToken !== token) {
         return 'superseded';
     }
 
@@ -133,28 +234,77 @@ export async function assignPadSample(page, padIndex, file, decoder = null) {
         return 'failed';
     }
 
-    page.samples[padIndex] = file;
-    page.soundBuffers[padIndex] = buffer;
+    targetStep.sample = file;
+    targetStep.soundBuffer = buffer;
+
+    if (currentSteps[0] === targetStep) {
+        if (page.samples) page.samples[padIndex] = file;
+        if (page.soundBuffers) page.soundBuffers[padIndex] = buffer;
+    }
+
     return 'assigned';
 }
 
-/**
- * Removes an assigned sample and buffer from a pad, incrementing the token
- * to cancel any in-flight decode.
- * 
- * @param {object} page - The target page object.
- * @param {number} padIndex - Pad index (0..63).
- */
+export function removePadStepSample(page, padIndex, stepIndex = 0) {
+    if (!page || typeof padIndex !== 'number' || padIndex < 0 || padIndex >= LAUNCHPAD_PADS) return;
+    const steps = getPadSteps(page, padIndex);
+    if (stepIndex >= 0 && stepIndex < steps.length) {
+        const step = steps[stepIndex];
+        if (step) {
+            step.sampleToken = (step.sampleToken || 0) + 1;
+            step.sample = null;
+            step.soundBuffer = null;
+        }
+    }
+
+    if (stepIndex === 0) {
+        if (!page.sampleTokens) {
+            page.sampleTokens = Array(LAUNCHPAD_PADS).fill(0);
+        }
+        page.sampleTokens[padIndex]++;
+        if (page.samples) page.samples[padIndex] = null;
+        if (page.soundBuffers) page.soundBuffers[padIndex] = null;
+    }
+}
+
+export function assignPadStepLight(page, padIndex, stepIndex, animationName) {
+    const steps = getPadSteps(page, padIndex);
+    if (stepIndex >= 0 && stepIndex < steps.length) {
+        steps[stepIndex].light = animationName || '';
+        if (stepIndex === 0 && page.lights) {
+            page.lights[padIndex] = steps[0].light;
+        }
+    }
+}
+
+export function setPadStepLightSync(page, padIndex, stepIndex, sync) {
+    const steps = getPadSteps(page, padIndex);
+    if (stepIndex >= 0 && stepIndex < steps.length) {
+        steps[stepIndex].lightSyncToSound = Boolean(sync);
+        if (stepIndex === 0 && page.lightSyncToSound) {
+            page.lightSyncToSound[padIndex] = steps[0].lightSyncToSound;
+        }
+    }
+}
+
+export function setPadStepLightDuration(page, padIndex, stepIndex, duration) {
+    const steps = getPadSteps(page, padIndex);
+    if (stepIndex >= 0 && stepIndex < steps.length) {
+        steps[stepIndex].lightDuration = typeof duration === 'number' && Number.isFinite(duration)
+            ? duration
+            : DEFAULT_LIGHT_DURATION_SEC;
+        if (stepIndex === 0 && page.lightDurations) {
+            page.lightDurations[padIndex] = steps[0].lightDuration;
+        }
+    }
+}
+
+export async function assignPadSample(page, padIndex, file, decoder = null) {
+    return assignPadStepSample(page, padIndex, 0, file, decoder);
+}
+
 export function removePadSample(page, padIndex) {
-    if (!page || typeof padIndex !== 'number' || padIndex < 0 || padIndex >= LAUNCHPAD_PADS) {
-        return;
-    }
-    if (!page.sampleTokens) {
-        page.sampleTokens = Array(LAUNCHPAD_PADS).fill(0);
-    }
-    page.sampleTokens[padIndex]++;
-    page.samples[padIndex] = null;
-    page.soundBuffers[padIndex] = null;
+    removePadStepSample(page, padIndex, 0);
 }
 
 export function createProjectId(name) {
@@ -291,33 +441,42 @@ export function buildDraftFromProject(projectData, fileMap = new Map()) {
             draftPage.name = page.name.trim();
         }
 
-        if (Array.isArray(page.sounds)) {
-            page.sounds.slice(0, LAUNCHPAD_PADS).forEach((soundPath, padIdx) => {
-                if (soundPath) {
-                    const file = getFile(soundPath);
-                    if (file) {
-                        draftPage.samples[padIdx] = file;
-                    }
-                }
-            });
-        }
+        for (let padIdx = 0; padIdx < LAUNCHPAD_PADS; padIdx++) {
+            const rawSound = page.sounds?.[padIdx];
+            const rawLight = page.lights?.[padIdx];
+            const rawSync = page.lightSyncToSound?.[padIdx];
+            const rawDur = page.lightDurations?.[padIdx];
 
-        if (Array.isArray(page.lights)) {
-            page.lights.slice(0, LAUNCHPAD_PADS).forEach((light, padIdx) => {
-                draftPage.lights[padIdx] = (typeof light === 'string') ? light : '';
-            });
-        }
+            const soundSteps = Array.isArray(rawSound) ? rawSound : (rawSound ? [rawSound] : []);
+            const lightSteps = Array.isArray(rawLight) ? rawLight : (rawLight ? [rawLight] : []);
+            const syncSteps = Array.isArray(rawSync) ? rawSync : (typeof rawSync === 'boolean' ? [rawSync] : []);
+            const durSteps = Array.isArray(rawDur) ? rawDur : (typeof rawDur === 'number' ? [rawDur] : []);
 
-        if (Array.isArray(page.lightSyncToSound)) {
-            page.lightSyncToSound.slice(0, LAUNCHPAD_PADS).forEach((sync, padIdx) => {
-                draftPage.lightSyncToSound[padIdx] = (typeof sync === 'boolean') ? sync : true;
-            });
-        }
+            const totalSteps = Math.max(soundSteps.length, lightSteps.length, 1);
+            const steps = [];
 
-        if (Array.isArray(page.lightDurations)) {
-            page.lightDurations.slice(0, LAUNCHPAD_PADS).forEach((dur, padIdx) => {
-                draftPage.lightDurations[padIdx] = (typeof dur === 'number' && Number.isFinite(dur)) ? dur : DEFAULT_LIGHT_DURATION_SEC;
-            });
+            for (let s = 0; s < totalSteps; s++) {
+                const soundPath = soundSteps[s] || '';
+                const sampleFile = soundPath ? getFile(soundPath) : null;
+                const light = lightSteps[s] || '';
+                const sync = syncSteps[s] !== undefined ? syncSteps[s] : true;
+                const dur = (typeof durSteps[s] === 'number' && Number.isFinite(durSteps[s])) ? durSteps[s] : DEFAULT_LIGHT_DURATION_SEC;
+
+                steps.push({
+                    sample: sampleFile,
+                    soundBuffer: null,
+                    sampleToken: 0,
+                    light,
+                    lightSyncToSound: sync,
+                    lightDuration: dur
+                });
+            }
+
+            draftPage.padSteps[padIdx] = steps;
+            draftPage.samples[padIdx] = steps[0]?.sample || null;
+            draftPage.lights[padIdx] = steps[0]?.light || '';
+            draftPage.lightSyncToSound[padIdx] = steps[0]?.lightSyncToSound ?? true;
+            draftPage.lightDurations[padIdx] = steps[0]?.lightDuration ?? DEFAULT_LIGHT_DURATION_SEC;
         }
 
         return draftPage;
@@ -363,28 +522,64 @@ export function buildProjectExport(draft) {
 
     const files = [];
     const pages = draft.pages.map((page, pageIndex) => {
-        if (!Array.isArray(page.samples) || page.samples.length !== LAUNCHPAD_PADS) {
-            throw new Error(`Page ${pageIndex + 1} must have ${LAUNCHPAD_PADS} pad slots`);
+        const padCount = page?.padSteps?.length ?? page?.samples?.length;
+        if (padCount !== LAUNCHPAD_PADS) {
+            throw new Error(`Each page must provide ${LAUNCHPAD_PADS} pad slots`);
         }
-        const sounds = page.samples.map((file, padIndex) => {
-            if (!file) return '';
-            if (typeof file.name !== 'string') {
-                throw new Error(`Sample at page ${pageIndex + 1}, pad ${padIndex + 1} is invalid`);
+
+        const sounds = [];
+        const lights = [];
+        const lightSyncToSound = [];
+        const lightDurations = [];
+
+        for (let padIndex = 0; padIndex < LAUNCHPAD_PADS; padIndex++) {
+            const steps = getPadSteps(page, padIndex);
+            const padNum = String(padIndex + 1).padStart(2, '0');
+
+            const hasAnyContent = steps.some(st => st.sample || st.light);
+            if (!hasAnyContent) {
+                sounds.push([]);
+                lights.push([]);
+                lightSyncToSound.push([]);
+                lightDurations.push([]);
+                continue;
             }
 
-            const extensionMatch = file.name.match(/\.([a-zA-Z0-9]+)$/);
-            const extension = extensionMatch ? extensionMatch[1].toLowerCase() : 'audio';
-            const samplePath = `samples/page-${pageIndex + 1}/pad-${String(padIndex + 1).padStart(2, '0')}.${extension}`;
-            files.push({ path: samplePath, file });
-            return samplePath;
-        });
+            const stepSounds = [];
+            const stepLights = [];
+            const stepSyncs = [];
+            const stepDurs = [];
+
+            steps.forEach((step, stepIndex) => {
+                let samplePath = '';
+                if (step.sample) {
+                    if (typeof step.sample.name !== 'string') {
+                        throw new Error(`Sample at page ${pageIndex + 1}, pad ${padIndex + 1}, step ${stepIndex + 1} is invalid`);
+                    }
+                    const extensionMatch = step.sample.name.match(/\.([a-zA-Z0-9]+)$/);
+                    const extension = extensionMatch ? extensionMatch[1].toLowerCase() : 'audio';
+                    const suffix = steps.length > 1 ? `_step-${String(stepIndex + 1).padStart(2, '0')}` : '';
+                    samplePath = `samples/page-${pageIndex + 1}/pad-${padNum}${suffix}.${extension}`;
+                    files.push({ path: samplePath, file: step.sample });
+                }
+                stepSounds.push(samplePath);
+                stepLights.push(step.light || '');
+                stepSyncs.push(step.lightSyncToSound ?? true);
+                stepDurs.push(step.lightDuration ?? DEFAULT_LIGHT_DURATION_SEC);
+            });
+
+            sounds.push(stepSounds);
+            lights.push(stepLights);
+            lightSyncToSound.push(stepSyncs);
+            lightDurations.push(stepDurs);
+        }
 
         return {
             name: typeof page.name === 'string' && page.name.trim() ? page.name.trim() : `Page ${pageIndex + 1}`,
             sounds,
-            lights: Array.isArray(page.lights) ? [...page.lights] : new Array(LAUNCHPAD_PADS).fill(''),
-            lightSyncToSound: Array.isArray(page.lightSyncToSound) ? [...page.lightSyncToSound] : new Array(LAUNCHPAD_PADS).fill(true),
-            lightDurations: Array.isArray(page.lightDurations) ? [...page.lightDurations] : new Array(LAUNCHPAD_PADS).fill(DEFAULT_LIGHT_DURATION_SEC)
+            lights,
+            lightSyncToSound,
+            lightDurations
         };
     });
 

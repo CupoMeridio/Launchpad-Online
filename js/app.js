@@ -147,9 +147,10 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     const projectsDataPromise = loadStaticData();
 
+    let isUnlockingAudio = false;
     const unlockAudioAndHideOverlay = async () => {
-        if (audioUnlocked) return; // Exit if already unlocked
-        audioUnlocked = true; // Set the flag
+        if (audioUnlocked || isUnlockingAudio) return; // Exit if already unlocked or currently unlocking
+        isUnlockingAudio = true;
 
         // Set initial mode (User 1 - index 5) after user interaction
         // This ensures the mode is only set when the user actually interacts with the app
@@ -164,39 +165,48 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
 
         // Initialize Audio Engine (Context & Analyser)
+        let audioInitSucceeded = false;
         try {
             await audioEngine.init();
+            audioInitSucceeded = true;
+            audioUnlocked = true;
         } catch (error) {
             console.error("Audio initialization failed:", error);
             // Show error message to user
             const errorMsg = audioEngine.getInitError() || "Audio system initialization failed. Some features may not work.";
             console.error("[App]", errorMsg);
-            // Optionally show notification (if available)
             if (typeof showNotification === 'function') {
                 showNotification(errorMsg, 'error');
             }
-            // Continue without audio - app can still work with visual feedback only
-            if (unlockOverlay) {
-                unlockOverlay.classList.add('hidden');
-            }
-            return;
+        } finally {
+            isUnlockingAudio = false;
         }
 
-        // The visualizer is initialized here because it depends on the AudioContext
-        // created in audioEngine.init()
-        try {
-            const analyser = audioEngine.getAnalyser();
-            const canvasTop = document.getElementById('visualizer-canvas-top');
-            const canvasBottom = document.getElementById('visualizer-canvas-bottom');
-            const visualizer = new Visualizer(analyser, canvasTop, canvasBottom);
-            visualizer.draw();
-            // Register visualizer with the manager instead of exposing globally
-            setVisualizer(visualizer);
+        // Hide overlay so the app remains accessible even if audio initialization failed
+        if (unlockOverlay) {
+            unlockOverlay.classList.add('hidden');
+        }
 
-            initializeVisualizerControls();
+        if (audioInitSucceeded) {
+            // Remove listeners only if audio was successfully unlocked
+            removeListener(document, 'click', unlockAudioAndHideOverlay);
+            removeListener(document, 'touchstart', unlockAudioAndHideOverlay);
 
-        } catch (error) {
-            console.error("Unable to initialize visualizer:", error);
+            // The visualizer is initialized here because it depends on the AudioContext
+            // created in audioEngine.init()
+            try {
+                const analyser = audioEngine.getAnalyser();
+                const canvasTop = document.getElementById('visualizer-canvas-top');
+                const canvasBottom = document.getElementById('visualizer-canvas-bottom');
+                const visualizer = new Visualizer(analyser, canvasTop, canvasBottom);
+                visualizer.draw();
+                // Register visualizer with the manager instead of exposing globally
+                setVisualizer(visualizer);
+
+                initializeVisualizerControls();
+            } catch (error) {
+                console.error("Unable to initialize visualizer:", error);
+            }
         }
 
         const loadedProjects = await projectsDataPromise;
@@ -231,10 +241,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                 midiInitialized = true;
             }
         }
-
-        // Remove both event listeners to be safe
-        removeListener(document, 'click', unlockAudioAndHideOverlay);
-        removeListener(document, 'touchstart', unlockAudioAndHideOverlay);
     };
 
     // Add both event listeners but without { once: true }

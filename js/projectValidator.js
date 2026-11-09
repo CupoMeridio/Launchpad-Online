@@ -10,6 +10,7 @@
 import { 
     LAUNCHPAD_PADS, 
     MAX_PROJECT_PAGES, 
+    MAX_PAD_STEPS,
     MIN_LIGHT_DURATION_SEC, 
     MAX_LIGHT_DURATION_SEC,
     LAUNCHPAD_ROTATION_MIN,
@@ -212,10 +213,19 @@ function validatePage(page, pageIndex) {
     }
 
     // Validate each sound entry
-    page.sounds.forEach((sound, soundIndex) => {
-        if (sound !== null && sound !== undefined && sound !== '' && typeof sound !== 'string') {
-            errors.push(`Page ${pageNum}, Sound ${soundIndex}: must be a string or empty, got ${typeof sound}`);
+    page.sounds.forEach((soundEntry, soundIndex) => {
+        if (!Array.isArray(soundEntry)) {
+            errors.push(`Page ${pageNum}, Sound ${soundIndex}: must be an array of steps`);
+            return;
         }
+        if (soundEntry.length > MAX_PAD_STEPS) {
+            errors.push(`Page ${pageNum}, Sound ${soundIndex}: step count exceeds maximum of ${MAX_PAD_STEPS}`);
+        }
+        soundEntry.forEach((stepSound, stepIndex) => {
+            if (stepSound !== null && stepSound !== undefined && stepSound !== '' && typeof stepSound !== 'string') {
+                errors.push(`Page ${pageNum}, Sound ${soundIndex}, Step ${stepIndex}: must be a string or empty, got ${typeof stepSound}`);
+            }
+        });
     });
 
     // Check lights array if it exists
@@ -226,10 +236,19 @@ function validatePage(page, pageIndex) {
             errors.push(`Page ${pageNum}: lights array must have exactly ${LAUNCHPAD_PADS} elements, found ${page.lights.length}`);
         } else {
             // Validate each light entry
-            page.lights.forEach((light, lightIndex) => {
-                if (light !== null && light !== undefined && light !== '' && typeof light !== 'string') {
-                    errors.push(`Page ${pageNum}, Light ${lightIndex}: must be a string or empty, got ${typeof light}`);
+            page.lights.forEach((lightEntry, lightIndex) => {
+                if (!Array.isArray(lightEntry)) {
+                    errors.push(`Page ${pageNum}, Light ${lightIndex}: must be an array of steps`);
+                    return;
                 }
+                if (lightEntry.length > MAX_PAD_STEPS) {
+                    errors.push(`Page ${pageNum}, Light ${lightIndex}: step count exceeds maximum of ${MAX_PAD_STEPS}`);
+                }
+                lightEntry.forEach((stepLight, stepIndex) => {
+                    if (stepLight !== null && stepLight !== undefined && stepLight !== '' && typeof stepLight !== 'string') {
+                        errors.push(`Page ${pageNum}, Light ${lightIndex}, Step ${stepIndex}: must be a string or empty, got ${typeof stepLight}`);
+                    }
+                });
             });
         }
     }
@@ -238,10 +257,16 @@ function validatePage(page, pageIndex) {
         if (!Array.isArray(page.lightSyncToSound) || page.lightSyncToSound.length !== LAUNCHPAD_PADS) {
             errors.push(`Page ${pageNum}: "lightSyncToSound" must be an array with exactly ${LAUNCHPAD_PADS} elements`);
         } else {
-            page.lightSyncToSound.forEach((enabled, padIndex) => {
-                if (typeof enabled !== 'boolean') {
-                    errors.push(`Page ${pageNum}, Light sync ${padIndex}: must be a boolean`);
+            page.lightSyncToSound.forEach((syncEntry, padIndex) => {
+                if (!Array.isArray(syncEntry)) {
+                    errors.push(`Page ${pageNum}, Light sync ${padIndex}: must be an array of steps`);
+                    return;
                 }
+                syncEntry.forEach((enabled, stepIndex) => {
+                    if (typeof enabled !== 'boolean') {
+                        errors.push(`Page ${pageNum}, Light sync ${padIndex}, Step ${stepIndex}: must be a boolean`);
+                    }
+                });
             });
         }
     }
@@ -250,10 +275,16 @@ function validatePage(page, pageIndex) {
         if (!Array.isArray(page.lightDurations) || page.lightDurations.length !== LAUNCHPAD_PADS) {
             errors.push(`Page ${pageNum}: "lightDurations" must be an array with exactly ${LAUNCHPAD_PADS} elements`);
         } else {
-            page.lightDurations.forEach((duration, padIndex) => {
-                if (typeof duration !== 'number' || !Number.isFinite(duration) || duration < MIN_LIGHT_DURATION_SEC || duration > MAX_LIGHT_DURATION_SEC) {
-                    errors.push(`Page ${pageNum}, Light duration ${padIndex}: must be between ${MIN_LIGHT_DURATION_SEC} and ${MAX_LIGHT_DURATION_SEC} seconds`);
+            page.lightDurations.forEach((durationEntry, padIndex) => {
+                if (!Array.isArray(durationEntry)) {
+                    errors.push(`Page ${pageNum}, Light duration ${padIndex}: must be an array of steps`);
+                    return;
                 }
+                durationEntry.forEach((duration, stepIndex) => {
+                    if (typeof duration !== 'number' || !Number.isFinite(duration) || duration < MIN_LIGHT_DURATION_SEC || duration > MAX_LIGHT_DURATION_SEC) {
+                        errors.push(`Page ${pageNum}, Light duration ${padIndex}, Step ${stepIndex}: must be between ${MIN_LIGHT_DURATION_SEC} and ${MAX_LIGHT_DURATION_SEC} seconds`);
+                    }
+                });
             });
         }
     }
@@ -300,12 +331,15 @@ export function checkProjectDeviceConsistency(project) {
     if (normalizeTargetDevice(project.targetDevice) === 'legacy' && Array.isArray(project.pages)) {
         project.pages.forEach((page) => {
             if (!Array.isArray(page?.lights)) return;
-            page.lights.forEach((light) => {
-                if (typeof light !== 'string' || !light) return;
-                const color = getColorFromAnimationName(light);
-                if (color && ANIMATION_COLOR_TIERS[color] === 'rgb') {
-                    rgbLightCount++;
-                }
+            page.lights.forEach((lightEntry) => {
+                if (!Array.isArray(lightEntry)) return;
+                lightEntry.forEach((light) => {
+                    if (typeof light !== 'string' || !light) return;
+                    const color = getColorFromAnimationName(light);
+                    if (color && ANIMATION_COLOR_TIERS[color] === 'rgb') {
+                        rgbLightCount++;
+                    }
+                });
             });
         });
     }

@@ -29,17 +29,17 @@ test('creates a project with schema-compatible pages and stable sample paths', (
     assert.equal(Object.hasOwn(result.project, 'bpm'), false);
     assert.equal(result.project.pages.length, 2);
     assert.equal(result.project.pages[0].sounds.length, 64);
-    assert.equal(result.project.pages[0].sounds[1], '');
-    assert.equal(result.project.pages[0].sounds[0], 'samples/page-1/pad-01.wav');
-    assert.equal(result.project.pages[0].sounds[63], 'samples/page-1/pad-64.mp3');
+    assert.deepEqual(result.project.pages[0].sounds[1], []);
+    assert.deepEqual(result.project.pages[0].sounds[0], ['samples/page-1/pad-01.wav']);
+    assert.deepEqual(result.project.pages[0].sounds[63], ['samples/page-1/pad-64.mp3']);
     assert.equal(result.project.pages[0].lights.length, 64);
     assert.equal(result.project.pages[0].lightSyncToSound.length, 64);
-    assert.equal(result.project.pages[0].lightSyncToSound[0], true);
+    assert.deepEqual(result.project.pages[0].lightSyncToSound[0], [true]);
     assert.equal(result.project.pages[0].lightDurations.length, 64);
-    assert.equal(result.project.pages[0].lightDurations[0], 2.5);
+    assert.deepEqual(result.project.pages[0].lightDurations[0], [2.5]);
     assert.equal(Object.hasOwn(result.project.pages[0], 'volumes'), false);
     assert.equal(Object.hasOwn(result.project.pages[0], 'triggerModes'), false);
-    assert.equal(result.project.pages[0].lights[0], 'fade_red');
+    assert.deepEqual(result.project.pages[0].lights[0], ['fade_red']);
     assert.equal(validateProject(result.project).isValid, true);
     assert.deepEqual(result.files.map(entry => entry.path), [
         'samples/page-1/pad-01.wav',
@@ -98,17 +98,17 @@ test('buildDraftFromProject reconstructs editor draft from project schema and fi
         pages: [
             {
                 name: 'Page 1',
-                sounds: ['samples/page-1/pad-01.wav', ...new Array(63).fill('')],
-                lights: ['wave_green', ...new Array(63).fill('')],
-                lightSyncToSound: [false, ...new Array(63).fill(true)],
-                lightDurations: [4.2, ...new Array(63).fill(2.5)]
+                sounds: [['samples/page-1/pad-01.wav'], ...new Array(63).fill(null).map(() => [])],
+                lights: [['wave_green'], ...new Array(63).fill(null).map(() => [])],
+                lightSyncToSound: [[false], ...new Array(63).fill(null).map(() => [true])],
+                lightDurations: [[4.2], ...new Array(63).fill(null).map(() => [2.5])]
             },
             {
                 name: 'Page 2',
-                sounds: ['samples/page-2/pad-01.wav', ...new Array(63).fill('')],
-                lights: new Array(64).fill(''),
-                lightSyncToSound: new Array(64).fill(true),
-                lightDurations: new Array(64).fill(2.5)
+                sounds: [['samples/page-2/pad-01.wav'], ...new Array(63).fill(null).map(() => [])],
+                lights: new Array(64).fill(null).map(() => []),
+                lightSyncToSound: new Array(64).fill(null).map(() => [true]),
+                lightDurations: new Array(64).fill(null).map(() => [2.5])
             }
         ]
     };

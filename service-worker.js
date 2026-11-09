@@ -34,7 +34,7 @@ function debug(...args) {
 // CUSTOMIZATION: When you make changes to App Shell files, update this timestamp.
 // This invalidates the old cache and forces the Service Worker to download new files.
 // Example: 'launchpad-pwa-cache-2026-03-21-1430' → update to → 'launchpad-pwa-cache-2026-03-21-1505'
-const CACHE_NAME = 'launchpad-pwa-cache-2026-11-06-1512';
+const CACHE_NAME = 'launchpad-pwa-cache-2026-11-09-2048';
 
 // Get the base path dynamically to support both local dev and GitHub Pages
 const basePath = self.registration.scope.replace(self.location.origin, '');
@@ -132,9 +132,9 @@ self.addEventListener('activate', event => {
         caches.keys().then(cacheNames => {
             return Promise.all(
                 cacheNames.map(cacheName => {
-                    // If a cache name doesn't match the current one, it gets deleted.
-                    // This is crucial for removing obsolete files and freeing up space.
-                    if (cacheName !== CACHE_NAME) {
+                    // Only delete caches belonging to Launchpad PWA that don't match the current CACHE_NAME.
+                    // This prevents deleting caches belonging to other PWAs on the same origin (e.g. GitHub Pages).
+                    if (cacheName.startsWith('launchpad-pwa-cache-') && cacheName !== CACHE_NAME) {
                         debug('Service Worker: Removing old cache', cacheName);
                         return caches.delete(cacheName);
                     }
