@@ -1,10 +1,13 @@
 /**
  * APPEARANCE MODEL (appearanceModel.js)
  *
- * Pure normalizers that turn the visual configuration of a project or Studio
- * draft into a canonical shape. No DOM or storage access lives here, so this
- * module can be imported by pure models and tests. The functions that actually
- * apply the result to the UI live in appearance.js.
+ * Pure normalizers that turn the visual configuration of a project file into
+ * the canonical appearance shape, shared by the player and the Studio draft:
+ *
+ *   { background, skin, icon, visualizer, rotation, size }
+ *
+ * where each asset is a path/URL string, an uploaded File/Blob, or null.
+ * No DOM or storage access lives here; applying it to the UI is appearance.js.
  */
 
 import {
@@ -31,29 +34,24 @@ function firstBoolean(...values) {
 }
 
 /**
- * Resolves an asset reference. An explicitly uploaded File/Blob always wins over
- * a path string, which is resolved through `resolvePath` when provided.
- * @param {File|Blob|null} customFile
- * @param {string|undefined} pathRef
- * @param {Function} resolvePath
+ * Resolves a declared asset path through `resolvePath`.
+ * @param {*} pathRef - Value of the project field.
+ * @param {(path: string) => (string|File|Blob|null)} resolvePath
  * @returns {File|Blob|string|null}
  */
-function resolveAsset(customFile, pathRef, resolvePath) {
-    if (customFile) return customFile;
-    return typeof pathRef === 'string' && pathRef ? resolvePath(pathRef) : null;
+function resolveAsset(pathRef, resolvePath) {
+    const path = firstString(pathRef);
+    return path ? (resolvePath(path) || null) : null;
 }
 
 /**
- * Background media declared by a project/draft, taking uploaded files into
- * account.
- * @param {object} source
- * @param {(path: string) => (string|File|Blob)} [resolvePath]
- * @returns {File|Blob|string|null}
+ * True for an uploaded/packaged asset (File or Blob, or a test double with a
+ * `name`) as opposed to a path string.
+ * @param {*} asset
+ * @returns {boolean}
  */
-export function getBackgroundMedia(source = {}, resolvePath = identity) {
-    if (source.customBackgroundFile) return source.customBackgroundFile;
-    const pathRef = firstString(source.backgroundMedia);
-    return pathRef ? resolvePath(pathRef) : null;
+export function isFileAsset(asset) {
+    return Boolean(asset) && typeof asset === 'object';
 }
 
 /**
@@ -87,17 +85,18 @@ export function normalizeLayout(source = {}) {
 }
 
 /**
- * Normalizes the whole appearance of a project or Studio draft.
- * @param {object} source - Project configuration or draft.
- * @param {(path: string) => (string|File|Blob)} [resolvePath] - Path resolver for relative refs.
+ * Normalizes the whole appearance declared by a project file.
+ * @param {object} source - Project configuration.
+ * @param {(path: string) => (string|File|Blob|null)} [resolvePath] - Maps each declared
+ *   asset path to what should be applied (a URL, or a packaged File when importing a zip).
  * @returns {{background: *, skin: *, icon: *, visualizer: object, rotation: number|null, size: number|null}}
  */
 export function normalizeAppearance(source = {}, resolvePath = identity) {
     const layout = normalizeLayout(source);
     return {
-        background: getBackgroundMedia(source, resolvePath),
-        skin: resolveAsset(source.customCoverFile, source.coverImage, resolvePath),
-        icon: resolveAsset(source.customIconFile, source.iconImage, resolvePath),
+        background: resolveAsset(source.backgroundMedia, resolvePath),
+        skin: resolveAsset(source.coverImage, resolvePath),
+        icon: resolveAsset(source.iconImage, resolvePath),
         visualizer: normalizeVisualizer(source),
         rotation: layout.rotation,
         size: layout.size

@@ -5,6 +5,7 @@
  */
 
 import { syncInputSlider } from './formControls.js';
+import { CATALOG_VIDEOS_PATH, toCatalogName } from './constants.js';
 
 let currentBackgroundEl = null;
 
@@ -64,7 +65,9 @@ export function setBackgroundMedia(mediaFile) {
         const buttons = backgroundMenu.querySelectorAll('.menu-option');
         buttons.forEach(b => b.classList.remove('selected'));
         if (typeof mediaFile === 'string') {
-            const selector = mediaFile ? `[data-background="${CSS.escape(mediaFile)}"]` : '[data-background="none"]';
+            const selector = mediaFile
+                ? `[data-background="${CSS.escape(toCatalogName(mediaFile, CATALOG_VIDEOS_PATH))}"]`
+                : '[data-background="none"]';
             const active = backgroundMenu.querySelector(selector);
             if (active) active.classList.add('selected');
         }
@@ -91,7 +94,7 @@ export function setBackgroundMedia(mediaFile) {
             isImage = isImageSource(mediaFile);
             mediaSrc = (mediaFile.includes('/') || mediaFile.startsWith('blob:') || mediaFile.startsWith('data:'))
                 ? mediaFile
-                : `assets/videos/${mediaFile}`;
+                : `${CATALOG_VIDEOS_PATH}${mediaFile}`;
             if (!mediaSrc.startsWith('blob:') && !mediaSrc.startsWith('data:')) {
                 mediaSrc = `${mediaSrc}?t=${Date.now()}`;
             }

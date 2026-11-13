@@ -5,11 +5,12 @@ import {
     DEFAULT_LIGHT_DURATION_SEC, 
     ANIMATION_COLORS,
     DEFAULT_TARGET_DEVICE,
-    normalizeTargetDevice
+    normalizeTargetDevice,
+    isAppAssetPath
 } from './constants.js';
 import { validateProject } from './projectValidator.js';
-import { normalizeVisualizer, normalizeLayout, getBackgroundMedia } from './appearanceModel.js';
-import { createPadStep } from './projectModel.js';
+import { normalizeAppearance, normalizeVisualizer, createDefaultAppearance, isFileAsset } from './appearanceModel.js';
+import { createPadStep, readPagePads, writePagePads } from './projectModel.js';
 
 /**
  * Drops the color variants a target device cannot display.
@@ -82,19 +83,29 @@ export function buildAnimationCatalog(animationRegistry, targetDevice = DEFAULT_
         .sort((first, second) => first.label.localeCompare(second.label));
 }
 
-export function createEmptyPadStep() {
+/**
+ * A draft step is a runtime PadStep plus what only the editor needs:
+ * - `sample`: the source audio File, packaged on export;
+ * - `sampleToken`: bumped on every change so late decodes can be discarded.
+ * Its `buffer` is the decoded `sample`, so draft steps play exactly like
+ * project steps. `soundUrl` stays null: drafts reference files, not URLs.
+ * @typedef {import('./projectModel.js').PadStep & {sample: (File|Blob|null), sampleToken: number}} DraftStep
+ */
+
+/**
+ * @param {object} [fields] - PadStep fields plus an optional `sample`.
+ * @returns {DraftStep}
+ */
+export function createDraftStep({ sample = null, ...padStepFields } = {}) {
     return {
-        sample: null,
-        soundBuffer: null,
-        sampleToken: 0,
-        light: '',
-        lightSyncToSound: true,
-        lightDuration: DEFAULT_LIGHT_DURATION_SEC
+        ...createPadStep({ ...padStepFields, soundUrl: null }),
+        sample: sample || null,
+        sampleToken: 0
     };
 }
 
 export function createProjectPage(pageNumber) {
-    const padSteps = Array.from({ length: LAUNCHPAD_PADS }, () => [createEmptyPadStep()]);
+    const padSteps = Array.from({ length: LAUNCHPAD_PADS }, () => [createDraftStep()]);
     return {
         name: `Page ${pageNumber}`,
         padSteps
@@ -112,33 +123,18 @@ export function createProjectPage(pageNumber) {
 export function getPadSteps(page, padIndex) {
     if (!page) return [];
     if (!page.padSteps) {
-        page.padSteps = Array.from({ length: LAUNCHPAD_PADS }, () => [createEmptyPadStep()]);
+        page.padSteps = Array.from({ length: LAUNCHPAD_PADS }, () => [createDraftStep()]);
     }
     if (!page.padSteps[padIndex] || page.padSteps[padIndex].length === 0) {
-        page.padSteps[padIndex] = [createEmptyPadStep()];
+        page.padSteps[padIndex] = [createDraftStep()];
     }
     return page.padSteps[padIndex];
-}
-
-/**
- * Converts a draft step (editor shape, with its source `sample` file) into the
- * runtime PadStep shared with the performance player.
- * @param {object|null|undefined} draftStep
- * @returns {import('./projectModel.js').PadStep}
- */
-export function draftStepToPadStep(draftStep) {
-    return createPadStep({
-        buffer: draftStep?.soundBuffer,
-        light: draftStep?.light,
-        syncToSound: draftStep?.lightSyncToSound,
-        duration: draftStep?.lightDuration
-    });
 }
 
 export function addPadStep(page, padIndex) {
     const steps = getPadSteps(page, padIndex);
     if (steps.length >= MAX_PAD_STEPS) return steps.length - 1;
-    steps.push(createEmptyPadStep());
+    steps.push(createDraftStep());
     return steps.length - 1;
 }
 
@@ -175,8 +171,6 @@ export async function assignPadStepSample(page, padIndex, stepIndex, file, decod
         } catch (_) {
             buffer = null;
         }
-    } else if (file && file.soundBuffer) {
-        buffer = file.soundBuffer;
     }
 
     const currentSteps = getPadSteps(page, padIndex);
@@ -189,7 +183,7 @@ export async function assignPadStepSample(page, padIndex, stepIndex, file, decod
     }
 
     targetStep.sample = file;
-    targetStep.soundBuffer = buffer;
+    targetStep.buffer = buffer;
 
     return 'assigned';
 }
@@ -202,7 +196,7 @@ export function removePadStepSample(page, padIndex, stepIndex = 0) {
         if (step) {
             step.sampleToken = (step.sampleToken || 0) + 1;
             step.sample = null;
-            step.soundBuffer = null;
+            step.buffer = null;
         }
     }
 }
@@ -210,21 +204,21 @@ export function removePadStepSample(page, padIndex, stepIndex = 0) {
 export function assignPadStepLight(page, padIndex, stepIndex, animationName) {
     const steps = getPadSteps(page, padIndex);
     if (stepIndex >= 0 && stepIndex < steps.length) {
-        steps[stepIndex].light = animationName || '';
+        steps[stepIndex].light = animationName || null;
     }
 }
 
 export function setPadStepLightSync(page, padIndex, stepIndex, sync) {
     const steps = getPadSteps(page, padIndex);
     if (stepIndex >= 0 && stepIndex < steps.length) {
-        steps[stepIndex].lightSyncToSound = Boolean(sync);
+        steps[stepIndex].syncToSound = Boolean(sync);
     }
 }
 
 export function setPadStepLightDuration(page, padIndex, stepIndex, duration) {
     const steps = getPadSteps(page, padIndex);
     if (stepIndex >= 0 && stepIndex < steps.length) {
-        steps[stepIndex].lightDuration = typeof duration === 'number' && Number.isFinite(duration)
+        steps[stepIndex].duration = typeof duration === 'number' && Number.isFinite(duration)
             ? duration
             : DEFAULT_LIGHT_DURATION_SEC;
     }
@@ -235,17 +229,18 @@ export function setPadStepLightDuration(page, padIndex, stepIndex, duration) {
  * swapping drafts while the decode is in flight. Deliberately free of DOM and
  * UI concerns so the guard is testable without touching the creator module.
  *
- * @param {object} targetDraft - Draft captured when the decode started.
- * @param {object} page - Page (owned by `targetDraft`) that holds the pad.
- * @param {number} padIndex
- * @param {number} stepIndex
- * @param {File|Blob} file
- * @param {Function|null} decoder - Async (file) => AudioBuffer.
- * @param {Function} getActiveDraft - Returns the currently active draft.
+ * @param {object} options
+ * @param {object} options.targetDraft - Draft captured when the decode started.
+ * @param {object} options.page - Page (owned by `targetDraft`) that holds the pad.
+ * @param {number} options.padIndex
+ * @param {number} options.stepIndex
+ * @param {File|Blob} options.file
+ * @param {Function|null} options.decoder - Async (file) => AudioBuffer.
+ * @param {Function} options.getActiveDraft - Returns the currently active draft.
  * @returns {Promise<'assigned'|'failed'|'superseded'|'stale'>} 'stale' when the
  *   active draft changed, so the caller must not re-render or mark it modified.
  */
-export async function assignSampleGuarded(targetDraft, page, padIndex, stepIndex, file, decoder, getActiveDraft) {
+export async function assignSampleGuarded({ targetDraft, page, padIndex, stepIndex, file, decoder, getActiveDraft }) {
     if (!file || !page) return 'failed';
     const result = await assignPadStepSample(page, padIndex, stepIndex, file, decoder);
     if (getActiveDraft() !== targetDraft) return 'stale';
@@ -283,31 +278,26 @@ export function normalizeZipPath(rawPath) {
  *
  * @param {string} [name=''] - Project name.
  * @param {Array<object>|null} [pages=null] - Project pages, defaults to 1 blank page.
- * @param {object} [theme={}] - Project theme & visual options.
+ * @param {object} [options]
+ * @param {string} [options.targetDevice] - 'universal' | 'legacy' | 'rgb'.
+ * @param {object} [options.appearance] - Canonical appearance (see appearanceModel.js);
+ *   each asset is a catalog path string, an uploaded File, or null.
  * @returns {object} Draft object with changeCount and savedChangeCount tracking.
  */
-export function createDraft(name = '', pages = null, theme = {}) {
-    const visualizer = normalizeVisualizer(theme);
-    const layout = normalizeLayout(theme);
-    const backgroundMedia = getBackgroundMedia(theme);
-
+export function createDraft(name = '', pages = null, { targetDevice, appearance } = {}) {
     return {
         name: typeof name === 'string' ? name.trim() : '',
-        targetDevice: normalizeTargetDevice(theme?.targetDevice),
+        targetDevice: normalizeTargetDevice(targetDevice),
         changeCount: 0,
         savedChangeCount: 0,
         pages: Array.isArray(pages) && pages.length > 0 ? pages : [createProjectPage(1)],
-        coverImage: typeof theme?.coverImage === 'string' ? theme.coverImage : '',
-        iconImage: typeof theme?.iconImage === 'string' ? theme.iconImage : '',
-        backgroundMedia: typeof backgroundMedia === 'string' ? backgroundMedia : '',
-        visualizer,
-        // `null` means "the project does not specify it" so the user's personal
-        // rotation/size preference must not be overwritten.
-        launchpadRotation: layout.rotation,
-        launchpadSize: layout.size,
-        customCoverFile: theme?.customCoverFile || null,
-        customIconFile: theme?.customIconFile || null,
-        customBackgroundFile: theme?.customBackgroundFile || null
+        // `rotation`/`size` null means "the project does not specify it", so the
+        // user's personal preference must not be overwritten.
+        appearance: {
+            ...createDefaultAppearance(),
+            ...appearance,
+            visualizer: normalizeVisualizer({ visualizer: appearance?.visualizer })
+        }
     };
 }
 
@@ -326,9 +316,51 @@ export function isDraftDirty(draft) {
 }
 
 /**
- * Reconstructs a Studio Creator draft object from a validated project configuration and file map.
+ * Indexes the files of an imported archive for lookup by the paths a project
+ * manifest declares, recording every declared path that cannot be found.
+ * @param {Map<string, Blob|File>|Record<string, Blob|File>} fileMap
+ * @returns {{getFile: (path: string) => (File|Blob|null), missingAssets: string[]}}
+ */
+function createArchiveLookup(fileMap) {
+    const inputMap = fileMap instanceof Map ? fileMap : new Map(Object.entries(fileMap || {}));
+    const missingAssets = [];
+    const samplesRelative = (norm) => {
+        const samplesIdx = norm.indexOf('samples/');
+        return samplesIdx !== -1 ? norm.slice(samplesIdx) : null;
+    };
+
+    // Index files by exact normalized path and by their path relative to samples/
+    const index = new Map();
+    for (const [key, value] of inputMap.entries()) {
+        const norm = normalizeZipPath(key);
+        if (!norm) continue;
+        index.set(norm, value);
+        const relative = samplesRelative(norm);
+        if (relative) index.set(relative, value);
+    }
+
+    const getFile = (lookupPath) => {
+        const norm = normalizeZipPath(lookupPath);
+        if (!norm) return null;
+        const relative = samplesRelative(norm);
+        const file = index.get(norm) ?? (relative ? index.get(relative) : undefined) ?? null;
+        // Asset declared by the manifest but missing from the archive.
+        if (!file) missingAssets.push(lookupPath);
+        return file;
+    };
+
+    return { getFile, missingAssets };
+}
+
+/**
+ * Reconstructs a Studio Creator draft from a validated project configuration
+ * and the files of its archive. App-bundled assets (`assets/...`, e.g. catalog
+ * videos and skins) are kept as paths; other declared assets resolve to their
+ * packaged File, and a reference whose file is not in the archive is dropped
+ * (and reported in `missingAssets`), so a dangling path is never re-written on
+ * the next export.
  * @param {object} projectData - Project configuration object.
- * @param {Map<string, Blob|File>|Record<string, Blob|File>} fileMap - Map or object associating relative paths/filenames to sample files.
+ * @param {Map<string, Blob|File>|Record<string, Blob|File>} fileMap - Map or object associating relative paths/filenames to files.
  * @returns {object} Reconstructed draft with pages, samples, and light configurations.
  */
 export function buildDraftFromProject(projectData, fileMap = new Map()) {
@@ -337,110 +369,84 @@ export function buildDraftFromProject(projectData, fileMap = new Map()) {
         throw new Error(`Invalid project: ${validation.errors.join('; ')}`);
     }
 
-    // Assets declared by the manifest but not present in the archive.
-    const missingAssets = [];
-
-    const inputMap = fileMap instanceof Map ? fileMap : new Map(Object.entries(fileMap || {}));
-
-    // Index files by exact normalized path and relative from samples/
-    const exactMap = new Map();
-
-    for (const [key, value] of inputMap.entries()) {
-        const norm = normalizeZipPath(key);
-        if (!norm) continue;
-        exactMap.set(norm, value);
-
-        const samplesIdx = norm.indexOf('samples/');
-        if (samplesIdx !== -1) {
-            exactMap.set(norm.slice(samplesIdx), value);
-        }
-    }
-
-    const getFile = (lookupPath) => {
-        if (!lookupPath || typeof lookupPath !== 'string') return null;
-        const norm = normalizeZipPath(lookupPath);
-        if (!norm) return null;
-
-        // 1. Exact normalized path match
-        if (exactMap.has(norm)) return exactMap.get(norm);
-
-        // 2. Relative from samples/
-        const samplesIdx = norm.indexOf('samples/');
-        if (samplesIdx !== -1) {
-            const sub = norm.slice(samplesIdx);
-            if (exactMap.has(sub)) return exactMap.get(sub);
-        }
-
-        // Asset declared by the manifest but missing from the archive.
-        missingAssets.push(lookupPath);
-        return null;
-    };
+    const { getFile, missingAssets } = createArchiveLookup(fileMap);
 
     const draftPages = projectData.pages.map((page, index) => {
         const draftPage = createProjectPage(index + 1);
         if (page.name && typeof page.name === 'string') {
             draftPage.name = page.name.trim();
         }
-
-        for (let padIdx = 0; padIdx < LAUNCHPAD_PADS; padIdx++) {
-            const soundSteps = page.sounds?.[padIdx] || [];
-            const lightSteps = page.lights?.[padIdx] || [];
-            const syncSteps = page.lightSyncToSound?.[padIdx] || [];
-            const durSteps = page.lightDurations?.[padIdx] || [];
-
-            const totalSteps = Math.max(soundSteps.length, lightSteps.length, 1);
-            const steps = [];
-
-            for (let s = 0; s < totalSteps; s++) {
-                const soundPath = soundSteps[s] || '';
-                const sampleFile = soundPath ? getFile(soundPath) : null;
-                const light = lightSteps[s] || '';
-                const sync = syncSteps[s] !== undefined ? syncSteps[s] : true;
-                const dur = (typeof durSteps[s] === 'number' && Number.isFinite(durSteps[s])) ? durSteps[s] : DEFAULT_LIGHT_DURATION_SEC;
-
-                steps.push({
-                    sample: sampleFile,
-                    soundBuffer: null,
-                    sampleToken: 0,
-                    light,
-                    lightSyncToSound: sync,
-                    lightDuration: dur
-                });
-            }
-
-            draftPage.padSteps[padIdx] = steps;
-        }
-
+        // Editor pads always hold at least one (possibly empty) step.
+        draftPage.padSteps = readPagePads(page).map(steps => steps.length === 0
+            ? [createDraftStep()]
+            : steps.map(({ soundUrl, ...step }) => createDraftStep({ ...step, sample: soundUrl ? getFile(soundUrl) : null })));
         return draftPage;
     });
 
-    const bgSource = getBackgroundMedia(projectData);
-    const visualizer = normalizeVisualizer(projectData);
-    const layout = normalizeLayout(projectData);
-    // Declared theme paths are kept only when the matching file was packaged; a
-    // dangling reference would otherwise be re-written on the next export.
-    const coverFile = typeof projectData.coverImage === 'string' ? getFile(projectData.coverImage) : null;
-    const iconFile = typeof projectData.iconImage === 'string' ? getFile(projectData.iconImage) : null;
-    const backgroundFile = typeof bgSource === 'string' ? getFile(bgSource) : null;
-
-    const theme = {
-        targetDevice: normalizeTargetDevice(projectData.targetDevice),
-        coverImage: coverFile ? projectData.coverImage : '',
-        iconImage: iconFile ? projectData.iconImage : '',
-        backgroundMedia: backgroundFile ? bgSource : '',
-        visualizer,
-        launchpadRotation: layout.rotation,
-        launchpadSize: layout.size,
-        customCoverFile: coverFile,
-        customIconFile: iconFile,
-        customBackgroundFile: backgroundFile
-    };
-
-    const draft = createDraft(projectData.name, draftPages, theme);
+    const draft = createDraft(projectData.name, draftPages, {
+        targetDevice: projectData.targetDevice,
+        appearance: normalizeAppearance(projectData, path => (isAppAssetPath(path) ? path : getFile(path)))
+    });
     draft.missingAssets = missingAssets;
     return draft;
 }
 
+/**
+ * Where each packaged appearance asset is written, and the project field that references it.
+ */
+const APPEARANCE_ASSET_EXPORTS = [
+    { key: 'skin', field: 'coverImage', baseName: 'cover', defaultExtension: 'png' },
+    { key: 'icon', field: 'iconImage', baseName: 'icon', defaultExtension: 'png' },
+    { key: 'background', field: 'backgroundMedia', baseName: 'background', defaultExtension: 'mp4' }
+];
+
+function getFileExtension(fileName, defaultExtension) {
+    const match = (fileName || '').match(/\.([a-zA-Z0-9]+)$/);
+    return match ? match[1].toLowerCase() : defaultExtension;
+}
+
+/**
+ * Writes the draft appearance into `project`, queueing uploaded files for
+ * packaging. Catalog assets are kept as their path. Rotation/size are written
+ * only when specified, so loading the project back does not overwrite the
+ * user's personal preference.
+ */
+function exportAppearance(appearance, project, files) {
+    APPEARANCE_ASSET_EXPORTS.forEach(({ key, field, baseName, defaultExtension }) => {
+        const asset = appearance[key];
+        if (isFileAsset(asset)) {
+            const path = `${baseName}.${getFileExtension(asset.name, defaultExtension)}`;
+            files.push({ path, file: asset });
+            project[field] = path;
+        } else if (typeof asset === 'string' && asset) {
+            project[field] = asset;
+        }
+    });
+
+    // Canonical visualizer schema: always written as a nested object.
+    project.visualizer = normalizeVisualizer({ visualizer: appearance.visualizer });
+
+    if (typeof appearance.rotation === 'number') project.launchpadRotation = appearance.rotation;
+    if (typeof appearance.size === 'number') project.launchpadSize = appearance.size;
+}
+
+/**
+ * Archive path of a step's sample: samples/page-<P>/pad-<NN>[_step-<SS>].<ext>
+ */
+function getSamplePath(sample, pageIndex, padIndex, stepIndex, stepCount) {
+    if (typeof sample.name !== 'string') {
+        throw new Error(`Sample at page ${pageIndex + 1}, pad ${padIndex + 1}, step ${stepIndex + 1} is invalid`);
+    }
+    const padNum = String(padIndex + 1).padStart(2, '0');
+    const suffix = stepCount > 1 ? `_step-${String(stepIndex + 1).padStart(2, '0')}` : '';
+    return `samples/page-${pageIndex + 1}/pad-${padNum}${suffix}.${getFileExtension(sample.name, 'audio')}`;
+}
+
+/**
+ * Converts a draft into a project file plus the list of files to package.
+ * @param {object} draft
+ * @returns {{id: string, folderName: string, configFileName: string, files: Array<{path: string, file: Blob}>, project: object}}
+ */
 export function buildProjectExport(draft) {
     const name = typeof draft?.name === 'string' ? draft.name.trim() : '';
     if (!name) throw new Error('Project name is required');
@@ -450,114 +456,27 @@ export function buildProjectExport(draft) {
 
     const files = [];
     const pages = draft.pages.map((page, pageIndex) => {
-        const padCount = page?.padSteps?.length;
-        if (padCount !== LAUNCHPAD_PADS) {
+        if (page?.padSteps?.length !== LAUNCHPAD_PADS) {
             throw new Error(`Each page must provide ${LAUNCHPAD_PADS} pad slots`);
         }
 
-        const sounds = [];
-        const lights = [];
-        const lightSyncToSound = [];
-        const lightDurations = [];
-
-        for (let padIndex = 0; padIndex < LAUNCHPAD_PADS; padIndex++) {
-            const steps = getPadSteps(page, padIndex);
-            const padNum = String(padIndex + 1).padStart(2, '0');
-
-            const hasAnyContent = steps.some(st => st.sample || st.light);
-            if (!hasAnyContent) {
-                sounds.push([]);
-                lights.push([]);
-                lightSyncToSound.push([]);
-                lightDurations.push([]);
-                continue;
-            }
-
-            const stepSounds = [];
-            const stepLights = [];
-            const stepSyncs = [];
-            const stepDurs = [];
-
-            steps.forEach((step, stepIndex) => {
-                let samplePath = '';
-                if (step.sample) {
-                    if (typeof step.sample.name !== 'string') {
-                        throw new Error(`Sample at page ${pageIndex + 1}, pad ${padIndex + 1}, step ${stepIndex + 1} is invalid`);
-                    }
-                    const extensionMatch = step.sample.name.match(/\.([a-zA-Z0-9]+)$/);
-                    const extension = extensionMatch ? extensionMatch[1].toLowerCase() : 'audio';
-                    const suffix = steps.length > 1 ? `_step-${String(stepIndex + 1).padStart(2, '0')}` : '';
-                    samplePath = `samples/page-${pageIndex + 1}/pad-${padNum}${suffix}.${extension}`;
-                    files.push({ path: samplePath, file: step.sample });
-                }
-                stepSounds.push(samplePath);
-                stepLights.push(step.light || '');
-                stepSyncs.push(step.lightSyncToSound ?? true);
-                stepDurs.push(step.lightDuration ?? DEFAULT_LIGHT_DURATION_SEC);
-            });
-
-            sounds.push(stepSounds);
-            lights.push(stepLights);
-            lightSyncToSound.push(stepSyncs);
-            lightDurations.push(stepDurs);
-        }
+        const pads = Array.from({ length: LAUNCHPAD_PADS }, (_, padIndex) => getPadSteps(page, padIndex));
+        const padFields = writePagePads(pads, (step, padIndex, stepIndex, stepCount) => {
+            if (!step.sample) return '';
+            const path = getSamplePath(step.sample, pageIndex, padIndex, stepIndex, stepCount);
+            files.push({ path, file: step.sample });
+            return path;
+        });
 
         return {
             name: typeof page.name === 'string' && page.name.trim() ? page.name.trim() : `Page ${pageIndex + 1}`,
-            sounds,
-            lights,
-            lightSyncToSound,
-            lightDurations
+            ...padFields
         };
     });
 
     const id = createProjectId(name);
-    const targetDevice = normalizeTargetDevice(draft?.targetDevice);
-    const project = { id, name, targetDevice, pages };
-
-    const getFileExt = (fileName, defaultExt) => {
-        const match = (fileName || '').match(/\.([a-zA-Z0-9]+)$/);
-        return match ? match[1].toLowerCase() : defaultExt;
-    };
-
-    if (draft?.customCoverFile) {
-        const ext = getFileExt(draft.customCoverFile.name, 'png');
-        const coverPath = `cover.${ext}`;
-        files.push({ path: coverPath, file: draft.customCoverFile });
-        project.coverImage = coverPath;
-    } else if (typeof draft?.coverImage === 'string' && draft.coverImage) {
-        project.coverImage = draft.coverImage;
-    }
-
-    if (draft?.customIconFile) {
-        const ext = getFileExt(draft.customIconFile.name, 'png');
-        const iconPath = `icon.${ext}`;
-        files.push({ path: iconPath, file: draft.customIconFile });
-        project.iconImage = iconPath;
-    } else if (typeof draft?.iconImage === 'string' && draft.iconImage) {
-        project.iconImage = draft.iconImage;
-    }
-
-    if (draft?.customBackgroundFile) {
-        const ext = getFileExt(draft.customBackgroundFile.name, 'mp4');
-        const bgPath = `background.${ext}`;
-        files.push({ path: bgPath, file: draft.customBackgroundFile });
-        project.backgroundMedia = bgPath;
-    } else if (typeof draft?.backgroundMedia === 'string' && draft.backgroundMedia) {
-        project.backgroundMedia = draft.backgroundMedia;
-    }
-
-    // Canonical visualizer schema: always written as a nested object.
-    project.visualizer = normalizeVisualizer(draft);
-
-    // Rotation/size are only exported when the project explicitly defines them,
-    // so loading it back does not overwrite the user's personal preference.
-    if (typeof draft?.launchpadRotation === 'number') {
-        project.launchpadRotation = draft.launchpadRotation;
-    }
-    if (typeof draft?.launchpadSize === 'number') {
-        project.launchpadSize = draft.launchpadSize;
-    }
+    const project = { id, name, targetDevice: normalizeTargetDevice(draft?.targetDevice), pages };
+    exportAppearance(draft.appearance || createDefaultAppearance(), project, files);
 
     const validation = validateProject(project);
     if (!validation.isValid) {

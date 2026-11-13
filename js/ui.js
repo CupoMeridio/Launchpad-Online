@@ -9,7 +9,9 @@ import {
     IMAGE_EXTENSIONS,
     MEDIA_EXTENSIONS,
     toAcceptAttribute,
-    DEFAULT_VISUALIZER_COLOR
+    DEFAULT_VISUALIZER_COLOR,
+    CATALOG_SKINS_PATH,
+    toCatalogName
 } from './constants.js';
 import { setModelPreference } from './launchpadView.js';
 import {
@@ -82,7 +84,9 @@ export function setLaunchpadBackground(imageFile) {
     if (menu) {
         const buttons = menu.querySelectorAll('.menu-option');
         buttons.forEach(b => b.classList.remove('selected'));
-        const selector = typeof imageFile === 'string' && imageFile ? `.menu-option[data-skin="${CSS.escape(imageFile)}"]` : '.menu-option[data-skin="none"]';
+        const selector = typeof imageFile === 'string' && imageFile
+            ? `.menu-option[data-skin="${CSS.escape(toCatalogName(imageFile, CATALOG_SKINS_PATH))}"]`
+            : '.menu-option[data-skin="none"]';
         const active = menu.querySelector(selector);
         if (active) active.classList.add('selected');
     }
@@ -102,7 +106,7 @@ export function setLaunchpadBackground(imageFile) {
     } else {
         url = (imageFile.includes('/') || imageFile.startsWith('blob:') || imageFile.startsWith('data:'))
             ? imageFile
-            : `assets/images/launchpad covers/${imageFile}`;
+            : `${CATALOG_SKINS_PATH}${imageFile}`;
     }
 
     const previousSkinUrl = currentSkinUrl;

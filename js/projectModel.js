@@ -6,7 +6,7 @@
  */
 
 import { normalizeAppearance } from './appearanceModel.js';
-import { LAUNCHPAD_PADS, DEFAULT_LIGHT_DURATION_SEC } from './constants.js';
+import { LAUNCHPAD_PADS, DEFAULT_LIGHT_DURATION_SEC, isAppAssetPath } from './constants.js';
 
 /**
  * Builds a resolver that turns a project-relative asset path into a usable URL.
@@ -18,7 +18,7 @@ export function createPathResolver(configPath) {
     const baseUrl = configPath ? configPath.substring(0, configPath.lastIndexOf('/') + 1) : '';
     return (path) => {
         if (!path) return path;
-        if (path.startsWith('http') || path.startsWith('/') || path.startsWith('assets/')) return path;
+        if (path.startsWith('http') || path.startsWith('/') || isAppAssetPath(path)) return path;
         return baseUrl ? baseUrl + path : path;
     };
 }
@@ -66,6 +66,14 @@ function stepValues(field, padIndex) {
     return entry === undefined || entry === null ? [] : [entry];
 }
 
+// ----------------------------------------------------------------------------
+// PROJECT FILE FORMAT <-> PAD STEPS
+// On disk a page stores four parallel per-pad arrays (`sounds`, `lights`,
+// `lightSyncToSound`, `lightDurations`), each entry being the pad's step list.
+// In memory every consumer (player, Studio, import/export) works with PadStep
+// lists. These two functions are the only translation between the two shapes.
+// ----------------------------------------------------------------------------
+
 /**
  * Builds the step list of one pad from the parallel per-pad fields of a page.
  * The step count is the longest of the sound and light lists.
@@ -86,6 +94,40 @@ function buildPadSteps(page, padIndex, resolvePath) {
 }
 
 /**
+ * Reads the 64 pads of a project page as PadStep lists.
+ * @param {object} page - Page of the project file.
+ * @param {(path: string) => string} [resolvePath] - Maps each sample path to a URL (identity by default).
+ * @returns {PadStep[][]} One step list per pad; pads without content have no steps.
+ */
+export function readPagePads(page, resolvePath = path => path) {
+    return Array.from({ length: LAUNCHPAD_PADS }, (_, padIndex) => buildPadSteps(page || {}, padIndex, resolvePath));
+}
+
+/**
+ * Writes a page's pads back to the file format's parallel per-pad arrays.
+ * Pads with neither a sound nor a light are written as empty step lists.
+ * @param {PadStep[][]} pads - One step list per pad (64 entries).
+ * @param {(step: PadStep, padIndex: number, stepIndex: number, stepCount: number) => string} getSoundPath -
+ *   Returns the path to store for a step's sample, or '' when it has none.
+ * @returns {{sounds: string[][], lights: string[][], lightSyncToSound: boolean[][], lightDurations: number[][]}}
+ */
+export function writePagePads(pads, getSoundPath) {
+    const page = { sounds: [], lights: [], lightSyncToSound: [], lightDurations: [] };
+
+    pads.forEach((steps, padIndex) => {
+        const soundPaths = steps.map((step, stepIndex) => getSoundPath(step, padIndex, stepIndex, steps.length) || '');
+        const hasContent = soundPaths.some(Boolean) || steps.some(step => step.light);
+
+        page.sounds.push(hasContent ? soundPaths : []);
+        page.lights.push(hasContent ? steps.map(step => step.light || '') : []);
+        page.lightSyncToSound.push(hasContent ? steps.map(step => step.syncToSound ?? true) : []);
+        page.lightDurations.push(hasContent ? steps.map(step => step.duration ?? DEFAULT_LIGHT_DURATION_SEC) : []);
+    });
+
+    return page;
+}
+
+/**
  * Normalizes a validated project into the runtime shape.
  * Pure function: does not access the network, DOM, or AudioContext.
  * Step buffers start empty; see `collectSoundUrls` and `assignStepBuffers`.
@@ -95,9 +137,7 @@ function buildPadSteps(page, padIndex, resolvePath) {
  */
 export function normalizeProjectData(project, configPath = '') {
     const resolvePath = createPathResolver(configPath);
-    const pages = (Array.isArray(project?.pages) ? project.pages : []).map(page =>
-        Array.from({ length: LAUNCHPAD_PADS }, (_, padIndex) => buildPadSteps(page || {}, padIndex, resolvePath))
-    );
+    const pages = (Array.isArray(project?.pages) ? project.pages : []).map(page => readPagePads(page, resolvePath));
 
     return {
         project,

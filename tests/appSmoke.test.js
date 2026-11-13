@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
@@ -54,8 +54,14 @@ test('project editor uses the existing Launchpad grid and a separate inspector',
 
 test('every project editor DOM id exists in the application shell', () => {
     const html = readFileSync(path.join(workspaceRoot, 'index.html'), 'utf8');
-    const source = readFileSync(path.join(workspaceRoot, 'js/projectCreator.js'), 'utf8');
-    const elementIds = [...source.matchAll(/getElementById\('([^']+)'\)/g)].map(match => match[1]);
+    const creatorDir = path.join(workspaceRoot, 'js', 'creator');
+    const source = readdirSync(creatorDir)
+        .filter(name => name.endsWith('.js'))
+        .map(name => readFileSync(path.join(creatorDir, name), 'utf8'))
+        .join('\n');
+    // Ids looked up directly or passed to the creator's listen('<id>', ...) helper.
+    const elementIds = [...source.matchAll(/(?:getElementById|listen)\('([^']+)'/g)].map(match => match[1]);
+    assert.ok(elementIds.length > 50, 'creator modules must be scanned');
 
     for (const elementId of elementIds) {
         assert.ok(html.includes(`id="${elementId}"`), `Missing project editor element: ${elementId}`);

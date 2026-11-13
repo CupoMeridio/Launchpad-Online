@@ -102,8 +102,8 @@ test('ProjectCreatorSession multisampling step management', () => {
 
     const currentStep = session.getCurrentStep();
     assert.equal(currentStep.light, 'rain_down_red');
-    assert.equal(currentStep.lightDuration, 1.5);
-    assert.equal(currentStep.lightSyncToSound, false);
+    assert.equal(currentStep.duration, 1.5);
+    assert.equal(currentStep.syncToSound, false);
 
     // Remove step
     assert.equal(session.removeStep(4, 2), true);
@@ -178,4 +178,116 @@ test('ProjectCreatorSession dirty tracking', () => {
 
     session.markSaved();
     assert.equal(session.isDirty(), false);
+});
+
+function recordChanges(session) {
+    const notifications = [];
+    session.subscribe(changes => notifications.push(changes.map(change => ({ ...change }))));
+    return notifications;
+}
+
+test('session notifies what changed, and marks the draft modified only for edits', () => {
+    const session = new ProjectCreatorSession();
+    const notifications = recordChanges(session);
+
+    session.open();
+    assert.deepEqual(notifications.pop(), [{ type: 'draft' }]);
+    assert.equal(session.isDirty(), false);
+
+    session.setActivePadIndex(3);
+    assert.deepEqual(notifications.pop(), [{ type: 'selection' }]);
+    assert.equal(session.isDirty(), false, 'selection is not an edit');
+
+    session.assignStepLight(3, 0, 'fade_red');
+    assert.deepEqual(notifications.pop(), [{ type: 'pads', field: 'light' }]);
+    assert.equal(session.isDirty(), true);
+
+    session.removeStepLight();
+    assert.deepEqual(notifications.pop(), [{ type: 'pads', field: 'light' }]);
+    assert.equal(session.getCurrentStep().light, null);
+
+    session.setStepLightDuration(undefined, undefined, '1.26');
+    assert.deepEqual(notifications.pop(), [{ type: 'pads', field: 'duration' }]);
+    assert.equal(session.getCurrentStep().duration, 1.3);
+    assert.equal(session.setStepLightDuration(undefined, undefined, 'abc'), false);
+    assert.equal(notifications.length, 0, 'rejected edits notify nothing');
+});
+
+test('session batch coalesces several mutations into one notification', () => {
+    const session = new ProjectCreatorSession();
+    session.open();
+    const notifications = recordChanges(session);
+
+    const result = session.batch(() => {
+        session.setPendingTextAnimation(null);
+        session.assignStepLight(0, 0, 'wave_blue');
+        return 'done';
+    });
+
+    assert.equal(result, 'done');
+    assert.equal(notifications.length, 1);
+    assert.deepEqual(notifications[0].map(change => change.type), ['lightPicker', 'pads']);
+});
+
+test('session metadata and appearance edits are validated and notified', () => {
+    const session = new ProjectCreatorSession();
+    session.open();
+    const notifications = recordChanges(session);
+
+    assert.equal(session.setName('Live Set'), true);
+    assert.equal(session.setName('Live Set'), false, 'unchanged name is a no-op');
+    assert.equal(session.setTargetDevice('legacy'), true);
+    assert.equal(session.setTargetDevice('not-a-device'), true, 'unknown targets normalize to universal');
+    assert.equal(session.getDraft().targetDevice, 'universal');
+
+    const file = { name: 'cover.png' };
+    assert.equal(session.setAppearanceAsset('skin', file), true);
+    assert.equal(session.setAppearanceAsset('name', 'x'), false, 'only appearance assets are accepted');
+    assert.equal(session.getDraft().appearance.skin, file);
+
+    session.updateVisualizer({ mode: 'both', color1: 'not-a-colour?' });
+    assert.equal(session.getDraft().appearance.visualizer.mode, 'both');
+    assert.equal(session.getDraft().appearance.visualizer.color2, '#00aaff', 'untouched settings are kept');
+
+    session.setLayout({ size: 90 });
+    assert.equal(session.getDraft().appearance.size, 90);
+    assert.equal(session.getDraft().appearance.rotation, null, 'unspecified layout stays unset');
+
+    assert.deepEqual(notifications.flat(), [
+        { type: 'meta', field: 'name' },
+        { type: 'meta', field: 'targetDevice' },
+        { type: 'meta', field: 'targetDevice' },
+        { type: 'theme', aspect: 'skin' },
+        { type: 'theme', aspect: 'visualizer', keys: ['mode', 'color1'] },
+        { type: 'theme', aspect: 'layout' }
+    ]);
+});
+
+test('session tracks whether an import is still current', () => {
+    const session = new ProjectCreatorSession();
+    session.open();
+    const first = session.nextImportId();
+    assert.equal(session.isImportCurrent(first), true);
+    const second = session.nextImportId();
+    assert.equal(session.isImportCurrent(first), false, 'a newer import supersedes it');
+    assert.equal(session.isImportCurrent(second), true);
+    session.close();
+    assert.equal(session.isImportCurrent(second), false, 'closing the editor cancels it');
+});
+
+test('assignStepSample decodes into the selected step and notifies once assigned', async () => {
+    const session = new ProjectCreatorSession();
+    session.open();
+    session.setActivePadIndex(5);
+    const notifications = recordChanges(session);
+
+    const result = await session.assignStepSample({ name: 'kick.wav' }, async () => ({ duration: 1 }));
+    assert.equal(result, 'assigned');
+    assert.equal(session.getCurrentStep().sample.name, 'kick.wav');
+    assert.deepEqual(session.getCurrentStep().buffer, { duration: 1 });
+    assert.deepEqual(notifications.pop(), [{ type: 'pads', field: 'sample' }]);
+
+    const failed = await session.assignStepSample({ name: 'bad.wav' }, async () => { throw new Error('decode'); });
+    assert.equal(failed, 'failed');
+    assert.equal(notifications.length, 0);
 });

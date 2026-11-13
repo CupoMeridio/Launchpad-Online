@@ -38,12 +38,12 @@ function loadCreatorStyles() {
 /**
  * Loads and initializes the Studio Creator (once). A failed load is retried on
  * the next call.
- * @returns {Promise<typeof import('./projectCreator.js')>}
+ * @returns {Promise<typeof import('./creator/index.js')>}
  */
 export function loadProjectCreator() {
     if (!modulePromise) {
         modulePromise = Promise.all([
-            import('./projectCreator.js'),
+            import('./creator/index.js'),
             loadCreatorStyles()
         ]).then(([module]) => {
             module.initializeProjectCreator();

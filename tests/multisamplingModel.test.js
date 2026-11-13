@@ -25,7 +25,7 @@ test('multisampling model manages pad step addition and removal within limits', 
     let steps = getPadSteps(page, 0);
     assert.equal(steps.length, 1);
     assert.equal(steps[0].sample, null);
-    assert.equal(steps[0].light, '');
+    assert.equal(steps[0].light, null);
 
     // Add steps up to MAX_PAD_STEPS
     for (let i = 1; i < MAX_PAD_STEPS; i++) {
@@ -63,7 +63,7 @@ test('multisampling step sample assignment and removal updates the targeted step
     // Assign to step 0
     await assignPadStepSample(page, 0, 0, fakeFile1, mockDecoder);
     assert.equal(getPadSteps(page, 0)[0].sample?.name, 'sample-01.wav');
-    assert.equal(getPadSteps(page, 0)[0].soundBuffer?.duration, 1.5);
+    assert.equal(getPadSteps(page, 0)[0].buffer?.duration, 1.5);
 
     // Assign to step 1
     await assignPadStepSample(page, 0, 1, fakeFile2, mockDecoder);
@@ -92,8 +92,8 @@ test('multisampling step lights and timings synchronize correctly', () => {
     const steps = getPadSteps(page, 5);
     assert.equal(steps[0].light, 'fade_red');
     assert.equal(steps[1].light, 'wave_blue');
-    assert.equal(steps[1].lightSyncToSound, false);
-    assert.equal(steps[1].lightDuration, 4.5);
+    assert.equal(steps[1].syncToSound, false);
+    assert.equal(steps[1].duration, 4.5);
 });
 
 test('exporting project with multisampling outputs step arrays and indexed filenames', () => {
@@ -142,11 +142,11 @@ test('projectZip roundtrips multi-step draft export and import', async () => {
     const steps = getPadSteps(page, 2);
     steps[0].sample = { name: 'snare_a.wav', data: fakeAudio1 };
     steps[0].light = 'fade_cyan';
-    steps[0].lightSyncToSound = true;
+    steps[0].syncToSound = true;
     steps[1].sample = { name: 'snare_b.wav', data: fakeAudio2 };
     steps[1].light = 'pulse_amber';
-    steps[1].lightSyncToSound = false;
-    steps[1].lightDuration = 3.2;
+    steps[1].syncToSound = false;
+    steps[1].duration = 3.2;
 
     const originalDraft = createDraft('Multi Zip Test', [page]);
     const { blob, filename } = await exportProjectToZip(originalDraft, JSZip);
@@ -158,10 +158,10 @@ test('projectZip roundtrips multi-step draft export and import', async () => {
     const importedSteps = getPadSteps(importedDraft.pages[0], 2);
     assert.equal(importedSteps.length, 2);
     assert.equal(importedSteps[0].light, 'fade_cyan');
-    assert.equal(importedSteps[0].lightSyncToSound, true);
+    assert.equal(importedSteps[0].syncToSound, true);
     assert.equal(importedSteps[1].light, 'pulse_amber');
-    assert.equal(importedSteps[1].lightSyncToSound, false);
-    assert.equal(importedSteps[1].lightDuration, 3.2);
+    assert.equal(importedSteps[1].syncToSound, false);
+    assert.equal(importedSteps[1].duration, 3.2);
     assert.ok(importedSteps[0].sample);
     assert.ok(importedSteps[1].sample);
 });
@@ -196,10 +196,10 @@ test('async sample decode stays anchored to the targeted step even if steps shif
     const remainingSteps = getPadSteps(page, 0);
     // The target step shifted from index 1 to index 0
     assert.equal(remainingSteps[0].sample?.name, 'target-step.wav');
-    assert.equal(remainingSteps[0].soundBuffer?.duration, 2.2);
+    assert.equal(remainingSteps[0].buffer?.duration, 2.2);
     // Index 1 (originally step 2) must remain untouched
     assert.equal(remainingSteps[1].sample, null);
-    assert.equal(remainingSteps[1].soundBuffer, null);
+    assert.equal(remainingSteps[1].buffer, null);
 });
 
 test('simultaneous uploads on different steps of the same pad do not cancel each other', async () => {

@@ -176,14 +176,14 @@ test('creator sample token logic rejects superseded or canceled audio decodes', 
     const res2 = await p2;
     assert.equal(res2, 'assigned');
     assert.equal(step().sample.name, 'fast.wav');
-    assert.equal(step().soundBuffer, 'fastBuffer');
+    assert.equal(step().buffer, 'fastBuffer');
 
     // Slow resolves late (superseded)
     resolveSlow('slowBuffer');
     const res1 = await p1;
     assert.equal(res1, 'superseded', 'Superseded assignment must return superseded');
     assert.equal(step().sample.name, 'fast.wav');
-    assert.equal(step().soundBuffer, 'fastBuffer');
+    assert.equal(step().buffer, 'fastBuffer');
 
     // User removes sample while another decode is in-flight
     let resolveLate = null;
@@ -192,24 +192,24 @@ test('creator sample token logic rejects superseded or canceled audio decodes', 
 
     removePadStepSample(page, targetIndex, 0);
     assert.equal(step().sample, null);
-    assert.equal(step().soundBuffer, null);
+    assert.equal(step().buffer, null);
 
     // Late decode resolves after removal
     resolveLate('cancelledBuffer');
     const res3 = await p3;
     assert.equal(res3, 'superseded', 'Decode after removal must return superseded');
     assert.equal(step().sample, null);
-    assert.equal(step().soundBuffer, null);
+    assert.equal(step().buffer, null);
 
     // Corrupt file decoding failure leaves previous valid sample intact
     step().sample = { name: 'good.wav' };
-    step().soundBuffer = 'goodBuffer';
+    step().buffer = 'goodBuffer';
 
     const failDecode = Promise.reject(new Error('Corrupt file'));
     const pFail = await assignPadStepSample(page, targetIndex, 0, { name: 'corrupted.wav' }, () => failDecode);
     assert.equal(pFail, 'failed', 'Decode failure must return failed');
     assert.equal(step().sample.name, 'good.wav', 'Previous sample must remain intact on decode error');
-    assert.equal(step().soundBuffer, 'goodBuffer', 'Previous buffer must remain intact on decode error');
+    assert.equal(step().buffer, 'goodBuffer', 'Previous buffer must remain intact on decode error');
 });
 
 test('setWebColor sets dataset.ledColor and --led-level for monotonic white LED steps and clears on off', () => {
@@ -309,15 +309,15 @@ test('assignSampleGuarded discards decode results if the active draft changed du
     let resolveDecode = null;
     const decodePromise = new Promise(resolve => { resolveDecode = resolve; });
 
-    const assignment = assignSampleGuarded(
-        draftA,
+    const assignment = assignSampleGuarded({
+        targetDraft: draftA,
         page,
-        0,
-        0,
-        { name: 'delayed.wav' },
-        () => decodePromise,
-        () => activeDraft
-    );
+        padIndex: 0,
+        stepIndex: 0,
+        file: { name: 'delayed.wav' },
+        decoder: () => decodePromise,
+        getActiveDraft: () => activeDraft
+    });
 
     // While decode is in-flight, the user switches to Draft B
     activeDraft = draftB;
@@ -331,7 +331,7 @@ test('assignSampleGuarded discards decode results if the active draft changed du
     // Draft B must remain pristine (never mutated by Draft A's late decode)
     assert.equal(draftB.changeCount, 0, 'New draft changeCount must not increment');
     assert.equal(getPadSteps(draftB.pages[0], 0)[0].sample, null, 'New draft pad 0 must not receive sample');
-    assert.equal(getPadSteps(draftB.pages[0], 0)[0].soundBuffer, null, 'New draft pad 0 must not receive buffer');
+    assert.equal(getPadSteps(draftB.pages[0], 0)[0].buffer, null, 'New draft pad 0 must not receive buffer');
 
     // Draft A must not be flagged modified either
     assert.equal(draftA.changeCount, 0, 'Stale draft changeCount must not be incremented');

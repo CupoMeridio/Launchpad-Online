@@ -5,7 +5,7 @@ import {
     createProjectId, 
     createProjectPage, 
     createDraft,
-    createEmptyPadStep,
+    createDraftStep,
     isDraftDirty, 
     buildDraftFromProject,
     getPadSteps
@@ -130,8 +130,8 @@ test('buildDraftFromProject reconstructs editor draft from project schema and fi
     // Page 2 must NOT fall back to page 1's pad-01.wav!
     assert.equal(getPadSteps(draft.pages[1], 0)[0].sample, null, 'Missing sample in page 2 must not fall back to page 1 sample');
     assert.equal(getPadSteps(draft.pages[0], 0)[0].light, 'wave_green');
-    assert.equal(getPadSteps(draft.pages[0], 0)[0].lightSyncToSound, false);
-    assert.equal(getPadSteps(draft.pages[0], 0)[0].lightDuration, 4.2);
+    assert.equal(getPadSteps(draft.pages[0], 0)[0].syncToSound, false);
+    assert.equal(getPadSteps(draft.pages[0], 0)[0].duration, 4.2);
 });
 
 test('projectZip roundtrips draft export to zip and import from zip', async () => {
@@ -139,8 +139,8 @@ test('projectZip roundtrips draft export to zip and import from zip', async () =
     const fakeAudioContent = Buffer.from('RIFF1234WAVEfmt ');
     getPadSteps(page, 0)[0].sample = { name: 'kick.wav', data: fakeAudioContent };
     getPadSteps(page, 0)[0].light = 'fade_red';
-    getPadSteps(page, 0)[0].lightSyncToSound = false;
-    getPadSteps(page, 0)[0].lightDuration = 3.0;
+    getPadSteps(page, 0)[0].syncToSound = false;
+    getPadSteps(page, 0)[0].duration = 3.0;
 
     const originalDraft = {
         name: 'Roundtrip Zip Project',
@@ -158,39 +158,44 @@ test('projectZip roundtrips draft export to zip and import from zip', async () =
     assert.equal(importResult.draft.pages.length, 1);
     assert.ok(getPadSteps(importResult.draft.pages[0], 0)[0].sample);
     assert.equal(getPadSteps(importResult.draft.pages[0], 0)[0].light, 'fade_red');
-    assert.equal(getPadSteps(importResult.draft.pages[0], 0)[0].lightSyncToSound, false);
-    assert.equal(getPadSteps(importResult.draft.pages[0], 0)[0].lightDuration, 3.0);
+    assert.equal(getPadSteps(importResult.draft.pages[0], 0)[0].syncToSound, false);
+    assert.equal(getPadSteps(importResult.draft.pages[0], 0)[0].duration, 3.0);
 });
 
-test('createDraft initializes default theme properties and accepts overrides', () => {
+test('createDraft initializes a canonical default appearance and accepts overrides', () => {
     const draft = createDraft();
-    assert.deepEqual(draft.visualizer, {
-        mode: 'off',
-        color1: '#00aaff',
-        color2: '#00aaff',
-        gradient: false,
-        gradientDirection: 'vertical'
+    assert.deepEqual(draft.appearance, {
+        background: null,
+        skin: null,
+        icon: null,
+        visualizer: {
+            mode: 'off',
+            color1: '#00aaff',
+            color2: '#00aaff',
+            gradient: false,
+            gradientDirection: 'vertical'
+        },
+        rotation: null,
+        size: null
     });
-    assert.equal(draft.launchpadRotation, null);
-    assert.equal(draft.launchpadSize, null);
-    assert.equal(draft.backgroundMedia, '');
-    assert.equal(draft.coverImage, '');
-    assert.equal(draft.iconImage, '');
 
     const customDraft = createDraft('Themed Project', null, {
-        visualizer: { mode: 'glow', color1: '#123456' },
-        coverImage: 'custom-cover.jpg',
-        backgroundMedia: 'custom-bg.mp4',
-        launchpadRotation: 180,
-        launchpadSize: 75
+        appearance: {
+            visualizer: { mode: 'glow', color1: '#123456' },
+            skin: 'custom-cover.jpg',
+            background: 'custom-bg.mp4',
+            rotation: 180,
+            size: 75
+        }
     });
-    assert.equal(customDraft.visualizer.mode, 'glow');
-    assert.equal(customDraft.visualizer.color1, '#123456');
-    assert.equal(customDraft.visualizer.color2, '#00aaff');
-    assert.equal(customDraft.coverImage, 'custom-cover.jpg');
-    assert.equal(customDraft.backgroundMedia, 'custom-bg.mp4');
-    assert.equal(customDraft.launchpadRotation, 180);
-    assert.equal(customDraft.launchpadSize, 75);
+    assert.equal(customDraft.appearance.visualizer.mode, 'glow');
+    assert.equal(customDraft.appearance.visualizer.color1, '#123456');
+    assert.equal(customDraft.appearance.visualizer.color2, '#00aaff', 'partial visualizer is completed with defaults');
+    assert.equal(customDraft.appearance.skin, 'custom-cover.jpg');
+    assert.equal(customDraft.appearance.background, 'custom-bg.mp4');
+    assert.equal(customDraft.appearance.icon, null);
+    assert.equal(customDraft.appearance.rotation, 180);
+    assert.equal(customDraft.appearance.size, 75);
 });
 
 test('buildProjectExport exports theme properties and packages custom media files', () => {
@@ -202,21 +207,20 @@ test('buildProjectExport exports theme properties and packages custom media file
     const draft = {
         name: 'Themed Bundle',
         pages: [page],
-        coverImage: 'custom:cover.png',
-        iconImage: 'custom:icon.png',
-        backgroundMedia: 'custom:bg.mp4',
-        customCoverFile: { name: 'cover.png', data: fakeCoverData },
-        customIconFile: { name: 'icon.png', data: fakeIconData },
-        customBackgroundFile: { name: 'bg.mp4', data: fakeBgData },
-        visualizer: {
-            mode: 'both',
-            color1: '#aabbcc',
-            color2: '#ddeeff',
-            gradient: true,
-            gradientDirection: 'horizontal'
-        },
-        launchpadRotation: 90,
-        launchpadSize: 125
+        appearance: {
+            skin: { name: 'cover.png', data: fakeCoverData },
+            icon: { name: 'icon.png', data: fakeIconData },
+            background: { name: 'bg.mp4', data: fakeBgData },
+            visualizer: {
+                mode: 'both',
+                color1: '#aabbcc',
+                color2: '#ddeeff',
+                gradient: true,
+                gradientDirection: 'horizontal'
+            },
+            rotation: 90,
+            size: 125
+        }
     };
 
     const result = buildProjectExport(draft);
@@ -247,34 +251,36 @@ test('projectZip roundtrips theme properties and custom media files', async () =
     const draft = {
         name: 'Full Theme Roundtrip',
         pages: [page],
-        customCoverFile: { name: 'art.png', data: fakePng },
-        customBackgroundFile: { name: 'ambient.mp4', data: fakeVideo },
-        visualizer: {
-            mode: 'both',
-            color1: '#112233',
-            color2: '#445566',
-            gradient: true,
-            gradientDirection: 'vertical'
-        },
-        launchpadRotation: 45,
-        launchpadSize: 110
+        appearance: {
+            skin: { name: 'art.png', data: fakePng },
+            background: { name: 'ambient.mp4', data: fakeVideo },
+            visualizer: {
+                mode: 'both',
+                color1: '#112233',
+                color2: '#445566',
+                gradient: true,
+                gradientDirection: 'vertical'
+            },
+            rotation: 45,
+            size: 110
+        }
     };
 
     const exportResult = await exportProjectToZip(draft, JSZip);
     const importResult = await importProjectFromZip(exportResult.blob, JSZip);
 
     assert.equal(importResult.draft.name, 'Full Theme Roundtrip');
-    assert.equal(importResult.draft.visualizer.mode, 'both');
-    assert.equal(importResult.draft.visualizer.color1, '#112233');
-    assert.equal(importResult.draft.visualizer.color2, '#445566');
-    assert.equal(importResult.draft.visualizer.gradient, true);
-    assert.equal(importResult.draft.visualizer.gradientDirection, 'vertical');
-    assert.equal(importResult.draft.launchpadRotation, 45);
-    assert.equal(importResult.draft.launchpadSize, 110);
-    assert.ok(importResult.draft.customCoverFile);
-    assert.equal(importResult.draft.customCoverFile.name, 'cover.png');
-    assert.ok(importResult.draft.customBackgroundFile);
-    assert.equal(importResult.draft.customBackgroundFile.name, 'background.mp4');
+    assert.equal(importResult.draft.appearance.visualizer.mode, 'both');
+    assert.equal(importResult.draft.appearance.visualizer.color1, '#112233');
+    assert.equal(importResult.draft.appearance.visualizer.color2, '#445566');
+    assert.equal(importResult.draft.appearance.visualizer.gradient, true);
+    assert.equal(importResult.draft.appearance.visualizer.gradientDirection, 'vertical');
+    assert.equal(importResult.draft.appearance.rotation, 45);
+    assert.equal(importResult.draft.appearance.size, 110);
+    assert.ok(importResult.draft.appearance.skin);
+    assert.equal(importResult.draft.appearance.skin.name, 'cover.png');
+    assert.ok(importResult.draft.appearance.background);
+    assert.equal(importResult.draft.appearance.background.name, 'background.mp4');
 });
 
 test('projectZip roundtrips image background files and builds correct draft fallbacks', async () => {
@@ -284,25 +290,25 @@ test('projectZip roundtrips image background files and builds correct draft fall
     const draft = {
         name: 'Image Background Project',
         pages: [page],
-        customBackgroundFile: { name: 'landscape.jpg', data: fakeImage }
+        appearance: { background: { name: 'landscape.jpg', data: fakeImage } }
     };
 
     const exportResult = await exportProjectToZip(draft, JSZip);
     const importResult = await importProjectFromZip(exportResult.blob, JSZip);
 
     assert.equal(importResult.draft.name, 'Image Background Project');
-    assert.ok(importResult.draft.customBackgroundFile);
-    assert.equal(importResult.draft.customBackgroundFile.name, 'background.jpg');
+    assert.ok(importResult.draft.appearance.background);
+    assert.equal(importResult.draft.appearance.background.name, 'background.jpg');
 
     // Verify draft fallbacks when project omits visual settings
-    assert.equal(importResult.draft.visualizer.mode, 'off');
-    assert.equal(importResult.draft.visualizer.color1, '#00aaff');
-    assert.equal(importResult.draft.visualizer.color2, '#00aaff');
-    assert.equal(importResult.draft.visualizer.gradient, false);
-    assert.equal(importResult.draft.visualizer.gradientDirection, 'vertical');
+    assert.equal(importResult.draft.appearance.visualizer.mode, 'off');
+    assert.equal(importResult.draft.appearance.visualizer.color1, '#00aaff');
+    assert.equal(importResult.draft.appearance.visualizer.color2, '#00aaff');
+    assert.equal(importResult.draft.appearance.visualizer.gradient, false);
+    assert.equal(importResult.draft.appearance.visualizer.gradientDirection, 'vertical');
     // Rotation/size stay unset so the user's personal preference is preserved.
-    assert.equal(importResult.draft.launchpadRotation, null);
-    assert.equal(importResult.draft.launchpadSize, null);
+    assert.equal(importResult.draft.appearance.rotation, null);
+    assert.equal(importResult.draft.appearance.size, null);
 });
 
 test('normalizeTargetDevice validates and normalizes target device names', () => {
@@ -315,15 +321,79 @@ test('normalizeTargetDevice validates and normalizes target device names', () =>
     assert.equal(normalizeTargetDevice(123), 'universal');
 });
 
-test('createEmptyPadStep initializes default pad step structure', () => {
-    const step = createEmptyPadStep();
+test('createDraftStep is a PadStep plus the editor-only sample fields', () => {
+    const step = createDraftStep();
     assert.deepEqual(step, {
+        soundUrl: null,
+        buffer: null,
+        light: null,
+        syncToSound: true,
+        duration: DEFAULT_LIGHT_DURATION_SEC,
         sample: null,
-        soundBuffer: null,
-        sampleToken: 0,
-        light: '',
-        lightDuration: DEFAULT_LIGHT_DURATION_SEC,
-        lightSyncToSound: true
+        sampleToken: 0
     });
 });
 
+
+test('import -> export is lossless and idempotent for steps, lights, timing and packaged assets', () => {
+    const sample = (name) => ({ name, data: Buffer.from(name) });
+    const emptyPads = () => Array.from({ length: 64 }, () => []);
+
+    const sounds = emptyPads();
+    const lights = emptyPads();
+    const sync = emptyPads();
+    const durations = emptyPads();
+    sounds[0] = ['samples/page-1/pad-01_step-01.wav', 'samples/page-1/pad-01_step-02.wav', ''];
+    lights[0] = ['fade_red', '', 'wave_blue'];
+    sync[0] = [true, false, false];
+    durations[0] = [DEFAULT_LIGHT_DURATION_SEC, 2.5, 4];
+    lights[9] = ['pulse_green'];
+    sounds[9] = [''];
+    sync[9] = [true];
+    durations[9] = [1.5];
+
+    const project = {
+        id: 'roundtrip', name: 'Roundtrip', targetDevice: 'rgb',
+        pages: [{ name: 'Intro', sounds, lights, lightSyncToSound: sync, lightDurations: durations }],
+        coverImage: 'cover.png',
+        backgroundMedia: 'background.mp4',
+        visualizer: { mode: 'both', color1: '#112233', color2: '#445566', gradient: true, gradientDirection: 'horizontal' },
+        launchpadRotation: 90
+    };
+    const archive = new Map([
+        ['samples/page-1/pad-01_step-01.wav', sample('a.wav')],
+        ['samples/page-1/pad-01_step-02.wav', sample('b.wav')],
+        ['cover.png', sample('cover.png')],
+        ['background.mp4', sample('background.mp4')]
+    ]);
+
+    const firstDraft = buildDraftFromProject(project, archive);
+    assert.deepEqual(firstDraft.missingAssets, []);
+    const firstExport = buildProjectExport(firstDraft);
+    assert.deepEqual(firstExport.project, project, 'export(import(project)) reproduces the project');
+
+    const secondArchive = new Map(firstExport.files.map(({ path, file }) => [path, file]));
+    const secondExport = buildProjectExport(buildDraftFromProject(firstExport.project, secondArchive));
+    assert.deepEqual(secondExport.project, firstExport.project, 'a second round trip changes nothing');
+    assert.deepEqual(secondExport.files.map(f => f.path), firstExport.files.map(f => f.path));
+});
+
+test('catalog assets are exported as canonical app paths and survive a zip round trip', async () => {
+    const draft = createDraft('Catalog Assets', null, {
+        appearance: {
+            background: 'assets/videos/Neon Tunnel.webm',
+            skin: 'assets/images/launchpad covers/black_bg_blue_squares_tl.png'
+        }
+    });
+
+    const exported = buildProjectExport(draft);
+    assert.equal(exported.project.backgroundMedia, 'assets/videos/Neon Tunnel.webm');
+    assert.equal(exported.project.coverImage, 'assets/images/launchpad covers/black_bg_blue_squares_tl.png');
+    assert.deepEqual(exported.files, [], 'app assets are not packaged');
+
+    const { blob } = await exportProjectToZip(draft, JSZip);
+    const { draft: imported, missingAssets } = await importProjectFromZip(blob, JSZip);
+    assert.deepEqual(missingAssets, []);
+    assert.equal(imported.appearance.background, 'assets/videos/Neon Tunnel.webm');
+    assert.equal(imported.appearance.skin, 'assets/images/launchpad covers/black_bg_blue_squares_tl.png');
+});

@@ -94,6 +94,14 @@ Launchpad-Online/
 │   ├── sidebar.css         # Collapsible sidebar, tabs & navigation styles
 │   └── style.css           # Core theme variables, layout & base controls
 ├── js/                     # Application logic
+│   ├── creator/            # Studio Creator view (lazy-loaded)
+│   │   ├── index.js        # Open/close, pad source, single session-change dispatcher
+│   │   ├── padEditor.js    # Page tabs, pad grid, pad inspector (steps, sample, timing)
+│   │   ├── lightPicker.js  # Animation catalog, presets, dynamic text lights
+│   │   ├── themeEditor.js  # Draft appearance (background, skin, icon, visualizer, layout)
+│   │   ├── preview.js      # Pad step preview and hold-to-play
+│   │   ├── importExport.js # Project .zip export and import
+│   │   └── dom.js          # Small DOM helpers
 │   ├── midi-profiles/      # Hardware drivers (Legacy, RGB, Registry)
 │   ├── vendor/             # Third-party utilities (JSZip)
 │   ├── animationClasses.js # Animation class definitions
@@ -102,6 +110,7 @@ Launchpad-Online/
 │   ├── animationLibrary.js # Registry of available animations
 │   ├── app.js              # Entry point / composition root (no state, no exports)
 │   ├── audio.js            # Web Audio API engine
+│   ├── concurrency.js      # Bounded-concurrency helper (audio loading, zip import)
 │   ├── constants.js        # Global constants and grid definitions
 │   ├── creatorLoader.js    # Lazy loader for the Studio Creator module and styles
 │   ├── i18n.js             # Locale loading and translation lookup
@@ -113,7 +122,6 @@ Launchpad-Online/
 │   ├── project.js          # Project and page management
 │   ├── projectModel.js     # Pure project normalization and path resolution
 │   ├── projectState.js     # Runtime state: active project (atomic commit), page, mode
-│   ├── projectCreator.js   # Studio Creator workspace
 │   ├── projectCreatorModel.js # Creator data model & validation
 │   ├── projectCreatorState.js # Creator session state & business logic
 │   ├── projectZip.js       # Standalone project .zip import/export

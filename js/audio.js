@@ -19,6 +19,7 @@ import {
 import { showNotification } from './notifications.js';
 import { translate } from './i18n.js';
 import { AUDIO_LOAD_CONCURRENCY } from './constants.js';
+import { mapWithConcurrency } from './concurrency.js';
 import { onVisibilityChange } from './visibilityManager.js';
 import { debug } from './logger.js';
 
@@ -216,20 +217,15 @@ class AudioEngine {
         const total = uniqueUrls.length;
         const buffersByUrl = new Map();
         let loadedCount = 0;
-        let nextIndex = 0;
 
         if (onProgress) onProgress(0, total);
 
-        const worker = async () => {
-            while (nextIndex < total) {
-                const url = uniqueUrls[nextIndex++];
-                const buffer = await this.loadSound(url);
-                if (buffer) buffersByUrl.set(url, buffer);
-                loadedCount++;
-                if (onProgress) onProgress(loadedCount, total);
-            }
-        };
-        await Promise.all(Array.from({ length: Math.min(AUDIO_LOAD_CONCURRENCY, total) }, worker));
+        await mapWithConcurrency(uniqueUrls, AUDIO_LOAD_CONCURRENCY, async (url) => {
+            const buffer = await this.loadSound(url);
+            if (buffer) buffersByUrl.set(url, buffer);
+            loadedCount++;
+            if (onProgress) onProgress(loadedCount, total);
+        });
 
         const stats = audioLoadingTracker.getFailureStats();
         debug(`[AUDIO] Sounds loaded. Success: ${stats.successful}, Failed: ${stats.failed}`);

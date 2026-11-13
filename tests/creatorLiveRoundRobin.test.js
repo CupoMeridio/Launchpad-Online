@@ -91,7 +91,7 @@ const { audioEngine } = await import('../js/audio.js');
 // It must run against the real creator, since the default pad source never had
 // the defect and therefore cannot guard against its return.
 test('creator live mode advances the round-robin once per press on lightless multi-step pads', async () => {
-    const { initializeProjectCreator, openCreator } = await import('../js/projectCreator.js');
+    const { initializeProjectCreator, openCreator } = await import('../js/creator/index.js');
 
     // Real creator flow: open the studio, build a 3-step pad carrying samples
     // only (no lights), then switch to live preview.

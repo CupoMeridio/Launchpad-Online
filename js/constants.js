@@ -102,6 +102,39 @@ const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mov', '.m4v', '.ogv', '.mkv'];
 /** Backgrounds and icons accept both images and videos. */
 export const MEDIA_EXTENSIONS = [...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS];
 
+// ============================================================================
+// APP-BUNDLED ASSETS
+// ============================================================================
+// Paths under `assets/` are resources shipped with the app (catalog videos and
+// skins, icons). Project files reference catalog items by these canonical
+// paths, so they resolve the same in the player, in the Studio and after a zip
+// round trip, and are never looked up inside a project folder or archive.
+
+export const APP_ASSETS_PREFIX = 'assets/';
+export const CATALOG_VIDEOS_PATH = 'assets/videos/';
+export const CATALOG_SKINS_PATH = 'assets/images/launchpad covers/';
+
+/**
+ * @param {*} path
+ * @returns {boolean} True for a path to a resource bundled with the app.
+ */
+export function isAppAssetPath(path) {
+    return typeof path === 'string' && path.startsWith(APP_ASSETS_PREFIX);
+}
+
+/**
+ * Catalog file name of a catalog reference, which may be the canonical path
+ * (`assets/videos/X.mp4`) or the bare name (`X.mp4`) used by the sidebar menus.
+ * @param {string} reference
+ * @param {string} catalogPath - CATALOG_VIDEOS_PATH or CATALOG_SKINS_PATH.
+ * @returns {string}
+ */
+export function toCatalogName(reference, catalogPath) {
+    return typeof reference === 'string' && reference.startsWith(catalogPath)
+        ? reference.slice(catalogPath.length)
+        : reference;
+}
+
 /** Every file type that may be packaged inside a project archive. */
 export const PROJECT_ASSET_EXTENSIONS = [...AUDIO_EXTENSIONS, ...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS];
 

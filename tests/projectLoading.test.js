@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createPathResolver, normalizeProjectData, collectSoundUrls, assignStepBuffers } from '../js/projectModel.js';
+import { createPathResolver, normalizeProjectData, collectSoundUrls, assignStepBuffers, readPagePads, writePagePads } from '../js/projectModel.js';
 import { LAUNCHPAD_PADS, DEFAULT_LIGHT_DURATION_SEC } from '../js/constants.js';
 
 const workspaceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -169,5 +169,25 @@ test('smoke test: built-in projects normalize cleanly when present on disk', (t)
         assert.equal(normalized.pages.length, raw.pages.length);
         normalized.pages.forEach(page => assert.equal(page.length, LAUNCHPAD_PADS));
         assert.ok(collectSoundUrls(normalized).length > 0, `${item.name}: must reference samples`);
+    }
+});
+
+test('writePagePads is the inverse of readPagePads', () => {
+    const page = {
+        sounds: [['a.wav', ''], [], ['c.wav']],
+        lights: [['fade_red', 'wave_blue'], [], ['']],
+        lightSyncToSound: [[true, false], [], [true]],
+        lightDurations: [[2, 3.5], [], [DEFAULT_LIGHT_DURATION_SEC]]
+    };
+    const pads = readPagePads(page);
+    assert.equal(pads.length, LAUNCHPAD_PADS);
+    assert.equal(pads[0][1].light, 'wave_blue');
+    assert.equal(pads[0][1].soundUrl, null);
+
+    const written = writePagePads(pads, step => step.soundUrl || '');
+    for (const field of ['sounds', 'lights', 'lightSyncToSound', 'lightDurations']) {
+        assert.equal(written[field].length, LAUNCHPAD_PADS);
+        assert.deepEqual(written[field].slice(0, 3), page[field], field);
+        assert.ok(written[field].slice(3).every(entry => entry.length === 0));
     }
 });

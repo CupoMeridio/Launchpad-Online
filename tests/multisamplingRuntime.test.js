@@ -322,7 +322,7 @@ test('single-step pads remain at step 0 across multiple presses', () => {
 });
 
 test('creator preview button triggers hold preview for momentary animation on step > 0', async () => {
-    const { initializeProjectCreator, openCreator } = await import('../js/projectCreator.js');
+    const { initializeProjectCreator, openCreator } = await import('../js/creator/index.js');
 
     // Register a mock momentary animation
     let holdTriggered = false;
