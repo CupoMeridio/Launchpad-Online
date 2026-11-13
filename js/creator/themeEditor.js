@@ -25,8 +25,8 @@ import {
 import { syncInputSlider } from '../formControls.js';
 import { creatorSession } from '../projectCreatorState.js';
 import { getStaticCatalog } from '../staticCatalog.js';
-import { getLaunchpadRotation, getLaunchpadSize } from '../ui.js';
-import { listen } from './dom.js';
+import { getLaunchpadRotation, getLaunchpadSize } from '../launchpadAppearance.js';
+import { listen, setProps } from './dom.js';
 
 function ensureThemeSelectOptions() {
     const bgSelect = document.getElementById('creator-bg-select');
@@ -148,34 +148,22 @@ export function renderThemeView() {
     renderAssetName(document.getElementById('creator-skin-custom-name'), appearance.skin);
     renderAssetName(document.getElementById('creator-icon-custom-name'), appearance.icon, { showPaths: true });
 
-    const vizMode = document.getElementById('creator-viz-mode');
-    const vizColors = document.getElementById('creator-viz-colors');
-    const vizColor1 = document.getElementById('creator-viz-color1');
-    const vizGradient = document.getElementById('creator-viz-gradient');
-    const vizGradientSettings = document.getElementById('creator-viz-gradient-settings');
-    const vizColor2 = document.getElementById('creator-viz-color2');
-    const vizDirection = document.getElementById('creator-viz-direction');
-
     const viz = appearance.visualizer;
-    if (vizMode) vizMode.value = viz.mode;
-    if (vizColors) vizColors.hidden = viz.mode === 'off';
-    if (vizColor1) vizColor1.value = viz.color1;
-    if (vizGradient) vizGradient.checked = viz.gradient;
-    if (vizGradientSettings) vizGradientSettings.hidden = !viz.gradient;
-    if (vizColor2) vizColor2.value = viz.color2;
-    if (vizDirection) vizDirection.value = viz.gradientDirection;
+    setProps('creator-viz-mode', { value: viz.mode });
+    setProps('creator-viz-colors', { hidden: viz.mode === 'off' });
+    setProps('creator-viz-color1', { value: viz.color1 });
+    setProps('creator-viz-gradient', { checked: viz.gradient });
+    setProps('creator-viz-gradient-settings', { hidden: !viz.gradient });
+    setProps('creator-viz-color2', { value: viz.color2 });
+    setProps('creator-viz-direction', { value: viz.gradientDirection });
 
-    const rotSlider = document.getElementById('creator-rotation-slider');
-    const rotInput = document.getElementById('creator-rotation-input');
     const rotVal = typeof appearance.rotation === 'number' ? appearance.rotation : getLaunchpadRotation();
-    if (rotSlider) rotSlider.value = rotVal;
-    if (rotInput) rotInput.value = rotVal;
+    setProps('creator-rotation-slider', { value: rotVal });
+    setProps('creator-rotation-input', { value: rotVal });
 
-    const sizeSlider = document.getElementById('creator-size-slider');
-    const sizeInput = document.getElementById('creator-size-input');
     const sizeVal = typeof appearance.size === 'number' ? appearance.size : getLaunchpadSize();
-    if (sizeSlider) sizeSlider.value = sizeVal;
-    if (sizeInput) sizeInput.value = sizeVal;
+    setProps('creator-size-slider', { value: sizeVal });
+    setProps('creator-size-input', { value: sizeVal });
 }
 
 export const THEME_PREVIEWS = {

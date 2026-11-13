@@ -80,65 +80,59 @@ animationLoop(performance.now());
 // Initialize the library
 createAnimationLibrary();
 
+const SCROLL_DIRECTIONS = ['left', 'right', 'up', 'down', 'top', 'bottom'];
+// "scroll from top" moves the text down; "scroll from bottom" moves it up.
+const SCROLL_DIRECTION_ALIASES = { top: 'down', bottom: 'up' };
+
 /**
- * Triggers an animation by name at specific coordinates.
+ * Parses a dynamic text light name:
+ * - `scroll_<TEXT>_<color>` or `scroll_<direction>_<TEXT>_<color>` (direction defaults to left);
+ * - `text_<TEXT>_<color>`.
+ * @param {string} name
+ * @returns {{kind: 'scroll'|'text', text: string, color: string, direction?: string}|null}
+ *   Null when the name is not a (complete) dynamic light.
+ */
+export function parseDynamicLight(name) {
+    const parts = name.split('_');
+    if (parts[0] === 'scroll' && parts.length >= 3) {
+        const possibleDirection = parts[1].toLowerCase();
+        const hasDirection = parts.length >= 4 && SCROLL_DIRECTIONS.includes(possibleDirection);
+        const [text, color] = hasDirection ? [parts[2], parts[3]] : [parts[1], parts[2]];
+        if (!text || !color) return null;
+        const direction = hasDirection ? (SCROLL_DIRECTION_ALIASES[possibleDirection] || possibleDirection) : 'left';
+        return { kind: 'scroll', text, color, direction };
+    }
+    if (parts[0] === 'text' && parts.length >= 3) {
+        return { kind: 'text', text: parts[1], color: parts[2] };
+    }
+    return null;
+}
+
+/**
+ * Triggers an animation by name.
  * @param {string} name - The name of the animation in the registry.
  * @param {number} x - The X coordinate (0-7).
  * @param {number} y - The Y coordinate (0-7).
  * @param {number} duration - Total duration in seconds.
  */
-// eslint-disable-next-line complexity -- Known debt (complexity 16): refactor, then remove this waiver.
 export function triggerAnimation(name, x, y, duration) {
-    // Check for dynamic scroll animations (e.g., scroll_HELLO_green or scroll_up_HELLO_green)
-    if (name.startsWith('scroll_')) {
-        const parts = name.split('_');
-        let text, colorName, direction = 'left';
-
-        if (parts.length >= 4) {
-            // Check if parts[1] is a valid direction
-            let possibleDir = parts[1].toLowerCase();
-            if (['left', 'right', 'up', 'down', 'top', 'bottom'].includes(possibleDir)) {
-                // Map aliases
-                if (possibleDir === 'top') possibleDir = 'down'; // scroll FROM top means moving DOWN
-                if (possibleDir === 'bottom') possibleDir = 'up'; // scroll FROM bottom means moving UP
-                
-                direction = possibleDir;
-                text = parts[2];
-                colorName = parts[3];
-            } else {
-                text = parts[1];
-                colorName = parts[2];
-            }
-        } else if (parts.length >= 3) {
-            text = parts[1];
-            colorName = parts[2];
-        }
-
-        if (text && colorName) {
-            const durationMs = duration ? duration * 1000 : 3000;
-            activeAnimations.add(new ScrollingTextAnimation(text, colorName, durationMs, direction));
-            flushPhysicalColors();
-            return;
-        }
+    const dynamic = parseDynamicLight(name);
+    if (dynamic?.kind === 'scroll') {
+        const durationMs = duration ? duration * 1000 : 3000;
+        activeAnimations.add(new ScrollingTextAnimation(dynamic.text, dynamic.color, durationMs, dynamic.direction));
+        flushPhysicalColors();
+        return;
     }
-
-    // Check for dynamic text animations (e.g., text_ANNA_red)
-    if (name.startsWith('text_')) {
-        const parts = name.split('_');
-        if (parts.length >= 3) {
-            const text = parts[1];
-            const colorName = parts[2];
-            const durationMs = duration ? duration * 1000 : 1000;
-            activeAnimations.add(new TextAnimation(text, colorName, durationMs));
-            flushPhysicalColors();
-            return;
-        }
+    if (dynamic?.kind === 'text') {
+        const durationMs = duration ? duration * 1000 : 1000;
+        activeAnimations.add(new TextAnimation(dynamic.text, dynamic.color, durationMs));
+        flushPhysicalColors();
+        return;
     }
 
     const anim = animations[name];
     if (anim && anim.on) {
-        const durationMs = duration ? duration * 1000 : undefined;
-        anim.on(x, y, durationMs);
+        anim.on(x, y, duration ? duration * 1000 : undefined);
         flushPhysicalColors();
     }
 }

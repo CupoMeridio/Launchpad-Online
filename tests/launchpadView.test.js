@@ -184,7 +184,7 @@ test('model preference resolution respects auto-detection and manual override fo
 });
 
 test('custom top-right icon is preserved when switching between Launchpad models', async () => {
-    const { setTopRightIconFile, getCurrentIconUrl, resetTopRightIcon } = await import('../js/ui.js');
+    const { setTopRightIconFile, getCurrentIconUrl, resetTopRightIcon } = await import('../js/launchpadAppearance.js');
 
     // Simulate loading a project with custom icon
     await setTopRightIconFile('projects/Virtual Riot - Idols/icon.png');

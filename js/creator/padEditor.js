@@ -19,7 +19,7 @@ import { getActiveDeviceProfile } from '../physicalInterface.js';
 import { checkDraftDeviceConsistency, getPadSteps } from '../projectCreatorModel.js';
 import { creatorSession } from '../projectCreatorState.js';
 import { getPadElement } from '../webInterface.js';
-import { listen } from './dom.js';
+import { listen, setProps } from './dom.js';
 import {
     getAnimationColor,
     getAnimationDisplayName,
@@ -51,10 +51,8 @@ export function renderPageTabs() {
         tabs.appendChild(button);
     });
 
-    const addBtn = document.getElementById('creator-add-page');
-    if (addBtn) addBtn.disabled = draft.pages.length >= MAX_PROJECT_PAGES;
-    const removeBtn = document.getElementById('creator-remove-page');
-    if (removeBtn) removeBtn.disabled = draft.pages.length <= 1;
+    setProps('creator-add-page', { disabled: draft.pages.length >= MAX_PROJECT_PAGES });
+    setProps('creator-remove-page', { disabled: draft.pages.length <= 1 });
 }
 
 export function renderPadGrid() {
@@ -136,14 +134,10 @@ function updateInspectorProjectHeader(draft, page) {
             }
         }
     }
-    const nameInput = document.getElementById('project-creator-name');
-    if (nameInput) nameInput.value = draft.name;
-    const targetDeviceEl = document.getElementById('creator-target-device');
-    if (targetDeviceEl) targetDeviceEl.value = draft.targetDevice || DEFAULT_TARGET_DEVICE;
-    const pageCountEl = document.getElementById('creator-page-count');
-    if (pageCountEl) pageCountEl.textContent = `${creatorSession.getActivePageIndex() + 1} / ${draft.pages.length}`;
-    const sampleCountEl = document.getElementById('creator-sample-count');
-    if (sampleCountEl) sampleCountEl.textContent = translate('creator.sampleCount', { count: sampleCount });
+    setProps('project-creator-name', { value: draft.name });
+    setProps('creator-target-device', { value: draft.targetDevice || DEFAULT_TARGET_DEVICE });
+    setProps('creator-page-count', { textContent: `${creatorSession.getActivePageIndex() + 1} / ${draft.pages.length}` });
+    setProps('creator-sample-count', { textContent: translate('creator.sampleCount', { count: sampleCount }) });
 }
 
 function renderStepPills(steps, activeStepIndex) {
@@ -188,8 +182,7 @@ function renderStepPills(steps, activeStepIndex) {
 
 function renderPadSampleControls(sample, animation, isMomentary) {
     const activePadIndex = creatorSession.getActivePadIndex();
-    const selPadEl = document.getElementById('creator-selected-pad');
-    if (selPadEl) selPadEl.textContent = translate('creator.pad', { pad: activePadIndex + 1 });
+    setProps('creator-selected-pad', { textContent: translate('creator.pad', { pad: activePadIndex + 1 }) });
     const sampleNameEl = document.getElementById('creator-sample-name');
     if (sampleNameEl) {
         sampleNameEl.textContent = sample
@@ -208,11 +201,9 @@ function renderPadSampleControls(sample, animation, isMomentary) {
             previewBtn.removeAttribute('title');
         }
     }
-    const holdHintEl = document.getElementById('creator-hold-hint');
-    if (holdHintEl) holdHintEl.hidden = !isMomentary;
+    setProps('creator-hold-hint', { hidden: !isMomentary });
 
-    const removeSampleBtn = document.getElementById('creator-remove-sample');
-    if (removeSampleBtn) removeSampleBtn.disabled = !sample;
+    setProps('creator-remove-sample', { disabled: !sample });
 }
 
 /**
@@ -220,31 +211,21 @@ function renderPadSampleControls(sample, animation, isMomentary) {
  * whenever the light is not synced to one.
  */
 function renderLightTiming(step, sample) {
-    const syncCheckbox = document.getElementById('creator-light-sync');
-    if (syncCheckbox) {
-        syncCheckbox.checked = step.syncToSound;
-        syncCheckbox.disabled = !sample;
-    }
-    const durationInput = document.getElementById('creator-light-duration');
-    if (durationInput) durationInput.value = step.duration;
-    const manualDuration = document.getElementById('creator-manual-light-duration');
-    if (manualDuration) manualDuration.hidden = Boolean(sample && step.syncToSound);
+    setProps('creator-light-sync', { checked: step.syncToSound, disabled: !sample });
+    setProps('creator-light-duration', { value: step.duration });
+    setProps('creator-manual-light-duration', { hidden: Boolean(sample && step.syncToSound) });
 }
 
 function renderPadLightControls(currentStep, sample, animation, isMomentary) {
-    const assignedCard = document.getElementById('creator-assigned-light');
-    if (assignedCard) assignedCard.hidden = !animation;
-    const removeLightBtn = document.getElementById('creator-remove-light');
-    if (removeLightBtn) removeLightBtn.disabled = !animation;
+    setProps('creator-assigned-light', { hidden: !animation });
+    setProps('creator-remove-light', { disabled: !animation });
 
     // Momentary lights last as long as the pad is held: no timing to set.
     const showTiming = Boolean(animation) && !isMomentary;
-    const timingSection = document.getElementById('creator-light-timing');
-    if (timingSection) timingSection.hidden = !showTiming;
+    setProps('creator-light-timing', { hidden: !showTiming });
 
     if (!animation) return;
-    const assignedName = document.getElementById('creator-assigned-name');
-    if (assignedName) assignedName.textContent = getAnimationDisplayName(animation);
+    setProps('creator-assigned-name', { textContent: getAnimationDisplayName(animation) });
     const assignedSwatch = document.getElementById('creator-assigned-swatch');
     if (assignedSwatch) assignedSwatch.style.background = getAnimationSwatchBackground(animation);
     if (showTiming) renderLightTiming(currentStep, sample);
@@ -260,8 +241,7 @@ export function renderSelectedPad() {
 
     const activePadIndex = creatorSession.getActivePadIndex();
     padInspector.hidden = activePadIndex === null;
-    const textAnimEl = document.getElementById('creator-text-animation');
-    if (textAnimEl) textAnimEl.hidden = !creatorSession.getPendingTextAnimation();
+    setProps('creator-text-animation', { hidden: !creatorSession.getPendingTextAnimation() });
     if (activePadIndex === null || !page) return;
 
     const steps = getPadSteps(page, activePadIndex);

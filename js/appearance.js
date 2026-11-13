@@ -13,7 +13,7 @@ import {
     setLaunchpadRotation,
     setLaunchpadSize,
     restoreLaunchpadLayout
-} from './ui.js';
+} from './launchpadAppearance.js';
 import { setBackgroundMedia } from './background.js';
 import { setColors, setGradientDirection } from './visualizerManager.js';
 import { normalizeVisualizer } from './appearanceModel.js';

@@ -16,15 +16,10 @@ import {
     applyLayout,
     applyAppearance
 } from './appearance.js';
-import { getActiveProject, commitProject } from './projectState.js';
+import { getActiveProject, commitProject, beginLoadingProject, markProjectLoadError } from './projectState.js';
 import { changeSoundSet, resetPadStepCounters } from './interaction.js';
 import { stopAnimationLoop, startAnimationLoop } from './lights.js';
 import { validateProject, getErrorSummary } from './projectValidator.js';
-import { 
-    beginLoadingProject, 
-    markProjectReady, 
-    markProjectLoadError
-} from './projectLoadingState.js';
 import { normalizeProjectData, collectSoundUrls, assignStepBuffers } from './projectModel.js';
 import { debug, logger } from './logger.js';
 import { PROJECT_LOADING_TIMEOUT_MS } from './constants.js';
@@ -290,19 +285,19 @@ async function loadProjectInternal(configPath, button, onProgress = null) {
             PROJECT_LOADING_TIMEOUT_MS
         );
 
-        // Commit: a single assignment swaps sounds, lights and timing together.
+        // Commit: a single assignment swaps sounds, lights and timing together,
+        // and makes the project ready to play.
         commitProject(runtimeProject);
         selectProjectButton(button);
 
         debug(`Project "${runtimeProject.project.name}" loaded.`);
-        markProjectReady();
         resetPadStepCounters();
         changeSoundSet(0);
     } catch (error) {
         // Nothing was committed, so the previous project (if any) is intact:
         // put its visuals back, since assets of the failed one may have been applied.
-        const previousProjectActive = restoreProjectAppearance();
-        markProjectLoadError(error, { previousProjectActive });
+        restoreProjectAppearance();
+        markProjectLoadError(error);
         showNotification(describeProjectLoadError(error), 'error');
     } finally {
         if (overlay) {

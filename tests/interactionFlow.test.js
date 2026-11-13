@@ -14,9 +14,8 @@ const logSink = createRecordingSink();
 setLogSink(logSink);
 
 const interaction = await import('../js/interaction.js');
-const { commitProject, setCurrentPage, getCurrentPage, getCurrentMode, resetProjectState } = await import('../js/projectState.js');
+const { commitProject, getActiveProject, setCurrentPage, getCurrentPage, getCurrentMode, resetProjectState, beginLoadingProject } = await import('../js/projectState.js');
 const { normalizeProjectData } = await import('../js/projectModel.js');
-const { markProjectReady, beginLoadingProject } = await import('../js/projectLoadingState.js');
 const { audioEngine } = await import('../js/audio.js');
 const { animations } = await import('../js/lights.js');
 const { setDeviceProfile } = await import('../js/physicalInterface.js');
@@ -37,7 +36,6 @@ function loadTestProject(pages) {
     resetProjectState();
     commitProject(runtime);
     setCurrentPage(0);
-    markProjectReady();
     interaction.setPadSource(null);
     interaction.resetPadStepCounters();
 }
@@ -143,7 +141,7 @@ test('pages cannot change while a project is loading', () => {
     beginLoadingProject();
     interaction.changeSoundSet(1);
     assert.equal(getCurrentPage(), 0);
-    markProjectReady();
+    commitProject(getActiveProject());
 });
 
 test('mode buttons set the mode, sync the hardware layout and light the physical button', (t) => {

@@ -14,22 +14,33 @@ import {
     buildWaveEvents
 } from '../animationClasses.js';
 
+/**
+ * Pads on the square ring at Chebyshev distance `dist` from (x, y) that lie
+ * inside the 8x8 grid, column by column.
+ * @param {number} x
+ * @param {number} y
+ * @param {number} dist
+ * @returns {Array<[number, number]>}
+ */
+function squareRingCells(x, y, dist) {
+    const cells = [];
+    for (let dx = -dist; dx <= dist; dx++) {
+        for (let dy = -dist; dy <= dist; dy++) {
+            const onRing = Math.abs(dx) === dist || Math.abs(dy) === dist;
+            const tx = x + dx;
+            const ty = y + dy;
+            if (onRing && tx >= 0 && tx < 8 && ty >= 0 && ty < 8) cells.push([tx, ty]);
+        }
+    }
+    return cells;
+}
+
 export function buildSquareExpansionEvents(x, y, stepDelay, fadeDuration, reverse = false) {
     const events = [];
     for (let step = 0; step < 8; step++) {
         const dist = reverse ? 7 - step : step;
         const time = step * stepDelay;
-        for (let dx = -dist; dx <= dist; dx++) {
-            for (let dy = -dist; dy <= dist; dy++) {
-                if (Math.abs(dx) === dist || Math.abs(dy) === dist) {
-                    const tx = x + dx, ty = y + dy;
-                    // eslint-disable-next-line max-depth -- Known debt (max-depth 5): refactor, then remove this waiver.
-                    if (tx >= 0 && tx < 8 && ty >= 0 && ty < 8) {
-                        events.push({ p: [tx, ty], time, dur: fadeDuration });
-                    }
-                }
-            }
-        }
+        squareRingCells(x, y, dist).forEach(p => events.push({ p, time, dur: fadeDuration }));
     }
     return events;
 }
@@ -205,7 +216,7 @@ export function register(animations, colors) {
                 activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
                     const stepDelay = dur ? dur / 10 : 60;
                     const fadeDuration = dur ? stepDelay * 2 : 140;
-                    return buildWaveEvents(x, y, stepDelay, fadeDuration);
+                    return buildWaveEvents({ x, y, stepDelay, fadeDuration });
                 }));
             },
             type: 'fixed'
@@ -218,7 +229,7 @@ export function register(animations, colors) {
                     const maxDistance = maxCornerDistance(x, y);
                     const stepDelay = dur ? dur / (maxDistance || 1) : 60;
                     const fadeDuration = dur ? stepDelay * 2 : 140;
-                    return buildWaveEvents(x, y, stepDelay, fadeDuration, true, maxDistance);
+                    return buildWaveEvents({ x, y, stepDelay, fadeDuration, reverse: true, maxDistance });
                 }));
             },
             type: 'fixed'
@@ -230,7 +241,7 @@ export function register(animations, colors) {
                 activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
                     const stepDelay = dur ? dur / 5 : 60;
                     const fadeDuration = dur ? stepDelay * 2 : 140;
-                    return buildWaveEvents(3.5, 3.5, stepDelay, fadeDuration);
+                    return buildWaveEvents({ x: 3.5, y: 3.5, stepDelay, fadeDuration });
                 }));
             },
             type: 'fixed'
@@ -242,7 +253,7 @@ export function register(animations, colors) {
                 activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
                     const stepDelay = dur ? dur / 5 : 60;
                     const fadeDuration = dur ? stepDelay * 2 : 140;
-                    return buildWaveEvents(3.5, 3.5, stepDelay, fadeDuration, true, 5);
+                    return buildWaveEvents({ x: 3.5, y: 3.5, stepDelay, fadeDuration, reverse: true, maxDistance: 5 });
                 }));
             },
             type: 'fixed'

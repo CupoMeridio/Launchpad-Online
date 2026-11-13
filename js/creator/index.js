@@ -21,7 +21,7 @@ import {
 import { restoreProjectAppearance } from '../project.js';
 import { creatorSession } from '../projectCreatorState.js';
 import { getPadElement, updatePageButtonHighlight } from '../webInterface.js';
-import { listen } from './dom.js';
+import { listen, setProps } from './dom.js';
 import { exportProject, initImportExportListeners } from './importExport.js';
 import {
     initLightPickerListeners,
@@ -245,12 +245,9 @@ function forceCloseCreator() {
     applyCreatorViewUi();
     applyStudioModeUi();
 
-    const bgFileInput = document.getElementById('creator-bg-file');
-    if (bgFileInput) bgFileInput.value = '';
-    const skinFileInput = document.getElementById('creator-skin-file');
-    if (skinFileInput) skinFileInput.value = '';
-    const iconFileInput = document.getElementById('creator-icon-file');
-    if (iconFileInput) iconFileInput.value = '';
+    setProps('creator-bg-file', { value: '' });
+    setProps('creator-skin-file', { value: '' });
+    setProps('creator-icon-file', { value: '' });
 
     restoreProjectAppearance();
 }

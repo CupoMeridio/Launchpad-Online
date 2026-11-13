@@ -1,11 +1,10 @@
 import { audioEngine } from './audio.js';
-import { getActiveProject, getCurrentPage, setCurrentPage, getCurrentMode, setCurrentMode } from './projectState.js';
+import { getActiveProject, getCurrentPage, setCurrentPage, getCurrentMode, setCurrentMode, isProjectReady } from './projectState.js';
 import { triggerAnimation, releaseAnimation } from './lights.js';
 import { resolveLightDuration } from './animationData.js';
 import { setPhysicalColor, getLpColor, flushPhysicalColors } from './physicalInterface.js';
 import { getPadElement, updatePageButtonHighlight, updateModeButtonHighlight } from './webInterface.js';
 import { registerListener } from './eventCleanup.js';
-import { isProjectReady } from './projectLoadingState.js';
 import { debug, logger } from './logger.js';
 import { createPadStep } from './projectModel.js';
 import { 

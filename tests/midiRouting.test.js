@@ -30,7 +30,6 @@ const { initMidi } = await import('../js/midi.js');
 const { initInteraction, resetPadStepCounters, changeMode } = await import('../js/interaction.js');
 const { commitProject, setCurrentPage, getCurrentPage, getCurrentMode } = await import('../js/projectState.js');
 const { normalizeProjectData } = await import('../js/projectModel.js');
-const { markProjectReady } = await import('../js/projectLoadingState.js');
 const { audioEngine } = await import('../js/audio.js');
 const { getActiveDeviceProfile } = await import('../js/physicalInterface.js');
 
@@ -42,7 +41,6 @@ runtime.pages.forEach((page, pageIndex) => page.forEach((steps, padIndex) => {
 }));
 commitProject(runtime);
 setCurrentPage(0);
-markProjectReady();
 resetPadStepCounters();
 initInteraction();
 changeMode(5);

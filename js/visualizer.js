@@ -7,6 +7,27 @@
  * frequency bars on two HTML5 `<canvas>` elements in real time.
  */
 
+import {
+    DEFAULT_VISUALIZER_MODE,
+    DEFAULT_VISUALIZER_COLOR,
+    DEFAULT_VISUALIZER_GRADIENT_DIRECTION
+} from './constants.js';
+
+const BAR_SPACING = 2;
+// Frequency values (0-255) are scaled so the tallest bar stays inside the canvas.
+const BAR_HEIGHT_SCALE = 0.7;
+
+/** Which canvases each display mode draws on, and which are mirrored. */
+const EMPTY_LAYOUT = Object.freeze({ showTop: false, showBottom: false, mirrorTop: false, mirrorBottom: false });
+const MODE_LAYOUTS = {
+    top: { showTop: true },
+    bottom: { showBottom: true },
+    both: { showTop: true, showBottom: true },
+    'top-mirror': { showTop: true, mirrorTop: true },
+    'bottom-mirror': { showBottom: true, mirrorBottom: true },
+    'both-mirror': { showTop: true, showBottom: true, mirrorTop: true, mirrorBottom: true }
+};
+
 export class Visualizer {
     /**
      * Constructs the visualizer instance.
@@ -40,14 +61,14 @@ export class Visualizer {
         this.dataArray = new Uint8Array(this.bufferLength);
 
         // Set an initial display mode.
-        this.mode = 'off';
+        this.mode = DEFAULT_VISUALIZER_MODE;
         this.isSymmetric = false;
         this.symmetryReverse = false;
 
         // Customization settings
-        this.color1 = '#00aaff';
-        this.color2 = '#00aaff';
-        this.gradientDirection = 'vertical';
+        this.color1 = DEFAULT_VISUALIZER_COLOR;
+        this.color2 = DEFAULT_VISUALIZER_COLOR;
+        this.gradientDirection = DEFAULT_VISUALIZER_GRADIENT_DIRECTION;
         this.alpha = 0.6;
 
         // Pre-calculated gradients
@@ -242,7 +263,6 @@ export class Visualizer {
     /**
      * Main drawing loop (animation).
      */
-    // eslint-disable-next-line complexity -- Known debt (complexity 28): refactor, then remove this waiver.
     draw() {
         if (this.mode === 'off') {
             this.animationId = null;
@@ -252,112 +272,108 @@ export class Visualizer {
         this.animationId = requestAnimationFrame(() => this.draw());
 
         this.updateGradients();
-
         this.analyser.getByteFrequencyData(this.dataArray);
 
         this.ctxTop.clearRect(0, 0, this.canvasTop.width, this.canvasTop.height);
         this.ctxBottom.clearRect(0, 0, this.canvasBottom.width, this.canvasBottom.height);
 
-        // Bass pulse detection
         if (this.bassPulseEnabled) {
-            let bassSum = 0;
-            const bassBins = Math.max(1, Math.floor(this.displayLength * 0.05)); // 5% of displayed bins
-            for (let i = 0; i < bassBins; i++) {
-                bassSum += this.dataArray[i];
-            }
-            const avgBass = bassSum / bassBins;
-
-            const bg = document.querySelector('.background-media');
-            if (bg) {
-                if (avgBass > this.bassThreshold) {
-                    const intensity = (avgBass - this.bassThreshold) / (255 - this.bassThreshold);
-                    const scale = 1 + (intensity * 0.05); // Max 5% scale
-                    bg.style.transform = `scale(${scale})`;
-                } else {
-                    bg.style.transform = 'scale(1)';
-                }
-            }
+            this.applyBassPulse();
         }
 
-        const spacing = 2;
-        const totalSpacing = spacing * (this.displayLength - 1);
-        const barWidth = Math.max(1, (this.canvasBottom.width - totalSpacing) / this.displayLength);
-        let barHeight;
-        let x = 0;
-
-        // Flags for mirrored modes
-        const mirrorTop = this.mode === 'top-mirror' || this.mode === 'both-mirror';
-        const mirrorBottom = this.mode === 'bottom-mirror' || this.mode === 'both-mirror';
-        const showTop = this.mode === 'top' || this.mode === 'top-mirror' || this.mode === 'both' || this.mode === 'both-mirror';
-        const showBottom = this.mode === 'bottom' || this.mode === 'bottom-mirror' || this.mode === 'both' || this.mode === 'both-mirror';
-
+        const layout = { ...EMPTY_LAYOUT, ...MODE_LAYOUTS[this.mode] };
         if (this.isSymmetric) {
-            const halfLength = Math.floor(this.displayLength / 2);
-
-            if (showBottom) {
-                const width = this.canvasBottom.width;
-                const center = width / 2;
-                const barW = Math.max(1, (width / this.displayLength) - spacing);
-
-                this.ctxBottom.fillStyle = this.gradientBottom;
-
-                for (let i = 0; i < halfLength; i++) {
-                    // In symmetric mode, mirroring means swapping whether low frequencies are at the center or edges
-                    const sourceIndex = (this.symmetryReverse !== mirrorBottom) ? (halfLength - 1 - i) : i;
-                    barHeight = this.dataArray[sourceIndex] * 0.7;
-                    const xLeft = center - (i + 1) * (barW + spacing);
-                    const xRight = center + i * (barW + spacing);
-
-                    // Standard vertical growth: bottom canvas grows from bottom up
-                    this.ctxBottom.fillRect(xLeft, this.canvasBottom.height - barHeight, barW, barHeight);
-                    this.ctxBottom.fillRect(xRight, this.canvasBottom.height - barHeight, barW, barHeight);
-                }
-            }
-
-            if (showTop) {
-                const width = this.canvasTop.width;
-                const center = width / 2;
-                const barW = Math.max(1, (width / this.displayLength) - spacing);
-
-                this.ctxTop.fillStyle = this.gradientTop;
-
-                for (let i = 0; i < halfLength; i++) {
-                    const sourceIndex = (this.symmetryReverse !== mirrorTop) ? (halfLength - 1 - i) : i;
-                    barHeight = this.dataArray[sourceIndex] * 0.7;
-                    const xLeft = center - (i + 1) * (barW + spacing);
-                    const xRight = center + i * (barW + spacing);
-
-                    // Standard vertical growth: top canvas grows from top down
-                    this.ctxTop.fillRect(xLeft, 0, barW, barHeight);
-                    this.ctxTop.fillRect(xRight, 0, barW, barHeight);
-                }
-            }
-            return;
+            this.drawSymmetric(layout);
+        } else {
+            this.drawLinear(layout);
         }
+    }
 
-        if (showBottom) {
-            this.ctxBottom.fillStyle = this.gradientBottom;
+    /**
+     * Scales the background media up to 5% with the bass level above the threshold.
+     */
+    applyBassPulse() {
+        const bassBins = Math.max(1, Math.floor(this.displayLength * 0.05)); // 5% of displayed bins
+        let bassSum = 0;
+        for (let i = 0; i < bassBins; i++) {
+            bassSum += this.dataArray[i];
         }
-        if (showTop) {
-            this.ctxTop.fillStyle = this.gradientTop;
-        }
+        const avgBass = bassSum / bassBins;
 
+        const bg = document.querySelector('.background-media');
+        if (!bg) return;
+        if (avgBass > this.bassThreshold) {
+            const intensity = (avgBass - this.bassThreshold) / (255 - this.bassThreshold);
+            bg.style.transform = `scale(${1 + (intensity * 0.05)})`;
+        } else {
+            bg.style.transform = 'scale(1)';
+        }
+    }
+
+    /**
+     * The canvas, context and gradient of one side. Bars grow down from the
+     * top edge on the top canvas, and up from the bottom edge on the bottom one.
+     * @param {'top'|'bottom'} name
+     */
+    side(name) {
+        return name === 'top'
+            ? { ctx: this.ctxTop, canvas: this.canvasTop, gradient: this.gradientTop, growsDown: true }
+            : { ctx: this.ctxBottom, canvas: this.canvasBottom, gradient: this.gradientBottom, growsDown: false };
+    }
+
+    fillBar(side, x, width, height) {
+        const y = side.growsDown ? 0 : side.canvas.height - height;
+        side.ctx.fillRect(x, y, width, height);
+    }
+
+    /**
+     * Symmetric mode: bars spread from the centre to both edges.
+     * @param {typeof EMPTY_LAYOUT} layout
+     */
+    drawSymmetric(layout) {
+        const halfLength = Math.floor(this.displayLength / 2);
+        if (layout.showBottom) this.drawSymmetricBars(this.side('bottom'), halfLength, layout.mirrorBottom);
+        if (layout.showTop) this.drawSymmetricBars(this.side('top'), halfLength, layout.mirrorTop);
+    }
+
+    drawSymmetricBars(side, halfLength, mirrored) {
+        const center = side.canvas.width / 2;
+        const barWidth = Math.max(1, (side.canvas.width / this.displayLength) - BAR_SPACING);
+        // Mirroring swaps whether low frequencies sit at the centre or at the edges.
+        const lowAtEdges = this.symmetryReverse !== mirrored;
+
+        side.ctx.fillStyle = side.gradient;
+        for (let i = 0; i < halfLength; i++) {
+            const sourceIndex = lowAtEdges ? (halfLength - 1 - i) : i;
+            const barHeight = this.dataArray[sourceIndex] * BAR_HEIGHT_SCALE;
+            this.fillBar(side, center - (i + 1) * (barWidth + BAR_SPACING), barWidth, barHeight);
+            this.fillBar(side, center + i * (barWidth + BAR_SPACING), barWidth, barHeight);
+        }
+    }
+
+    /**
+     * Linear mode: bars from left to right (right to left when mirrored).
+     * Both canvases share the bar width computed from the bottom canvas.
+     * @param {typeof EMPTY_LAYOUT} layout
+     */
+    drawLinear(layout) {
+        const bottom = this.side('bottom');
+        const top = this.side('top');
+        const barWidth = Math.max(1, (bottom.canvas.width - BAR_SPACING * (this.displayLength - 1)) / this.displayLength);
+
+        if (layout.showBottom) bottom.ctx.fillStyle = bottom.gradient;
+        if (layout.showTop) top.ctx.fillStyle = top.gradient;
+
+        let x = 0;
         for (let i = 0; i < this.displayLength; i++) {
-            barHeight = this.dataArray[i] * 0.7;
-
-            // Draw on bottom canvas
-            if (showBottom) {
-                const finalX = mirrorBottom ? (this.canvasBottom.width - x - barWidth) : x;
-                this.ctxBottom.fillRect(finalX, this.canvasBottom.height - barHeight, barWidth, barHeight);
+            const barHeight = this.dataArray[i] * BAR_HEIGHT_SCALE;
+            if (layout.showBottom) {
+                this.fillBar(bottom, layout.mirrorBottom ? (bottom.canvas.width - x - barWidth) : x, barWidth, barHeight);
             }
-
-            // Draw on top canvas
-            if (showTop) {
-                const finalX = mirrorTop ? (this.canvasTop.width - x - barWidth) : x;
-                this.ctxTop.fillRect(finalX, 0, barWidth, barHeight);
+            if (layout.showTop) {
+                this.fillBar(top, layout.mirrorTop ? (top.canvas.width - x - barWidth) : x, barWidth, barHeight);
             }
-
-            x += barWidth + spacing;
+            x += barWidth + BAR_SPACING;
         }
     }
 }

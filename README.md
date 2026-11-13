@@ -121,7 +121,7 @@ Launchpad-Online/
 │   ├── physicalInterface.js # Physical Launchpad mapping & batching
 │   ├── project.js          # Project and page management
 │   ├── projectModel.js     # Pure project normalization and path resolution
-│   ├── projectState.js     # Runtime state: active project (atomic commit), page, mode
+│   ├── projectState.js     # Runtime state: active project (atomic commit), loading status, page, mode
 │   ├── projectCreatorModel.js # Creator data model & validation
 │   ├── projectCreatorState.js # Creator session state & business logic
 │   ├── projectZip.js       # Standalone project .zip import/export
@@ -129,7 +129,8 @@ Launchpad-Online/
 │   ├── background.js       # Background media controller (videos & images)
 │   ├── settings.js         # Centralized application settings & safe persistence
 │   ├── staticCatalog.js    # Built-in catalog (projects, videos, skins) loader
-│   ├── ui.js               # UI components and DOM management
+│   ├── launchpadAppearance.js # Launchpad skin, stickers, icon, rotation/size (preference vs project override)
+│   ├── ui.js               # UI shell: sidebar, menus, tabs, accent colour, resizable panels
 │   ├── visualizer-controls.js # Visualizer UI controls
 │   ├── visualizer.js       # Audio visualizer logic
 │   └── webInterface.js     # Virtual Launchpad interface

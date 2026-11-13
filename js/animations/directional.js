@@ -15,8 +15,19 @@ const RAIN_VECTORS = {
     rain_right: [1, 0]
 };
 
-// eslint-disable-next-line max-params -- Known debt (max-params 6): refactor, then remove this waiver.
-export function buildRainEvents(x, y, dx, dy, stepDelay, fadeDuration) {
+/**
+ * Builds the events of a single-line sweep from (x, y) along (dx, dy), stopping
+ * at the grid edge.
+ * @param {object} options
+ * @param {number} options.x - Start column.
+ * @param {number} options.y - Start row.
+ * @param {number} options.dx - Column step (-1, 0, 1).
+ * @param {number} options.dy - Row step (-1, 0, 1).
+ * @param {number} options.stepDelay - Delay between consecutive cells.
+ * @param {number} options.fadeDuration - Fade duration per cell.
+ * @returns {Array<{ p: [number, number], time: number, dur: number }>}
+ */
+export function buildRainEvents({ x, y, dx, dy, stepDelay, fadeDuration }) {
     const events = [];
     for (let step = 0; step < 8; step++) {
         const tx = x + dx * step;
@@ -135,7 +146,7 @@ export function register(animations, colors) {
                     activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
                         const stepDelay = dur ? dur / 9 : 80;
                         const fadeDuration = dur ? stepDelay * 2 : 140;
-                        return buildRainEvents(x, y, dx, dy, stepDelay, fadeDuration);
+                        return buildRainEvents({ x, y, dx, dy, stepDelay, fadeDuration });
                     }));
                 },
                 type: 'fixed'

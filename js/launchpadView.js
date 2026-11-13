@@ -215,11 +215,39 @@ export function buildProHtml({ isMk3 = false } = {}) {
 }
 
 /**
+ * Inner HTML of a Pro MK3 side/top button described in the button tables.
+ * @param {{type?: string, dir?: string, text?: string, subtext?: string}} item
+ * @returns {string}
+ */
+function renderMk3ButtonContent(item) {
+    switch (item.type) {
+        case 'icon':
+            return renderArrowSvg(item.dir, 'pro-icon');
+        case 'play':
+            return '<svg viewBox="0 0 24 24" class="pro-icon"><polygon fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" points="8,6 18,12 8,18"/></svg>';
+        case 'record':
+            return `<svg viewBox="0 0 24 24" class="pro-icon pro-icon-record"><circle cx="12" cy="12" r="5.5" fill="none" stroke="#ff453a" stroke-width="2"/></svg><span class="pro-subtext pro-subtext-red">${item.subtext}</span>`;
+        default:
+            return item.subtext
+                ? `<span class="pro-btn-text">${item.text}</span><span class="pro-subtext">${item.subtext}</span>`
+                : `<span class="pro-btn-text">${item.text}</span>`;
+    }
+}
+
+/**
+ * Tooltip of a Pro MK3 button: "Text (Subtext)" when it has a secondary function.
+ * @param {{text?: string, subtext?: string, title?: string}} item
+ * @returns {string}
+ */
+function buttonTitle(item) {
+    return item.subtext ? `${item.text} (${item.subtext})` : (item.title || item.text);
+}
+
+/**
  * Builds the Launchpad Pro MK3 (2020) layout HTML (10x10 with squircle buttons).
  * Accurately models the physical hardware.
  * @returns {string}
  */
-// eslint-disable-next-line complexity -- Known debt (complexity 16): refactor, then remove this waiver.
 export function buildProMk3Html() {
     let html = `
       <!-- Row 1: Top-left Shift corner + 8 top buttons + top-right logo -->
@@ -229,36 +257,14 @@ export function buildProMk3Html() {
     // 8 Top buttons (a1..a8)
     for (let i = 0; i < 8; i++) {
         const item = PRO_MK3_TOP_BUTTONS[i];
-        let content = '';
-        if (item.type === 'icon') {
-            content = renderArrowSvg(item.dir, 'pro-icon');
-        } else if (item.subtext) {
-            content = `<span class="pro-btn-text">${item.text}</span><span class="pro-subtext">${item.subtext}</span>`;
-        } else {
-            content = `<span class="pro-btn-text">${item.text}</span>`;
-        }
-        const title = item.subtext ? `${item.text} (${item.subtext})` : (item.title || item.text);
-        html += `      <div id="a${i + 1}" class="grid-item-menu pro-squircle-btn" title="${title}">${content}</div>\n`;
+        html += `      <div id="a${i + 1}" class="grid-item-menu pro-squircle-btn" title="${buttonTitle(item)}">${renderMk3ButtonContent(item)}</div>\n`;
     }
     html += `      <div class="pro-corner-button pro-corner-top-right pro-squircle-btn" id="image-container"><img src="assets/icons/Logo.png" alt="Logo" class="pro-logo-img"></div>\n`;
 
     // Rows 2..9: Left button + 8 central pads + Right scene button
     for (let r = 0; r < 8; r++) {
         const leftItem = PRO_MK3_LEFT_BUTTONS[r];
-        let leftContent = '';
-        if (leftItem.type === 'icon') {
-            leftContent = renderArrowSvg(leftItem.dir, 'pro-icon');
-        } else if (leftItem.type === 'play') {
-            leftContent = `<svg viewBox="0 0 24 24" class="pro-icon"><polygon fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" points="8,6 18,12 8,18"/></svg>`;
-        } else if (leftItem.type === 'record') {
-            leftContent = `<svg viewBox="0 0 24 24" class="pro-icon pro-icon-record"><circle cx="12" cy="12" r="5.5" fill="none" stroke="#ff453a" stroke-width="2"/></svg><span class="pro-subtext pro-subtext-red">${leftItem.subtext}</span>`;
-        } else if (leftItem.subtext) {
-            leftContent = `<span class="pro-btn-text">${leftItem.text}</span><span class="pro-subtext">${leftItem.subtext}</span>`;
-        } else {
-            leftContent = `<span class="pro-btn-text">${leftItem.text}</span>`;
-        }
-        const leftTitle = leftItem.subtext ? `${leftItem.text} (${leftItem.subtext})` : (leftItem.title || leftItem.text);
-        html += `      <div class="grid-item-pro-aux grid-item-pro-left pro-squircle-btn" title="${leftTitle}">${leftContent}</div>\n`;
+        html += `      <div class="grid-item-pro-aux grid-item-pro-left pro-squircle-btn" title="${buttonTitle(leftItem)}">${renderMk3ButtonContent(leftItem)}</div>\n`;
 
         // 8 central pads
         html += renderPadRow(r);

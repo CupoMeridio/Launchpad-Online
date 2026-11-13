@@ -12,14 +12,13 @@ import { showNotification } from '../notifications.js';
 import { assignPadStepSample, getPadSteps } from '../projectCreatorModel.js';
 import { creatorSession } from '../projectCreatorState.js';
 import { exportProjectToZip, importProjectFromZip } from '../projectZip.js';
-import { listen } from './dom.js';
+import { listen, setProps } from './dom.js';
 import { logger } from '../logger.js';
 
 export async function exportProject() {
-    const exportButton = document.getElementById('creator-export');
     const draft = creatorSession.getDraft();
     if (!draft) return false;
-    if (exportButton) exportButton.disabled = true;
+    setProps('creator-export', { disabled: true });
 
     try {
         const nameInput = document.getElementById('project-creator-name');
@@ -51,7 +50,7 @@ export async function exportProject() {
         showNotification(translate('creator.errorExport', { error: error.message }), 'error', 6000);
         return false;
     } finally {
-        if (exportButton) exportButton.disabled = false;
+        setProps('creator-export', { disabled: false });
     }
 }
 

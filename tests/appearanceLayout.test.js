@@ -7,7 +7,7 @@ import test from 'node:test';
 const workspaceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 test('project and draft layout values never overwrite the user preference', () => {
-    // Runs the real ui.js/appearance.js with minimal browser stubs, because the
+    // Runs the real launchpadAppearance.js/appearance.js with minimal browser stubs, because the
     // defect only shows up through the storage side effects of the real modules.
     const script = `
         const elements = {};
@@ -34,7 +34,7 @@ test('project and draft layout values never overwrite the user preference', () =
         };
         const assert = (condition, message) => { if (!condition) throw new Error(message); };
 
-        const ui = await import('./js/ui.js');
+        const ui = await import('./js/launchpadAppearance.js');
         const { applyLayout } = await import('./js/appearance.js');
         const transform = () => elements.Launchpad.style.transform;
 

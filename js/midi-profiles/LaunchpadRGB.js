@@ -126,54 +126,50 @@ export class LaunchpadRGB extends DeviceProfile {
      * Parses incoming MIDI message:
      * - Note On / Off in Programmer Mode (notes 11-88 grid, 19-89 scene)
      * - CC 91-98 (Pro, Mini Mk3, X) or CC 104-111 (Mk2) for top Automap buttons
-     * 
+     *
      * @param {Uint8Array|number[]} msg
      * @returns {{ x: number, y: number, pressed: boolean }|null}
      */
-    // eslint-disable-next-line complexity -- Known debt (complexity 19): refactor, then remove this waiver.
     parseMessage(msg) {
         const header = DeviceProfile.readStatusBytes(msg);
         if (!header) return null;
 
         const { status, data1, data2 } = header;
-
         if (status === 0x90 || status === 0x80) {
-            const pressed = (status === 0x90 && data2 > 0);
-            const note = data1;
-
-            if (note >= 11 && note <= 89) {
-                const row = Math.floor(note / 10); // 1..8 (1 is bottom row, 8 is top row)
-                const col = note % 10;            // 1..9 (1..8 is grid pad, 9 is scene button)
-
-                if (row >= 1 && row <= 8) {
-                    const y = 8 - row; // Map to 0..7 (0 is top row, 7 is bottom row)
-
-                    if (col === 9) {
-                        // Scene button (column 8)
-                        return { x: 8, y, pressed };
-                    } else if (col >= 1 && col <= 8) {
-                        // 8x8 Grid pad
-                        return { x: col - 1, y, pressed };
-                    }
-                }
-            }
-        } else if (status === 0xB0) {
-            const pressed = data2 > 0;
-            const useCc91 = this.isPro || this.isMk3;
-            if (useCc91) {
-                // Top row on Pro, Mini Mk3 and X (CC 91..98)
-                if (data1 >= 91 && data1 <= 98) {
-                    return { x: data1 - 91, y: 8, pressed };
-                }
-            } else {
-                // Top row on Mk2 Session mode (CC 104..111)
-                if (data1 >= 104 && data1 <= 111) {
-                    return { x: data1 - 104, y: 8, pressed };
-                }
-            }
+            return this.parseNote(data1, status === 0x90 && data2 > 0);
         }
-
+        if (status === 0xB0) {
+            return this.parseTopRowControl(data1, data2 > 0);
+        }
         return null;
+    }
+
+    /**
+     * Programmer Mode notes are "row column" in decimal: row 1 (bottom) to 8
+     * (top), column 1-8 for the grid and 9 for the scene buttons.
+     * @param {number} note
+     * @param {boolean} pressed
+     * @returns {{ x: number, y: number, pressed: boolean }|null}
+     */
+    parseNote(note, pressed) {
+        const row = Math.floor(note / 10);
+        const col = note % 10;
+        if (row < 1 || row > 8 || col < 1 || col > 9) return null;
+        // y: 0 is the top row; x: 0-7 grid, 8 scene buttons.
+        return { x: col - 1, y: 8 - row, pressed };
+    }
+
+    /**
+     * Top-row (Automap) buttons are CC 91-98 on Pro, Mini Mk3 and X, and
+     * CC 104-111 on Mk2 in Session mode.
+     * @param {number} cc
+     * @param {boolean} pressed
+     * @returns {{ x: number, y: number, pressed: boolean }|null}
+     */
+    parseTopRowControl(cc, pressed) {
+        const firstCc = (this.isPro || this.isMk3) ? 91 : 104;
+        const x = cc - firstCc;
+        return x >= 0 && x < 8 ? { x, y: 8, pressed } : null;
     }
 
     /**

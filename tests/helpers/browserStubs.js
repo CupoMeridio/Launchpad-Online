@@ -95,7 +95,8 @@ export function createElement(tagName = 'div', { id = '', className = '', datase
             return event;
         },
         fire(type, event) {
-            listeners.get(type)?.forEach(handler => handler(event));
+            // Like the DOM, `this` inside a listener is the element it was added to.
+            listeners.get(type)?.forEach(handler => handler.call(element, event));
         }
     };
 

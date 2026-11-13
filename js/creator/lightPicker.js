@@ -25,7 +25,7 @@ import {
 } from '../projectCreatorModel.js';
 import { creatorSession } from '../projectCreatorState.js';
 import { webColorMap } from '../webInterface.js';
-import { listen } from './dom.js';
+import { listen, setProps } from './dom.js';
 
 // Swatch previews derive from the shared palette so the two can never drift apart.
 const LIGHT_COLOR_SWATCHES = Object.fromEntries(
@@ -112,8 +112,7 @@ export function getAnimationDisplayName(animationName) {
 }
 
 export function syncTextAnimationBox() {
-    const textAnimBox = document.getElementById('creator-text-animation');
-    if (textAnimBox) textAnimBox.hidden = !creatorSession.getPendingTextAnimation();
+    setProps('creator-text-animation', { hidden: !creatorSession.getPendingTextAnimation() });
 }
 
 function renderLightCategoryTabs(categoryContainer, activeLightCategory) {

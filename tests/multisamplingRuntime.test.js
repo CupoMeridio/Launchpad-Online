@@ -116,7 +116,6 @@ function commitTestProject(project, { sounds, lights, lightSyncToSound, lightDur
     });
     commitProject(runtimeProject);
 }
-const { markProjectReady } = await import('../js/projectLoadingState.js');
 const { audioEngine } = await import('../js/audio.js');
 const { animations } = await import('../js/lights.js');
 
@@ -130,7 +129,6 @@ test('multisampling runtime round-robin cycles through steps on each press', () 
         pages: [{ name: 'Page 1' }]
     };
     setCurrentPage(0);
-    markProjectReady();
 
     const sounds = Array(64).fill(null).map(() => []);
     sounds[0] = ['step0.wav', 'step1.wav', 'step2.wav'];
@@ -198,7 +196,6 @@ test('multi-step pad without lights advances the round-robin cursor exactly once
         pages: [{ name: 'Page 1' }]
     };
     setCurrentPage(0);
-    markProjectReady();
 
     const sounds = Array(64).fill(null).map(() => []);
     sounds[2] = ['a.wav', 'b.wav', 'c.wav'];
@@ -257,7 +254,6 @@ test('momentary animation on multi-step pad is released using the triggered step
         pages: [{ name: 'Page 1' }]
     };
     setCurrentPage(0);
-    markProjectReady();
 
     const sounds = Array(64).fill(null).map(() => []);
     sounds[1] = ['s1.wav', 's2.wav'];
@@ -291,7 +287,6 @@ test('single-step pads remain at step 0 across multiple presses', () => {
         pages: [{ name: 'Page 1' }]
     };
     setCurrentPage(0);
-    markProjectReady();
 
     const sounds = Array(64).fill(null).map(() => []);
     sounds[5] = ['only_one.wav'];

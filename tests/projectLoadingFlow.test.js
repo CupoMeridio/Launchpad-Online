@@ -14,7 +14,7 @@ globalThis.cancelAnimationFrame = () => {};
 globalThis.CustomEvent = class { constructor(type, options) { this.type = type; this.detail = options?.detail; } };
 
 const { setLogSink } = await import('../js/logger.js');
-const loading = await import('../js/projectLoadingState.js');
+const loading = await import('../js/projectState.js');
 const { ProjectLoadError, describeProjectLoadError } = await import('../js/project.js');
 
 // Capture diagnostics instead of printing them.
@@ -23,16 +23,18 @@ setLogSink({ log() {}, warn: (...args) => captured.push(['warn', ...args]), erro
 test.after(() => setLogSink(null));
 
 test('waitForProjectReady settles on the next outcome, without polling', async () => {
+    loading.resetProjectState();
     loading.beginLoadingProject();
     const waiting = loading.waitForProjectReady(5000);
-    loading.markProjectReady();
-    assert.equal(await waiting, true);
+    loading.commitProject({ project: { name: 'A', pages: [] }, pages: [], appearance: {} });
+    assert.equal(await waiting, true, 'committing a project wakes waiters');
     assert.equal(await loading.waitForProjectReady(5000), true, 'already ready resolves immediately');
 
+    loading.resetProjectState();
     loading.beginLoadingProject();
     const failing = loading.waitForProjectReady(5000);
     loading.markProjectLoadError(new Error('boom'));
-    assert.equal(await failing, false);
+    assert.equal(await failing, false, 'no project to fall back to');
     assert.ok(captured.some(([level, message]) => level === 'error' && /Project loading failed/.test(message)));
 });
 
@@ -43,10 +45,12 @@ test('waitForProjectReady gives up after its timeout', async () => {
 });
 
 test('a failure with the previous project still active wakes waiters as ready', async () => {
+    loading.commitProject({ project: { name: 'Previous', pages: [] }, pages: [], appearance: {} });
     loading.beginLoadingProject();
     const waiting = loading.waitForProjectReady(5000);
-    loading.markProjectLoadError(new Error('boom'), { previousProjectActive: true });
+    loading.markProjectLoadError(new Error('boom'));
     assert.equal(await waiting, true);
+    assert.equal(loading.getActiveProject().project.name, 'Previous');
 });
 
 test('project load errors map to translation keys, not to raw messages', () => {

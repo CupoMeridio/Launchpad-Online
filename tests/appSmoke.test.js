@@ -59,8 +59,8 @@ test('every project editor DOM id exists in the application shell', () => {
         .filter(name => name.endsWith('.js'))
         .map(name => readFileSync(path.join(creatorDir, name), 'utf8'))
         .join('\n');
-    // Ids looked up directly or passed to the creator's listen('<id>', ...) helper.
-    const elementIds = [...source.matchAll(/(?:getElementById|listen)\('([^']+)'/g)].map(match => match[1]);
+    // Ids looked up directly or passed to the creator's listen('<id>', ...) / setProps('<id>', ...) helpers.
+    const elementIds = [...source.matchAll(/(?:getElementById|listen|setProps)\('([^']+)'/g)].map(match => match[1]);
     assert.ok(elementIds.length > 50, 'creator modules must be scanned');
 
     for (const elementId of elementIds) {
@@ -187,4 +187,13 @@ test('app entrypoint forwards ?debug query to service-worker registration in deb
 
     assert.match(appJs, /service-worker\.js\?debug=1/);
     assert.match(swJs, /new URL\(self\.location\.href\)\.searchParams\.has\('debug'\)/);
+});
+
+test('the vendored JSZip served to the browser matches the version used by the tests', () => {
+    // The app is served as static files, so the browser loads js/vendor/jszip.min.js
+    // while Node tests resolve the npm package. Run `npm run vendor:jszip` after
+    // updating the package to keep both in sync.
+    const vendored = readFileSync(path.join(workspaceRoot, 'js', 'vendor', 'jszip.min.js'));
+    const packaged = readFileSync(path.join(workspaceRoot, 'node_modules', 'jszip', 'dist', 'jszip.min.js'));
+    assert.ok(vendored.equals(packaged), 'js/vendor/jszip.min.js is out of date: run `npm run vendor:jszip`');
 });

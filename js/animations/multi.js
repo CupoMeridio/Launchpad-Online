@@ -57,7 +57,7 @@ export function register(animations, _colors) {
                 activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
                     const stepDelay = dur ? dur / 12 : 60;
                     const fadeDuration = dur ? stepDelay * 4.5 : 450;
-                    return buildWaveEvents(x, y, stepDelay, fadeDuration);
+                    return buildWaveEvents({ x, y, stepDelay, fadeDuration });
                 }, triggerMultiFade));
             },
             type: 'fixed'
@@ -69,7 +69,7 @@ export function register(animations, _colors) {
                     const maxDistance = maxCornerDistance(x, y);
                     const stepDelay = dur ? dur / (maxDistance + 3) : 60;
                     const fadeDuration = dur ? stepDelay * 4.5 : 450;
-                    return buildWaveEvents(x, y, stepDelay, fadeDuration, true, maxDistance);
+                    return buildWaveEvents({ x, y, stepDelay, fadeDuration, reverse: true, maxDistance });
                 }, triggerMultiFade));
             },
             type: 'fixed'
@@ -80,7 +80,7 @@ export function register(animations, _colors) {
                 activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
                     const stepDelay = dur ? dur / 7.5 : 60;
                     const fadeDuration = dur ? stepDelay * 4.5 : 450;
-                    return buildWaveEvents(3.5, 3.5, stepDelay, fadeDuration);
+                    return buildWaveEvents({ x: 3.5, y: 3.5, stepDelay, fadeDuration });
                 }, triggerMultiFade));
             },
             type: 'fixed'
@@ -91,7 +91,7 @@ export function register(animations, _colors) {
                 activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
                     const stepDelay = dur ? dur / 7.5 : 60;
                     const fadeDuration = dur ? stepDelay * 4.5 : 450;
-                    return buildWaveEvents(3.5, 3.5, stepDelay, fadeDuration, true, 5);
+                    return buildWaveEvents({ x: 3.5, y: 3.5, stepDelay, fadeDuration, reverse: true, maxDistance: 5 });
                 }, triggerMultiFade));
             },
             type: 'fixed'

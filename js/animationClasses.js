@@ -72,16 +72,16 @@ export function buildReverseCrossEvents(x, y, stepDelay, fadeDuration) {
 
 /**
  * Builds precomputed wave events propagating from or toward an origin point.
- * @param {number} originX - Wave origin column (can be fractional, e.g. 3.5 for center).
- * @param {number} originY - Wave origin row (can be fractional).
- * @param {number} stepDelay - Delay per distance unit.
- * @param {number} fadeDuration - Fade duration per pad.
- * @param {boolean} [reverse=false] - When true, wave contracts toward origin.
- * @param {number} [maxDistance=0] - Distance offset for reverse waves.
+ * @param {object} options
+ * @param {number} options.x - Wave origin X (may be fractional, e.g. 3.5 for the centre).
+ * @param {number} options.y - Wave origin Y.
+ * @param {number} options.stepDelay - Delay per distance unit.
+ * @param {number} options.fadeDuration - Fade duration per pad.
+ * @param {boolean} [options.reverse=false] - When true, wave contracts toward origin.
+ * @param {number} [options.maxDistance=0] - Distance offset for reverse waves.
  * @returns {Array<{ p: [number, number], time: number, dur: number }>}
  */
-// eslint-disable-next-line max-params -- Known debt (max-params 6): refactor, then remove this waiver.
-export function buildWaveEvents(originX, originY, stepDelay, fadeDuration, reverse = false, maxDistance = 0) {
+export function buildWaveEvents({ x: originX, y: originY, stepDelay, fadeDuration, reverse = false, maxDistance = 0 }) {
     const events = [];
     for (let targetY = 0; targetY < 8; targetY++) {
         for (let targetX = 0; targetX < 8; targetX++) {
@@ -94,6 +94,17 @@ export function buildWaveEvents(originX, originY, stepDelay, fadeDuration, rever
     }
     return events;
 }
+
+/**
+ * Maps a rain line (column or row, 0-7) and the drop's position along it
+ * (0-7) to the pad it lights, for each falling direction.
+ */
+const RAIN_CELL_BY_DIRECTION = {
+    down: (line, index) => [line, index],
+    up: (line, index) => [line, 7 - index],
+    right: (line, index) => [index, line],
+    left: (line, index) => [7 - index, line]
+};
 
 class BaseMatrixRainAnimation {
     constructor(duration, direction = 'down') {
@@ -117,45 +128,36 @@ class BaseMatrixRainAnimation {
         // Implemented by subclasses
     }
 
-    update(now) {
-        let activeCount = 0;
-        const elapsed = now - this.startTime;
+    /**
+     * Advances one rain line, lighting the next pad when the drop enters it.
+     * @param {number} lineIndex - Column (down/up) or row (left/right), 0-7.
+     * @param {number} elapsed - Ms since the animation started.
+     * @returns {boolean} True while the line is waiting or still falling.
+     */
+    _advanceLine(lineIndex, elapsed) {
+        const line = this.lines[lineIndex];
+        const lineTime = elapsed - line.delay;
+        if (lineTime <= 0) return true; // Waiting to start
 
-        for (let i = 0; i < 8; i++) {
-            const line = this.lines[i];
-            const lineTime = elapsed - line.delay;
+        const currentIdx = Math.floor(lineTime / line.speed);
+        if (currentIdx >= 8) return false; // Drop has left the grid
 
-            if (lineTime > 0) {
-                // Determine which index should be active at this time
-                const currentIdx = Math.floor(lineTime / line.speed);
-
-                if (currentIdx < 8) {
-                    activeCount++;
-                    // Triggers fade only if a new cell is entered
-                    if (currentIdx > line.lastIdx) {
-                        const fadeDuration = line.speed * 4;
-                        let x, y;
-
-                        // eslint-disable-next-line max-depth -- Known debt (max-depth 5): refactor, then remove this waiver.
-                        if (this.direction === 'down') {
-                            x = i; y = currentIdx;
-                        } else if (this.direction === 'up') {
-                            x = i; y = 7 - currentIdx;
-                        } else if (this.direction === 'right') {
-                            x = currentIdx; y = i;
-                        } else if (this.direction === 'left') {
-                            x = 7 - currentIdx; y = i;
-                        }
-
-                        this._triggerCell(x, y, fadeDuration);
-                        line.lastIdx = currentIdx;
-                    }
-                }
-            } else {
-                activeCount++; // Waiting to start
-            }
+        // Trigger a fade only when the drop enters a new cell.
+        if (currentIdx > line.lastIdx) {
+            const toCell = RAIN_CELL_BY_DIRECTION[this.direction];
+            const [x, y] = toCell ? toCell(lineIndex, currentIdx) : [];
+            this._triggerCell(x, y, line.speed * 4);
+            line.lastIdx = currentIdx;
         }
+        return true;
+    }
 
+    update(now) {
+        const elapsed = now - this.startTime;
+        let activeCount = 0;
+        for (let i = 0; i < 8; i++) {
+            if (this._advanceLine(i, elapsed)) activeCount++;
+        }
         return activeCount === 0; // Finished when all lines are done
     }
 }

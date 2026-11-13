@@ -13,8 +13,7 @@ const { setLogSink } = await import('../js/logger.js');
 setLogSink(createRecordingSink());
 
 const { loadProject } = await import('../js/project.js');
-const { getActiveProject, getCurrentPage } = await import('../js/projectState.js');
-const { isProjectReady } = await import('../js/projectLoadingState.js');
+const { getActiveProject, getCurrentPage, isProjectReady } = await import('../js/projectState.js');
 const { audioEngine } = await import('../js/audio.js');
 const { PROJECT_LOADING_TIMEOUT_MS } = await import('../js/constants.js');
 

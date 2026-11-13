@@ -90,7 +90,7 @@ test('buildWaveEvents produces exactly 64 events and respects forward, reverse, 
     const fadeDuration = 80;
 
     // Forward wave from (0,0)
-    const forwardEvents = buildWaveEvents(0, 0, stepDelay, fadeDuration);
+    const forwardEvents = buildWaveEvents({ x: 0, y: 0, stepDelay, fadeDuration });
     assert.equal(forwardEvents.length, 64);
     const origin = forwardEvents.find(e => e.p[0] === 0 && e.p[1] === 0);
     assert.equal(origin.time, 0);
@@ -99,7 +99,7 @@ test('buildWaveEvents produces exactly 64 events and respects forward, reverse, 
 
     // Reverse wave from (0,0)
     const maxDist = maxCornerDistance(0, 0);
-    const reverseEvents = buildWaveEvents(0, 0, stepDelay, fadeDuration, true, maxDist);
+    const reverseEvents = buildWaveEvents({ x: 0, y: 0, stepDelay, fadeDuration, reverse: true, maxDistance: maxDist });
     assert.equal(reverseEvents.length, 64);
     const revOrigin = reverseEvents.find(e => e.p[0] === 0 && e.p[1] === 0);
     assert.equal(revOrigin.time, maxDist * stepDelay);
@@ -107,7 +107,7 @@ test('buildWaveEvents produces exactly 64 events and respects forward, reverse, 
     assert.equal(revFarCorner.time, (maxDist - Math.hypot(7, 7)) * stepDelay);
 
     // Center wave from (3.5, 3.5): 4 central pads have identical timing
-    const centerEvents = buildWaveEvents(3.5, 3.5, stepDelay, fadeDuration);
+    const centerEvents = buildWaveEvents({ x: 3.5, y: 3.5, stepDelay, fadeDuration });
     assert.equal(centerEvents.length, 64);
     const pad33 = centerEvents.find(e => e.p[0] === 3 && e.p[1] === 3);
     const pad43 = centerEvents.find(e => e.p[0] === 4 && e.p[1] === 3);
@@ -119,14 +119,14 @@ test('buildWaveEvents produces exactly 64 events and respects forward, reverse, 
 });
 
 test('buildRainEvents accurately generates 1D directional sweep stopping at boundaries', () => {
-    const downEvents = buildRainEvents(2, 5, 0, 1, 80, 160);
+    const downEvents = buildRainEvents({ x: 2, y: 5, dx: 0, dy: 1, stepDelay: 80, fadeDuration: 160 });
     // From y=5 down to 7: 3 events (y=5, 6, 7)
     assert.equal(downEvents.length, 3);
     assert.deepEqual(downEvents[0], { p: [2, 5], time: 0, dur: 160 });
     assert.deepEqual(downEvents[1], { p: [2, 6], time: 80, dur: 160 });
     assert.deepEqual(downEvents[2], { p: [2, 7], time: 160, dur: 160 });
 
-    const upEvents = buildRainEvents(2, 5, 0, -1, 80, 160);
+    const upEvents = buildRainEvents({ x: 2, y: 5, dx: 0, dy: -1, stepDelay: 80, fadeDuration: 160 });
     // From y=5 up to 0: 6 events (y=5, 4, 3, 2, 1, 0)
     assert.equal(upEvents.length, 6);
     assert.deepEqual(upEvents[upEvents.length - 1], { p: [2, 0], time: 5 * 80, dur: 160 });

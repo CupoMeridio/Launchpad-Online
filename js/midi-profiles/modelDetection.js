@@ -7,124 +7,74 @@
  */
 
 /**
+ * @typedef {object} LaunchpadModel
+ * @property {boolean} isLaunchpad
+ * @property {'legacy'|'rgb'} family
+ * @property {'classic'|'mk3'|'pro'|'pro-mk3'} modelType
+ * @property {number|null} productId - SysEx product id (RGB models).
+ * @property {boolean} isMk3
+ * @property {boolean} isPro
+ */
+
+const MODELS = Object.freeze({
+    // Launchpad Pro Mk3 (Programmer SysEx product id)
+    proMk3: { family: 'rgb', modelType: 'pro-mk3', productId: 0x0E, isMk3: true, isPro: true },
+    // Original Launchpad Pro (2015, Standalone SysEx id)
+    pro: { family: 'rgb', modelType: 'pro', productId: 0x10, isMk3: false, isPro: true },
+    // Launchpad X and Mini Mk3 (Programmer SysEx product ids)
+    x: { family: 'rgb', modelType: 'mk3', productId: 0x0C, isMk3: true, isPro: false },
+    miniMk3: { family: 'rgb', modelType: 'mk3', productId: 0x0D, isMk3: true, isPro: false },
+    // Launchpad Mk2 (non-mini): RGB with the classic button layout
+    mk2: { family: 'rgb', modelType: 'classic', productId: 0x18, isMk3: false, isPro: false },
+    // Launchpad Classic / Mk1 / S and Mini Mk1-Mk2: legacy bicolor
+    legacy: { family: 'legacy', modelType: 'classic', productId: null, isMk3: false, isPro: false }
+});
+
+/**
+ * Port-name rules, checked in order (the first match wins). Names differ across
+ * operating systems and drivers, e.g. Windows abbreviations such as "LPX MIDI"
+ * or "MIDIIN2 (LPMiniMK3 MIDI)".
+ */
+const MODEL_RULES = [
+    { matches: name => name.isPro && name.isMk3OrNewer, model: MODELS.proMk3 },
+    { matches: name => name.isPro, model: MODELS.pro },
+    { matches: name => name.has('lpx') || (name.has('launchpad') && /\bx\b/.test(name.lower)), model: MODELS.x },
+    // Only the Mini Mk3 is RGB: Mini Mk1/Mk2 are legacy bicolor.
+    { matches: name => name.isMini && name.isMk3OrNewer, model: MODELS.miniMk3 },
+    { matches: name => name.isMini, model: MODELS.legacy },
+    { matches: name => name.has('mk2') || name.has('mk 2'), model: MODELS.mk2 }
+];
+
+const LAUNCHPAD_MARKERS = ['launchpad', 'lpx', 'lpminimk3', 'lppromk3', 'lpmini', 'lppro'];
+
+/**
+ * Pre-computes the features of a port name the rules look at.
+ * @param {string} portName
+ */
+function describePortName(portName) {
+    const lower = (portName || '').trim().toLowerCase();
+    const has = token => lower.includes(token);
+    return {
+        lower,
+        has,
+        isLaunchpad: LAUNCHPAD_MARKERS.some(has),
+        isMk3OrNewer: has('mk3') || has('mk 3') || has('lpminimk3') || has('lppromk3'),
+        isPro: has('pro') || has('lppro'),
+        isMini: has('mini') || has('lpmini')
+    };
+}
+
+/**
  * Detects model family, layout view type, product ID, and generation from a MIDI port or device name.
  * Single source of truth for all Launchpad device identification.
- * 
  * @param {string} portName
- * @returns {{
- *   isLaunchpad: boolean,
- *   family: 'legacy' | 'rgb',
- *   modelType: 'classic' | 'mk3' | 'pro' | 'pro-mk3',
- *   productId: number | null,
- *   isMk3: boolean,
- *   isPro: boolean
- * }}
+ * @returns {LaunchpadModel} A new object on every call.
  */
-// eslint-disable-next-line complexity -- Known debt (complexity 22): refactor, then remove this waiver.
 export function detectModel(portName) {
-    const raw = (portName || '').trim();
-    const lower = raw.toLowerCase();
-
-    // Check whether port name identifies a Launchpad device across operating systems
-    // Supports standard names and Windows driver abbreviations (e.g. "LPX MIDI", "MIDIIN2 (LPMiniMK3 MIDI)")
-    const isLaunchpad = lower.includes('launchpad') ||
-                        lower.includes('lpx') ||
-                        lower.includes('lpminimk3') ||
-                        lower.includes('lppromk3') ||
-                        lower.includes('lpmini') ||
-                        lower.includes('lppro');
-
-    if (!isLaunchpad) {
-        return {
-            isLaunchpad: false,
-            family: 'legacy',
-            modelType: 'classic',
-            productId: null,
-            isMk3: false,
-            isPro: false
-        };
+    const name = describePortName(portName);
+    if (!name.isLaunchpad) {
+        return { isLaunchpad: false, ...MODELS.legacy };
     }
-
-    const isMk3OrNewer = lower.includes('mk3') || lower.includes('mk 3') || lower.includes('lpminimk3') || lower.includes('lppromk3');
-    const isPro = lower.includes('pro') || lower.includes('lppro');
-
-    // 1. Launchpad Pro family
-    if (isPro) {
-        if (isMk3OrNewer) {
-            return {
-                isLaunchpad: true,
-                family: 'rgb',
-                modelType: 'pro-mk3',
-                productId: 0x0E, // Launchpad Pro Mk3 Programmer SysEx Product ID
-                isMk3: true,
-                isPro: true
-            };
-        }
-        // Original Launchpad Pro (2015)
-        return {
-            isLaunchpad: true,
-            family: 'rgb',
-            modelType: 'pro',
-            productId: 0x10, // Launchpad Pro 2015 Standalone SysEx ID
-            isMk3: false,
-            isPro: true
-        };
-    }
-
-    // 2. Launchpad X
-    if (lower.includes('lpx') || (lower.includes('launchpad') && /\bx\b/.test(lower))) {
-        return {
-            isLaunchpad: true,
-            family: 'rgb',
-            modelType: 'mk3',
-            productId: 0x0C, // Launchpad X Programmer SysEx Product ID
-            isMk3: true,
-            isPro: false
-        };
-    }
-
-    // 3. Mini series: Mini Mk1 and Mini Mk2 are Legacy bicolor! Only Mini Mk3 is RGB.
-    const isMini = lower.includes('mini') || lower.includes('lpmini');
-    if (isMini) {
-        if (isMk3OrNewer) {
-            return {
-                isLaunchpad: true,
-                family: 'rgb',
-                modelType: 'mk3',
-                productId: 0x0D, // Launchpad Mini Mk3 Programmer SysEx Product ID
-                isMk3: true,
-                isPro: false
-            };
-        }
-        return {
-            isLaunchpad: true,
-            family: 'legacy',
-            modelType: 'classic',
-            productId: null,
-            isMk3: false,
-            isPro: false
-        };
-    }
-
-    // 4. Launchpad Mk2 (non-mini) is RGB with Classic button layout
-    if (lower.includes('mk2') || lower.includes('mk 2')) {
-        return {
-            isLaunchpad: true,
-            family: 'rgb',
-            modelType: 'classic',
-            productId: 0x18, // Launchpad Mk2 SysEx Family ID
-            isMk3: false,
-            isPro: false
-        };
-    }
-
-    // 5. Default: Launchpad Classic / Mk1 / S (Legacy bicolor)
-    return {
-        isLaunchpad: true,
-        family: 'legacy',
-        modelType: 'classic',
-        productId: null,
-        isMk3: false,
-        isPro: false
-    };
+    const rule = MODEL_RULES.find(candidate => candidate.matches(name));
+    return { isLaunchpad: true, ...(rule ? rule.model : MODELS.legacy) };
 }
