@@ -102,14 +102,14 @@ test('pad source provider correctly routes pad presses and releases', () => {
     let configQueried = false;
 
     const mockProvider = {
-        getPadConfig: (_index) => {
+        getPadPlayback: (_index) => {
             configQueried = true;
             return {
-                soundIndex: undefined,
-                soundBuffer: null,
-                animationName: 'fade_red',
-                syncToSound: false,
-                manualDuration: 1.0
+                step: { soundUrl: null, buffer: null, light: 'fade_red', syncToSound: false, duration: 1.0 },
+                stepIndex: 0,
+                totalSteps: 1,
+                soundKey: 'mock:7',
+                counterKey: null
             };
         },
         onPadPress: (index) => {
@@ -122,7 +122,7 @@ test('pad source provider correctly routes pad presses and releases', () => {
 
     triggerPad(7);
     assert.equal(pressedPad, 7, 'onPadPress should be called with pad index');
-    assert.equal(configQueried, true, 'getPadConfig should be queried on pad press');
+    assert.equal(configQueried, true, 'getPadPlayback should be queried on pad press');
 
     releasePad(7);
 

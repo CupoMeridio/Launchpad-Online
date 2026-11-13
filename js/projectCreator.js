@@ -7,6 +7,7 @@ import {
     filterCatalogByDevice,
     resolveLightColors,
     getPadSteps,
+    draftStepToPadStep,
     assignSampleGuarded,
     assignPadStepSample
 } from './projectCreatorModel.js';
@@ -83,7 +84,7 @@ let lastRenderedSearch = null;
 let lastRenderedTargetDevice = null;
 
 const creatorPadSource = {
-    getPadConfig: (index) => creatorSession.getPadConfig(index, getPadStepCursor),
+    getPadPlayback: (index) => creatorSession.getPadPlayback(index, getPadStepCursor),
     onPadPress: (index) => {
         if (creatorSession.getStudioSubMode() === 'edit') {
             selectProjectPad(index, false);
@@ -1067,14 +1068,13 @@ function getPadPreviewContext(index = creatorSession.getActivePadIndex()) {
     const activePad = creatorSession.getActivePadIndex();
     const activeStep = creatorSession.getActiveStepIndex();
     const stepIdx = (index === activePad) ? activeStep : 0;
-    const step = steps[stepIdx] || steps[0] || {};
+    const step = draftStepToPadStep(steps[stepIdx] || steps[0]);
     return {
         page,
-        step,
-        buffer: step.soundBuffer || null,
+        buffer: step.buffer,
         animation: step.light || '',
-        syncToSound: step.lightSyncToSound ?? true,
-        manualDuration: step.lightDuration ?? DEFAULT_LIGHT_DURATION_SEC,
+        syncToSound: step.syncToSound,
+        manualDuration: step.duration,
         x: index % LAUNCHPAD_COLS,
         y: Math.floor(index / LAUNCHPAD_COLS)
     };

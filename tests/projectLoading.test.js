@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createPathResolver, normalizeProjectData } from '../js/projectModel.js';
+import { createPathResolver, normalizeProjectData, collectSoundUrls, assignStepBuffers } from '../js/projectModel.js';
 import { LAUNCHPAD_PADS, DEFAULT_LIGHT_DURATION_SEC } from '../js/constants.js';
 
 const workspaceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -31,7 +31,7 @@ test('createPathResolver correctly resolves relative paths and preserves absolut
     assert.equal(resolve(null), null);
 });
 
-test('normalizeProjectData produces canonical 64-pad arrays with timing and appearance', () => {
+test('normalizeProjectData produces 64 pads of PadSteps per page with timing and appearance', () => {
     const rawProject = {
         id: 'test-project',
         name: 'Test Project',
@@ -68,29 +68,24 @@ test('normalizeProjectData produces canonical 64-pad arrays with timing and appe
 
     const normalized = normalizeProjectData(rawProject, 'projects/test/project.json');
 
-    // Exactly 64 pad entries for 1 page
-    assert.equal(normalized.sounds.length, LAUNCHPAD_PADS);
-    assert.equal(normalized.lights.length, LAUNCHPAD_PADS);
-    assert.equal(normalized.lightSyncToSound.length, LAUNCHPAD_PADS);
-    assert.equal(normalized.lightDurations.length, LAUNCHPAD_PADS);
+    // Exactly 64 pads for 1 page
+    assert.equal(normalized.pages.length, 1);
+    assert.equal(normalized.pages[0].length, LAUNCHPAD_PADS);
 
-    // Resolved sound paths
-    assert.deepEqual(normalized.sounds[0], ['projects/test/sample1.wav', 'projects/test/sample1_alt.wav']);
-    assert.deepEqual(normalized.sounds[1], ['projects/test/sample2.wav']);
-    assert.deepEqual(normalized.sounds[2], []);
+    // Pad 0: two steps (longest of sounds/lights); per-step fields line up,
+    // missing values take their defaults.
+    assert.deepEqual(normalized.pages[0][0], [
+        { soundUrl: 'projects/test/sample1.wav', buffer: null, light: 'fade_blue', syncToSound: false, duration: 1.2 },
+        { soundUrl: 'projects/test/sample1_alt.wav', buffer: null, light: null, syncToSound: true, duration: DEFAULT_LIGHT_DURATION_SEC }
+    ]);
 
-    // Lights
-    assert.deepEqual(normalized.lights[0], ['fade_blue']);
-    assert.deepEqual(normalized.lights[1], ['strobe_green']);
-    assert.deepEqual(normalized.lights[2], []);
+    // Pad 1: defaults for sync and duration
+    assert.deepEqual(normalized.pages[0][1], [
+        { soundUrl: 'projects/test/sample2.wav', buffer: null, light: 'strobe_green', syncToSound: true, duration: DEFAULT_LIGHT_DURATION_SEC }
+    ]);
 
-    // Light sync defaults
-    assert.deepEqual(normalized.lightSyncToSound[0], [false]);
-    assert.deepEqual(normalized.lightSyncToSound[1], [true]); // defaulted
-
-    // Light durations defaults
-    assert.deepEqual(normalized.lightDurations[0], [1.2]);
-    assert.deepEqual(normalized.lightDurations[1], [DEFAULT_LIGHT_DURATION_SEC]); // defaulted
+    // Unassigned pad: no steps
+    assert.deepEqual(normalized.pages[0][2], []);
 
     // Appearance normalized
     assert.equal(normalized.appearance.skin, 'projects/test/cover.jpg');
@@ -111,10 +106,39 @@ test('normalizeProjectData handles multi-page projects and empty steps gracefull
     };
 
     const normalized = normalizeProjectData(rawProject, '');
-    assert.equal(normalized.sounds.length, LAUNCHPAD_PADS * 2);
-    assert.equal(normalized.lights.length, LAUNCHPAD_PADS * 2);
-    assert.equal(normalized.lightSyncToSound.length, LAUNCHPAD_PADS * 2);
-    assert.equal(normalized.lightDurations.length, LAUNCHPAD_PADS * 2);
+    assert.equal(normalized.pages.length, 2);
+    normalized.pages.forEach(page => {
+        assert.equal(page.length, LAUNCHPAD_PADS);
+        assert.ok(page.every(steps => steps.length === 0));
+    });
+});
+
+test('collectSoundUrls deduplicates shared samples and assignStepBuffers attaches them to every step', () => {
+    const normalized = normalizeProjectData({
+        id: 'shared',
+        name: 'Shared',
+        pages: [
+            { name: 'P1', sounds: [['kick.wav', 'snare.wav'], ['kick.wav']] },
+            { name: 'P2', sounds: [['snare.wav', 'missing.wav']] }
+        ]
+    }, 'projects/x/x.json');
+
+    assert.deepEqual(collectSoundUrls(normalized).sort(), [
+        'projects/x/kick.wav', 'projects/x/missing.wav', 'projects/x/snare.wav'
+    ]);
+
+    const kick = { name: 'kick' };
+    const snare = { name: 'snare' };
+    assignStepBuffers(normalized, new Map([
+        ['projects/x/kick.wav', kick],
+        ['projects/x/snare.wav', snare]
+    ]));
+
+    assert.equal(normalized.pages[0][0][0].buffer, kick);
+    assert.equal(normalized.pages[0][0][1].buffer, snare);
+    assert.equal(normalized.pages[0][1][0].buffer, kick, 'shared sample reuses the same decoded buffer');
+    assert.equal(normalized.pages[1][0][0].buffer, snare);
+    assert.equal(normalized.pages[1][0][1].buffer, null, 'failed samples leave the step silent');
 });
 
 test('smoke test: built-in projects normalize cleanly when present on disk', (t) => {
@@ -142,9 +166,8 @@ test('smoke test: built-in projects normalize cleanly when present on disk', (t)
         const normalized = normalizeProjectData(raw, configPath);
 
         assert.ok(normalized.project, `${item.name}: project must be defined`);
-        assert.equal(normalized.sounds.length, raw.pages.length * LAUNCHPAD_PADS);
-        assert.equal(normalized.lights.length, raw.pages.length * LAUNCHPAD_PADS);
-        assert.equal(normalized.lightSyncToSound.length, raw.pages.length * LAUNCHPAD_PADS);
-        assert.equal(normalized.lightDurations.length, raw.pages.length * LAUNCHPAD_PADS);
+        assert.equal(normalized.pages.length, raw.pages.length);
+        normalized.pages.forEach(page => assert.equal(page.length, LAUNCHPAD_PADS));
+        assert.ok(collectSoundUrls(normalized).length > 0, `${item.name}: must reference samples`);
     }
 });

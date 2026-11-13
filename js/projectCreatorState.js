@@ -24,7 +24,8 @@ import {
     setPadStepLightSync,
     setPadStepLightDuration,
     removePadStepSample,
-    getPadSteps
+    getPadSteps,
+    draftStepToPadStep
 } from './projectCreatorModel.js';
 
 export class ProjectCreatorSession {
@@ -293,41 +294,30 @@ export class ProjectCreatorSession {
         return false;
     }
 
-    getPadConfig(index, getCursorFn = null) {
+    /**
+     * Pad source contract (see PadSource in interaction.js).
+     * - Live mode: round-robin through the pad's steps using the shared cursor.
+     * - Edit mode: the selected pad plays its selected step, others step 0;
+     *   the cursor never advances.
+     * @param {number} index - Pad index (0-63).
+     * @param {function(string): number} [getCursorFn] - Reads a round-robin cursor.
+     * @returns {import('./interaction.js').PadPlayback|null}
+     */
+    getPadPlayback(index, getCursorFn = null) {
         const page = this.getCurrentPage();
         if (!page) return null;
         const steps = getPadSteps(page, index);
         const totalSteps = Math.max(steps.length, 1);
+        const soundKey = `draft:${this.activePageIndex}:${index}`;
 
         if (this.studioSubMode === 'live') {
             const counterKey = `${this.activePageIndex}:${index}`;
-            const currentStep = typeof getCursorFn === 'function'
-                ? (getCursorFn(counterKey) % totalSteps)
-                : 0;
-            const stepObj = steps[currentStep] || steps[0] || {};
-            return {
-                soundIndex: undefined,
-                counterKey,
-                stepIndex: currentStep,
-                totalSteps,
-                soundBuffer: stepObj.soundBuffer || null,
-                soundKey: `draft:${this.activePageIndex}:${index}`,
-                animationName: stepObj.light || null,
-                syncToSound: stepObj.lightSyncToSound ?? true,
-                manualDuration: stepObj.lightDuration ?? DEFAULT_LIGHT_DURATION_SEC
-            };
+            const stepIndex = typeof getCursorFn === 'function' ? getCursorFn(counterKey) % totalSteps : 0;
+            return { step: draftStepToPadStep(steps[stepIndex]), stepIndex, totalSteps, soundKey, counterKey };
         }
 
-        const stepIdx = (index === this.activePadIndex) ? this.activeStepIndex : 0;
-        const stepObj = steps[stepIdx] || steps[0] || {};
-        return {
-            soundIndex: undefined,
-            soundBuffer: stepObj.soundBuffer || null,
-            soundKey: `draft:${this.activePageIndex}:${index}`,
-            animationName: stepObj.light || null,
-            syncToSound: stepObj.lightSyncToSound ?? true,
-            manualDuration: stepObj.lightDuration ?? DEFAULT_LIGHT_DURATION_SEC
-        };
+        const stepIndex = (index === this.activePadIndex && steps[this.activeStepIndex]) ? this.activeStepIndex : 0;
+        return { step: draftStepToPadStep(steps[stepIndex]), stepIndex, totalSteps, soundKey, counterKey: null };
     }
 }
 

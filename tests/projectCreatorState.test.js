@@ -132,12 +132,12 @@ test('ProjectCreatorSession pad config: edit mode vs live mode round-robin', () 
     // In EDIT mode:
     // If querying activePadIndex (8), config returns the activeStepIndex (which is currently 2)
     session.setActiveStepIndex(1);
-    const cfgEditActive = session.getPadConfig(8);
-    assert.equal(cfgEditActive.animationName, 'step1_light');
+    const cfgEditActive = session.getPadPlayback(8);
+    assert.equal(cfgEditActive.step.light, 'step1_light');
 
     // If querying another pad (e.g. 9), config returns step 0
-    const cfgEditOther = session.getPadConfig(9);
-    assert.equal(cfgEditOther.animationName, null);
+    const cfgEditOther = session.getPadPlayback(9);
+    assert.equal(cfgEditOther.step.light, null);
 
     // In LIVE mode:
     session.setStudioSubMode('live');
@@ -148,24 +148,24 @@ test('ProjectCreatorSession pad config: edit mode vs live mode round-robin', () 
     const mockCursorFn = () => mockCursor;
 
     mockCursor = 0;
-    const live0 = session.getPadConfig(8, mockCursorFn);
+    const live0 = session.getPadPlayback(8, mockCursorFn);
     assert.equal(live0.stepIndex, 0);
-    assert.equal(live0.animationName, 'step0_light');
+    assert.equal(live0.step.light, 'step0_light');
 
     mockCursor = 1;
-    const live1 = session.getPadConfig(8, mockCursorFn);
+    const live1 = session.getPadPlayback(8, mockCursorFn);
     assert.equal(live1.stepIndex, 1);
-    assert.equal(live1.animationName, 'step1_light');
+    assert.equal(live1.step.light, 'step1_light');
 
     mockCursor = 2;
-    const live2 = session.getPadConfig(8, mockCursorFn);
+    const live2 = session.getPadPlayback(8, mockCursorFn);
     assert.equal(live2.stepIndex, 2);
-    assert.equal(live2.animationName, 'step2_light');
+    assert.equal(live2.step.light, 'step2_light');
 
     mockCursor = 3; // wraps around to 0
-    const live3 = session.getPadConfig(8, mockCursorFn);
+    const live3 = session.getPadPlayback(8, mockCursorFn);
     assert.equal(live3.stepIndex, 0);
-    assert.equal(live3.animationName, 'step0_light');
+    assert.equal(live3.step.light, 'step0_light');
 });
 
 test('ProjectCreatorSession dirty tracking', () => {

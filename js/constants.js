@@ -58,6 +58,12 @@ export const MAX_PAD_STEPS = 16;
  */
 export const PROJECT_LOADING_TIMEOUT_MS = 60000; // 60 seconds
 
+/**
+ * Maximum number of samples fetched/decoded in parallel while loading a project.
+ * Keeps connections and decode work bounded without waiting on whole batches.
+ */
+export const AUDIO_LOAD_CONCURRENCY = 6;
+
 // ============================================================================
 // ANIMATION & VISUAL FEEDBACK TIMEOUTS
 // ============================================================================

@@ -12,15 +12,7 @@
  * the application entry point.
  */
 
-/**
- * @typedef {object} RuntimeProject
- * @property {object} project - The validated project JSON (with `configPath`).
- * @property {string[][]} sounds - Per-pad step URLs, indexed `page * 64 + pad`.
- * @property {string[][]} lights - Per-pad step animation names.
- * @property {boolean[][]} lightSyncToSound - Per-pad step light/sound sync flags.
- * @property {number[][]} lightDurations - Per-pad step manual light durations (s).
- * @property {object} appearance - Normalized appearance (skin, icon, background...).
- */
+/** @typedef {import('./projectModel.js').RuntimeProject} RuntimeProject */
 
 /** @type {RuntimeProject|null} */
 let activeProject = null;

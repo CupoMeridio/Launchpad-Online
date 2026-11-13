@@ -9,6 +9,7 @@ import {
 } from './constants.js';
 import { validateProject } from './projectValidator.js';
 import { normalizeVisualizer, normalizeLayout, getBackgroundMedia } from './appearanceModel.js';
+import { createPadStep } from './projectModel.js';
 
 /**
  * Drops the color variants a target device cannot display.
@@ -117,6 +118,21 @@ export function getPadSteps(page, padIndex) {
         page.padSteps[padIndex] = [createEmptyPadStep()];
     }
     return page.padSteps[padIndex];
+}
+
+/**
+ * Converts a draft step (editor shape, with its source `sample` file) into the
+ * runtime PadStep shared with the performance player.
+ * @param {object|null|undefined} draftStep
+ * @returns {import('./projectModel.js').PadStep}
+ */
+export function draftStepToPadStep(draftStep) {
+    return createPadStep({
+        buffer: draftStep?.soundBuffer,
+        light: draftStep?.light,
+        syncToSound: draftStep?.lightSyncToSound,
+        duration: draftStep?.lightDuration
+    });
 }
 
 export function addPadStep(page, padIndex) {

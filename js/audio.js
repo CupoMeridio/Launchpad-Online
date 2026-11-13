@@ -17,7 +17,8 @@ import {
     AUDIO_ERROR_TYPES
 } from './audioErrorHandler.js';
 import { showNotification } from './notifications.js';
-import { getTranslation } from './i18n.js';
+import { translate } from './i18n.js';
+import { AUDIO_LOAD_CONCURRENCY } from './constants.js';
 import { onVisibilityChange } from './visibilityManager.js';
 import { debug } from './logger.js';
 
@@ -41,13 +42,9 @@ class AudioEngine {
         this.analyser = null;
         this.initError = null;
 
-        // 2. SOUND BUFFERS
-        // Decoded audio data of the active project, indexed [padSlot][stepIndex].
-        // Replaced as a whole by `setSoundBuffers` once a project is fully loaded.
-        this.soundBuffers = [];
-
-        // 3. ACTIVE SOURCES
-        // Map to keep track of currently playing source nodes by pad index.
+        // 2. ACTIVE SOURCES
+        // Currently playing source nodes by playback key (see `playBuffer`).
+        // Decoded buffers are owned by the caller (project or draft), not by the engine.
         this.activeSources = new Map();
     }
 
@@ -204,98 +201,53 @@ class AudioEngine {
     }
 
     /**
-     * Loads an entire array of sound URL entries in batches to avoid saturating connections.
-     * Each entry can be an array of step URLs (`string[]`) or a single URL string.
+     * Fetches and decodes a set of sample URLs with bounded concurrency
+     * (AUDIO_LOAD_CONCURRENCY), so one slow file never stalls the others.
+     * Each URL is loaded once. Failed URLs are simply absent from the result.
      *
-     * The decoded buffers are RETURNED, not installed: the currently playable
-     * buffers stay untouched until the caller commits the new set with
-     * `setSoundBuffers`, so a failed or superseded load never leaves the
-     * active project half-replaced.
-     *
-     * @param {Array<string[]|string|null>} soundEntries - An array of sound entries to load.
-     * @param {function} onProgress - Optional callback for loading progress (loadedCount, totalCount).
-     * @returns {Promise<{buffers: Array<Array<AudioBuffer|null>>, total: number, successful: number, failed: number, failureDetails: object}>}
+     * @param {string[]} urls - Distinct sample URLs.
+     * @param {function(number, number): void} [onProgress] - Called with (loadedCount, totalCount).
+     * @returns {Promise<{buffersByUrl: Map<string, AudioBuffer>, total: number, successful: number, failed: number, failureDetails: object}>}
      */
-    async loadSounds(soundEntries, onProgress = null) {
-        audioLoadingTracker.reset(); // Reset loading tracker for new project
+    async loadBuffers(urls, onProgress = null) {
+        audioLoadingTracker.reset();
 
-        const buffers = [];
-        const tasks = [];
-        for (let i = 0; i < soundEntries.length; i++) {
-            const rawEntry = soundEntries[i];
-            const stepUrls = Array.isArray(rawEntry) ? rawEntry : (rawEntry ? [rawEntry] : []);
-            buffers[i] = new Array(stepUrls.length).fill(null);
-            for (let s = 0; s < stepUrls.length; s++) {
-                const url = stepUrls[s];
-                if (url) {
-                    tasks.push({ padIndex: i, stepIndex: s, url });
-                }
-            }
-        }
-
-        const total = tasks.length;
-        if (total === 0) {
-            if (onProgress) onProgress(0, 0);
-            return { buffers, total: 0, successful: 0, failed: 0, failureDetails: {} };
-        }
-
-        const BATCH_SIZE = 10; // Load 10 sounds at a time
+        const uniqueUrls = [...new Set(urls.filter(Boolean))];
+        const total = uniqueUrls.length;
+        const buffersByUrl = new Map();
         let loadedCount = 0;
+        let nextIndex = 0;
 
-        try {
-            for (let i = 0; i < total; i += BATCH_SIZE) {
-                const batch = tasks.slice(i, i + BATCH_SIZE);
-                const batchPromises = batch.map(async task => {
-                    try {
-                        const buffer = await this.loadSound(task.url);
-                        if (buffer) {
-                            buffers[task.padIndex][task.stepIndex] = buffer;
-                        }
-                    } catch (error) {
-                        console.error(`[AUDIO] Batch load error for pad ${task.padIndex}, step ${task.stepIndex}:`, error);
-                    } finally {
-                        loadedCount++;
-                        if (onProgress) {
-                            onProgress(loadedCount, total);
-                        }
-                    }
-                });
+        if (onProgress) onProgress(0, total);
 
-                // Wait for batch to complete, but don't let one failure stop the whole batch
-                await Promise.allSettled(batchPromises);
+        const worker = async () => {
+            while (nextIndex < total) {
+                const url = uniqueUrls[nextIndex++];
+                const buffer = await this.loadSound(url);
+                if (buffer) buffersByUrl.set(url, buffer);
+                loadedCount++;
+                if (onProgress) onProgress(loadedCount, total);
             }
+        };
+        await Promise.all(Array.from({ length: Math.min(AUDIO_LOAD_CONCURRENCY, total) }, worker));
 
-            const stats = audioLoadingTracker.getFailureStats();
-            debug(`[AUDIO] Project sounds loaded. Success: ${stats.successful}, Failed: ${stats.failed}`);
+        const stats = audioLoadingTracker.getFailureStats();
+        debug(`[AUDIO] Sounds loaded. Success: ${stats.successful}, Failed: ${stats.failed}`);
 
-            // Notify user if there were failures
-            if (stats.failed > 0) {
-                const failureMessage = getTranslation('audio.loadFailures').replace('{count}', stats.failed);
-                showNotification(failureMessage, 'warning');
-                console.warn(`[AUDIO] Failed files:`, stats.failureDetails);
-            }
-
-            return {
-                buffers,
-                total,
-                successful: stats.successful,
-                failed: stats.failed,
-                failureDetails: stats.failureDetails
-            };
-
-        } catch (error) {
-            console.error('[AUDIO] Critical error during batch loading:', error);
-            throw error;
+        if (stats.failed > 0) {
+            showNotification(translate('audio.loadFailures', { count: stats.failed }), 'warning');
+            console.warn('[AUDIO] Failed files:', stats.failureDetails);
         }
+
+        return {
+            buffersByUrl,
+            total,
+            successful: stats.successful,
+            failed: stats.failed,
+            failureDetails: stats.failureDetails
+        };
     }
 
-    /**
-     * Installs the decoded buffers of the active project (see `loadSounds`).
-     * @param {Array<Array<AudioBuffer|null>>} buffers - Indexed [padSlot][stepIndex].
-     */
-    setSoundBuffers(buffers) {
-        this.soundBuffers = Array.isArray(buffers) ? buffers : [];
-    }
 
     /**
      * Plays an AudioBuffer connected to the AnalyserNode with restart logic.
@@ -435,18 +387,6 @@ class AudioEngine {
             throw new Error(validation.error);
         }
         return audioBuffer;
-    }
-
-    /**
-     * Plays the sound associated with a specific pad and step.
-     * @param {number} padIndex - The index of the pad (0-63) to play.
-     * @param {number} [stepIndex=0] - The step index (0-15) for multisampling.
-     * @returns {number} Duration of the sound in seconds, or 0 if no sound was played.
-     */
-    playPadSound(padIndex, stepIndex = 0) {
-        const slot = this.soundBuffers[padIndex];
-        const buffer = Array.isArray(slot) ? (slot[stepIndex] || null) : slot;
-        return this.playBuffer(buffer, padIndex);
     }
 
     /**

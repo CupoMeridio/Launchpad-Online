@@ -24,64 +24,123 @@ export function createPathResolver(configPath) {
 }
 
 /**
- * Normalizes project schema into runtime audio, light, timing, and appearance structures.
+ * One playable step of a pad: the single runtime shape shared by the
+ * performance player and the Studio Creator.
+ * @typedef {object} PadStep
+ * @property {string|null} soundUrl - Resolved sample URL (null for draft/empty steps).
+ * @property {AudioBuffer|null} buffer - Decoded sample, filled in once loaded.
+ * @property {string|null} light - Animation name, or null for no light.
+ * @property {boolean} syncToSound - Light lasts as long as the sound.
+ * @property {number} duration - Manual light duration in seconds (when not synced).
+ */
+
+/**
+ * @typedef {object} RuntimeProject
+ * @property {object} project - The validated project JSON (with `configPath`).
+ * @property {PadStep[][][]} pages - `pages[pageIndex][padIndex]` is the pad's step list.
+ * @property {object} appearance - Normalized appearance (see appearanceModel.js).
+ */
+
+/**
+ * Creates a PadStep, filling defaults for missing fields.
+ * @param {Partial<PadStep>} [fields]
+ * @returns {PadStep}
+ */
+export function createPadStep({ soundUrl = null, buffer = null, light = null, syncToSound = true, duration = DEFAULT_LIGHT_DURATION_SEC } = {}) {
+    return {
+        soundUrl: soundUrl || null,
+        buffer: buffer || null,
+        light: light || null,
+        syncToSound: typeof syncToSound === 'boolean' ? syncToSound : true,
+        duration: typeof duration === 'number' ? duration : DEFAULT_LIGHT_DURATION_SEC
+    };
+}
+
+/**
+ * Reads entry `padIndex` of a per-pad project field as a step array
+ * (a bare value is treated as a single step).
+ */
+function stepValues(field, padIndex) {
+    const entry = Array.isArray(field) ? field[padIndex] : undefined;
+    if (Array.isArray(entry)) return entry;
+    return entry === undefined || entry === null ? [] : [entry];
+}
+
+/**
+ * Builds the step list of one pad from the parallel per-pad fields of a page.
+ * The step count is the longest of the sound and light lists.
+ */
+function buildPadSteps(page, padIndex, resolvePath) {
+    const sounds = stepValues(page.sounds, padIndex);
+    const lights = stepValues(page.lights, padIndex);
+    const sync = stepValues(page.lightSyncToSound, padIndex);
+    const durations = stepValues(page.lightDurations, padIndex);
+    const stepCount = Math.max(sounds.length, lights.length);
+
+    return Array.from({ length: stepCount }, (_, stepIndex) => createPadStep({
+        soundUrl: sounds[stepIndex] ? resolvePath(sounds[stepIndex]) : null,
+        light: lights[stepIndex] || null,
+        syncToSound: sync[stepIndex] ?? true,
+        duration: durations[stepIndex]
+    }));
+}
+
+/**
+ * Normalizes a validated project into the runtime shape.
  * Pure function: does not access the network, DOM, or AudioContext.
+ * Step buffers start empty; see `collectSoundUrls` and `assignStepBuffers`.
  * @param {object} project - Validated project object.
  * @param {string} [configPath=''] - Path of the project config JSON, used to resolve relative URLs.
- * @returns {{
- *   project: object,
- *   sounds: string[][],
- *   lights: string[][],
- *   lightSyncToSound: boolean[][],
- *   lightDurations: number[][],
- *   appearance: object
- * }}
+ * @returns {RuntimeProject}
  */
 export function normalizeProjectData(project, configPath = '') {
     const resolvePath = createPathResolver(configPath);
-    const sounds = [];
-    const lights = [];
-    const lightSyncToSound = [];
-    const lightDurations = [];
-
-    if (Array.isArray(project?.pages)) {
-        project.pages.forEach(page => {
-            const pageSounds = (page.sounds || []).map(stepEntry =>
-                Array.isArray(stepEntry)
-                    ? stepEntry.map(s => resolvePath(s))
-                    : (stepEntry ? [resolvePath(stepEntry)] : [])
-            );
-            while (pageSounds.length < LAUNCHPAD_PADS) pageSounds.push([]);
-            sounds.push(...pageSounds);
-
-            const pageLights = (page.lights || []).map(stepEntry =>
-                Array.isArray(stepEntry) ? stepEntry : (stepEntry ? [stepEntry] : [])
-            );
-            while (pageLights.length < LAUNCHPAD_PADS) pageLights.push([]);
-            lights.push(...pageLights);
-
-            const pageSync = (page.lightSyncToSound || []).map(stepEntry =>
-                Array.isArray(stepEntry) ? stepEntry : [stepEntry ?? true]
-            );
-            while (pageSync.length < LAUNCHPAD_PADS) pageSync.push([true]);
-            lightSyncToSound.push(...pageSync);
-
-            const pageDurs = (page.lightDurations || []).map(stepEntry =>
-                Array.isArray(stepEntry) ? stepEntry : [stepEntry ?? DEFAULT_LIGHT_DURATION_SEC]
-            );
-            while (pageDurs.length < LAUNCHPAD_PADS) pageDurs.push([DEFAULT_LIGHT_DURATION_SEC]);
-            lightDurations.push(...pageDurs);
-        });
-    }
-
-    const appearance = normalizeAppearance(project, resolvePath);
+    const pages = (Array.isArray(project?.pages) ? project.pages : []).map(page =>
+        Array.from({ length: LAUNCHPAD_PADS }, (_, padIndex) => buildPadSteps(page || {}, padIndex, resolvePath))
+    );
 
     return {
         project,
-        sounds,
-        lights,
-        lightSyncToSound,
-        lightDurations,
-        appearance
+        pages,
+        appearance: normalizeAppearance(project, resolvePath)
     };
+}
+
+/**
+ * Iterates over every step of a runtime project.
+ * @param {RuntimeProject} runtimeProject
+ * @returns {Generator<PadStep>}
+ */
+function* allSteps(runtimeProject) {
+    for (const page of runtimeProject.pages) {
+        for (const pad of page) {
+            yield* pad;
+        }
+    }
+}
+
+/**
+ * Returns the distinct sample URLs a project needs, so each is fetched and
+ * decoded once even when several pads share it.
+ * @param {RuntimeProject} runtimeProject
+ * @returns {string[]}
+ */
+export function collectSoundUrls(runtimeProject) {
+    const urls = new Set();
+    for (const step of allSteps(runtimeProject)) {
+        if (step.soundUrl) urls.add(step.soundUrl);
+    }
+    return [...urls];
+}
+
+/**
+ * Fills each step's `buffer` from decoded samples. Mutates the project, so it
+ * must run before the project is committed as the active one.
+ * @param {RuntimeProject} runtimeProject
+ * @param {Map<string, AudioBuffer>} buffersByUrl
+ */
+export function assignStepBuffers(runtimeProject, buffersByUrl) {
+    for (const step of allSteps(runtimeProject)) {
+        step.buffer = (step.soundUrl && buffersByUrl.get(step.soundUrl)) || null;
+    }
 }

@@ -97,20 +97,24 @@ globalThis.cancelAnimationFrame = () => {};
 
 const { triggerPad, releasePad, resetPadStepCounters, setPadSource } = await import('../js/interaction.js');
 const { commitProject, setCurrentPage } = await import('../js/projectState.js');
+const { normalizeProjectData } = await import('../js/projectModel.js');
 
 /**
- * Commits a single-page runtime project, filling unspecified per-pad fields
- * with the same defaults `normalizeProjectData` produces.
+ * Commits a single-page project through the real normalization. Every step
+ * with a sample gets a fake buffer tagged with its pad and step index, so a
+ * stubbed `audioEngine.playBuffer` can tell which step was played.
  */
 function commitTestProject(project, { sounds, lights, lightSyncToSound, lightDurations }) {
-    commitProject({
-        project,
-        sounds,
-        lights,
-        lightSyncToSound: lightSyncToSound || Array(64).fill(null).map(() => [true]),
-        lightDurations: lightDurations || Array(64).fill(null).map(() => [2.5]),
-        appearance: {}
+    const runtimeProject = normalizeProjectData({
+        ...project,
+        pages: [{ name: 'Page 1', sounds, lights, lightSyncToSound, lightDurations }]
     });
+    runtimeProject.pages[0].forEach((steps, padIndex) => {
+        steps.forEach((step, stepIndex) => {
+            if (step.soundUrl) step.buffer = { padIndex, stepIndex, url: step.soundUrl };
+        });
+    });
+    commitProject(runtimeProject);
 }
 const { markProjectReady } = await import('../js/projectLoadingState.js');
 const { audioEngine } = await import('../js/audio.js');
@@ -141,11 +145,11 @@ test('multisampling runtime round-robin cycles through steps on each press', () 
         lightDurations: Array(64).fill(null).map(() => [2.5, 2.5, 2.5])
     });
 
-    // Track calls to audioEngine.playPadSound
+    // Track which step buffers are played
     const playedSteps = [];
-    const originalPlayPadSound = audioEngine.playPadSound;
-    audioEngine.playPadSound = (padIndex, stepIndex) => {
-        playedSteps.push({ padIndex, stepIndex });
+    const originalPlayBuffer = audioEngine.playBuffer;
+    audioEngine.playBuffer = (buffer) => {
+        playedSteps.push({ padIndex: buffer.padIndex, stepIndex: buffer.stepIndex });
         return 1.0;
     };
 
@@ -181,7 +185,7 @@ test('multisampling runtime round-robin cycles through steps on each press', () 
         assert.equal(playedSteps.length, 5);
         assert.equal(playedSteps[4].stepIndex, 0);
     } finally {
-        audioEngine.playPadSound = originalPlayPadSound;
+        audioEngine.playBuffer = originalPlayBuffer;
     }
 });
 
@@ -210,9 +214,9 @@ test('multi-step pad without lights advances the round-robin cursor exactly once
     });
 
     const playedSteps = [];
-    const originalPlayPadSound = audioEngine.playPadSound;
-    audioEngine.playPadSound = (_padIndex, stepIndex) => {
-        playedSteps.push(stepIndex);
+    const originalPlayBuffer = audioEngine.playBuffer;
+    audioEngine.playBuffer = (buffer) => {
+        playedSteps.push(buffer.stepIndex);
         return 1.0;
     };
 
@@ -227,7 +231,7 @@ test('multi-step pad without lights advances the round-robin cursor exactly once
         // Sequential order proves the counter is not advanced twice.
         assert.deepEqual(playedSteps, [0, 1, 2]);
     } finally {
-        audioEngine.playPadSound = originalPlayPadSound;
+        audioEngine.playBuffer = originalPlayBuffer;
     }
 });
 
@@ -297,9 +301,9 @@ test('single-step pads remain at step 0 across multiple presses', () => {
     commitTestProject(mockProject, { sounds, lights });
 
     const playedSteps = [];
-    const orig = audioEngine.playPadSound;
-    audioEngine.playPadSound = (_padIndex, stepIndex) => {
-        playedSteps.push(stepIndex);
+    const orig = audioEngine.playBuffer;
+    audioEngine.playBuffer = (buffer) => {
+        playedSteps.push(buffer.stepIndex);
         return 1.0;
     };
 
@@ -313,7 +317,7 @@ test('single-step pads remain at step 0 across multiple presses', () => {
 
         assert.deepEqual(playedSteps, [0, 0, 0]);
     } finally {
-        audioEngine.playPadSound = orig;
+        audioEngine.playBuffer = orig;
     }
 });
 

@@ -25,7 +25,7 @@ import {
     markProjectReady, 
     markProjectLoadError
 } from './projectLoadingState.js';
-import { normalizeProjectData } from './projectModel.js';
+import { normalizeProjectData, collectSoundUrls, assignStepBuffers } from './projectModel.js';
 import { debug } from './logger.js';
 
 let activeProjectLoad = null;
@@ -65,15 +65,16 @@ async function fetchAndValidateProject(configPath) {
 
 /**
  * Loads project media and audio assets, reporting overall progress.
- * Visual assets are applied as they load; decoded audio is returned so the
- * caller can install it together with the project state (atomic commit).
- * @param {object} normalized - Output of normalizeProjectData.
+ * Visual assets are applied as they load; decoded samples are attached to the
+ * (not yet committed) runtime project's steps.
+ * @param {import('./projectModel.js').RuntimeProject} runtimeProject - Output of normalizeProjectData.
  * @param {function} [onProgress] - Optional progress callback (0..100).
  * @param {HTMLElement} [progressText] - Optional DOM text element for status.
- * @returns {Promise<Array<Array<AudioBuffer|null>>>} Decoded sound buffers.
+ * @returns {Promise<void>}
  */
-async function loadProjectAssets(normalized, onProgress = null, progressText = null) {
-    const { sounds, appearance } = normalized;
+async function loadProjectAssets(runtimeProject, onProgress = null, progressText = null) {
+    const { appearance } = runtimeProject;
+    const soundUrls = collectSoundUrls(runtimeProject);
     let audioLoaded = 0;
     let skinLoaded = 0;
     let iconLoaded = 0;
@@ -82,7 +83,7 @@ async function loadProjectAssets(normalized, onProgress = null, progressText = n
     const hasSkin = !!appearance.skin;
     const hasIcon = !!appearance.icon;
     const hasVideo = !!appearance.background;
-    const totalAudioFiles = sounds.reduce((acc, entry) => acc + entry.filter(Boolean).length, 0);
+    const totalAudioFiles = soundUrls.length;
     const totalAssets = Math.max(totalAudioFiles + (hasSkin ? 1 : 0) + (hasIcon ? 1 : 0) + (hasVideo ? 1 : 0), 1);
 
     const updateOverallProgress = () => {
@@ -96,14 +97,13 @@ async function loadProjectAssets(normalized, onProgress = null, progressText = n
     };
 
     const loadingPromises = [];
-    let soundBuffers = [];
 
     // 1. Audio Loading
-    const audioPromise = audioEngine.loadSounds(sounds, (loadedCount) => {
+    const audioPromise = audioEngine.loadBuffers(soundUrls, (loadedCount) => {
         audioLoaded = loadedCount;
         updateOverallProgress();
-    }).then((result) => {
-        soundBuffers = result.buffers;
+    }).then(({ buffersByUrl }) => {
+        assignStepBuffers(runtimeProject, buffersByUrl);
     }).catch((error) => {
         console.error('[Project] Audio loading error:', error);
         showNotification('Failed to load all project audio files. Some pads may be silent.', 'warning');
@@ -142,8 +142,6 @@ async function loadProjectAssets(normalized, onProgress = null, progressText = n
 
     applyVisualizer(appearance.visualizer);
     applyLayout(appearance.rotation, appearance.size);
-
-    return soundBuffers;
 }
 
 /**
@@ -209,12 +207,10 @@ async function loadProjectInternal(configPath, button, onProgress = null) {
         // 2. Normalize into the runtime shape
         const runtimeProject = normalizeProjectData(project, configPath);
 
-        // 3. Load Assets (the active project keeps playing meanwhile)
-        const soundBuffers = await loadProjectAssets(runtimeProject, onProgress, progressText);
+        // 3. Load Assets into the new project (the active one keeps playing meanwhile)
+        await loadProjectAssets(runtimeProject, onProgress, progressText);
 
-        // 4. Commit. Everything below is synchronous, so no pad press can
-        // observe the new project's state paired with the old audio, or vice versa.
-        audioEngine.setSoundBuffers(soundBuffers);
+        // 4. Commit: a single assignment swaps sounds, lights and timing together.
         commitProject(runtimeProject);
         selectProjectButton(button);
 
