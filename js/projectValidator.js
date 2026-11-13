@@ -26,6 +26,17 @@ import {
     normalizeTargetDevice,
     getColorFromAnimationName
 } from './constants.js';
+import {
+    PLAYBACK_MODES,
+    LIGHT_LEVELS,
+    MAX_CUSTOM_FRAMES,
+    MIN_FRAME_DURATION_MS,
+    MAX_FRAME_DURATION_MS,
+    CUSTOM_ANIMATION_ID_PATTERN,
+    parsePadKey,
+    parseCustomLightName,
+    usesRgbOnlyColors
+} from './customAnimationModel.js';
 
 const HEX_COLOR_PATTERN = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 
@@ -86,7 +97,8 @@ const PROJECT_FIELDS = {
     visualizer: plainObject,
     launchpadRotation: numberBetween(LAUNCHPAD_ROTATION_MIN, LAUNCHPAD_ROTATION_MAX),
     launchpadSize: numberBetween(LAUNCHPAD_SIZE_MIN, LAUNCHPAD_SIZE_MAX),
-    targetDevice: oneOf(TARGET_DEVICES, ' if provided')
+    targetDevice: oneOf(TARGET_DEVICES, ' if provided'),
+    animations: value => (Array.isArray(value) ? null : 'must be an array if provided')
 };
 
 /** Optional fields of the nested `visualizer` object. */
@@ -182,6 +194,9 @@ export function validateProject(project) {
         validateFields(project.visualizer, VISUALIZER_FIELDS, 'Visualizer', errors);
     }
 
+    const animationIds = Array.isArray(project.animations) ? validateCustomAnimations(project.animations, errors) : new Set();
+    validateCustomLightReferences(project.pages, animationIds, errors);
+
     return { isValid: errors.length === 0, errors };
 }
 
@@ -246,6 +261,91 @@ function validatePage(page, pageIndex) {
     return errors;
 }
 
+// ----------------------------------------------------------------------------
+// Custom light animations
+// ----------------------------------------------------------------------------
+
+/** Rule for one lit pad of a frame: a known colour and, optionally, a level. */
+const frameCellRule = cell => {
+    if (!isPlainObject(cell)) return 'must be an object with a "color"';
+    if (!ANIMATION_COLOR_TIERS[cell.color]) return `has an unknown color "${cell.color}"`;
+    if (isPresent(cell.level) && !LIGHT_LEVELS.includes(cell.level)) return `level must be one of: ${LIGHT_LEVELS.join(', ')}`;
+    return null;
+};
+
+function validateFrame(frame, label, errors) {
+    if (!isPlainObject(frame)) {
+        errors.push(`${label}: must be an object`);
+        return;
+    }
+    const duration = frame.duration;
+    if (typeof duration !== 'number' || !Number.isFinite(duration) || duration < MIN_FRAME_DURATION_MS || duration > MAX_FRAME_DURATION_MS) {
+        errors.push(`${label}: duration must be between ${MIN_FRAME_DURATION_MS} and ${MAX_FRAME_DURATION_MS} ms`);
+    }
+    if (!isPlainObject(frame.pads)) {
+        errors.push(`${label}: "pads" must be an object`);
+        return;
+    }
+    Object.entries(frame.pads).forEach(([key, cell]) => {
+        const message = parsePadKey(key) ? frameCellRule(cell) : 'is not a pad of the 8x8 grid ("x,y" with 0-7)';
+        if (message) errors.push(`${label}, pad "${key}": ${message}`);
+    });
+}
+
+function validateCustomAnimation(animation, index, errors) {
+    const label = `Animation ${index + 1}`;
+    if (!isPlainObject(animation)) {
+        errors.push(`${label}: must be an object`);
+        return null;
+    }
+    if (typeof animation.id !== 'string' || !CUSTOM_ANIMATION_ID_PATTERN.test(animation.id)) {
+        errors.push(`${label}: "id" must use lowercase letters, digits and dashes (max 32)`);
+    }
+    if (isPresent(animation.name) && typeof animation.name !== 'string') {
+        errors.push(`${label}: "name" must be a string`);
+    }
+    if (!PLAYBACK_MODES.includes(animation.playback)) {
+        errors.push(`${label}: "playback" must be one of: ${PLAYBACK_MODES.join(', ')}`);
+    }
+    if (!Array.isArray(animation.frames) || animation.frames.length === 0 || animation.frames.length > MAX_CUSTOM_FRAMES) {
+        errors.push(`${label}: must have between 1 and ${MAX_CUSTOM_FRAMES} frames`);
+    } else {
+        animation.frames.forEach((frame, frameIndex) => validateFrame(frame, `${label}, Frame ${frameIndex + 1}`, errors));
+    }
+    return typeof animation.id === 'string' ? animation.id : null;
+}
+
+/**
+ * Validates the project's custom animations.
+ * @returns {Set<string>} The ids that are defined (for reference checks).
+ */
+function validateCustomAnimations(animations, errors) {
+    const ids = new Set();
+    animations.forEach((animation, index) => {
+        const id = validateCustomAnimation(animation, index, errors);
+        if (id === null) return;
+        if (ids.has(id)) errors.push(`Animation ${index + 1}: duplicate id "${id}"`);
+        ids.add(id);
+    });
+    return ids;
+}
+
+/** Every `custom:<id>` light used by a pad must be defined in `animations`. */
+function validateCustomLightReferences(pages, animationIds, errors) {
+    pages.forEach((page, pageIndex) => {
+        if (!Array.isArray(page?.lights)) return;
+        page.lights.forEach((steps, padIndex) => {
+            if (!Array.isArray(steps)) return;
+            steps.forEach((light, stepIndex) => {
+                const id = parseCustomLightName(light);
+                if (id !== null && !animationIds.has(id)) {
+                    errors.push(`Page ${pageIndex + 1}, Light ${padIndex}, Step ${stepIndex}: custom animation "${id}" is not defined`);
+                }
+            });
+        });
+    });
+}
+
 /**
  * Gets a human-readable error summary for displaying to the user.
  * @param {string[]} errors - Array of error messages
@@ -269,16 +369,20 @@ export function getErrorSummary(errors) {
 // ----------------------------------------------------------------------------
 
 /**
- * Counts lights that need an RGB device (their colour is RGB-only).
+ * Counts lights that need an RGB device: built-in lights with an RGB-only
+ * colour, and custom animations whose frames use one.
  * @param {Iterable<string|null|undefined>} lightNames
+ * @param {object[]} [customAnimations] - The project's custom animations.
  * @returns {number}
  */
-export function countRgbOnlyLights(lightNames) {
+export function countRgbOnlyLights(lightNames, customAnimations = []) {
+    const rgbCustomIds = new Set(customAnimations.filter(usesRgbOnlyColors).map(animation => animation.id));
     let count = 0;
     for (const light of lightNames) {
         if (typeof light !== 'string' || !light) continue;
-        const color = getColorFromAnimationName(light);
-        if (color && ANIMATION_COLOR_TIERS[color] === 'rgb') count++;
+        const customId = parseCustomLightName(light);
+        const color = customId === null ? getColorFromAnimationName(light) : null;
+        if (customId !== null ? rgbCustomIds.has(customId) : (color && ANIMATION_COLOR_TIERS[color] === 'rgb')) count++;
     }
     return count;
 }
@@ -298,5 +402,6 @@ export function checkProjectDeviceConsistency(project) {
     const lightNames = project.pages.flatMap(page => (
         Array.isArray(page?.lights) ? page.lights.filter(Array.isArray).flat() : []
     ));
-    return { rgbLightCount: countRgbOnlyLights(lightNames) };
+    const customAnimations = Array.isArray(project.animations) ? project.animations.filter(isPlainObject).filter(a => Array.isArray(a.frames)) : [];
+    return { rgbLightCount: countRgbOnlyLights(lightNames, customAnimations) };
 }

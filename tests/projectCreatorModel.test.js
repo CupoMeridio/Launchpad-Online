@@ -413,3 +413,33 @@ test('draft device check counts RGB-only lights on legacy targets, like the expo
     draft.targetDevice = 'rgb';
     assert.deepEqual(checkDraftDeviceConsistency(draft), { rgbLightCount: 0 });
 });
+
+test('custom animations survive a zip round trip and stay referenced by their pads', async () => {
+    const animation = {
+        id: 'anim-1',
+        name: 'Chase',
+        playback: 'hold',
+        frames: [
+            { duration: 80, pads: { '0,0': { color: 'red', level: 'full' } } },
+            { duration: 120, pads: { '1,0': { color: 'green', level: 'low' } } }
+        ]
+    };
+    const page = createProjectPage(1);
+    getPadSteps(page, 4)[0].light = 'custom:anim-1';
+    const draft = createDraft('With Animations', [page], { animations: [animation] });
+
+    const exported = buildProjectExport(draft);
+    assert.deepEqual(exported.project.animations, [animation]);
+    assert.equal(exported.project.pages[0].lights[4][0], 'custom:anim-1');
+
+    const { blob } = await exportProjectToZip(draft, JSZip);
+    const { draft: imported } = await importProjectFromZip(blob, JSZip);
+    assert.deepEqual(imported.animations, [animation]);
+    assert.equal(getPadSteps(imported.pages[0], 4)[0].light, 'custom:anim-1');
+});
+
+test('drafts without custom animations export no animations field', () => {
+    const exported = buildProjectExport(createDraft('Plain', [createProjectPage(1)]));
+    assert.equal(Object.hasOwn(exported.project, 'animations'), false);
+    assert.deepEqual(createDraft().animations, []);
+});

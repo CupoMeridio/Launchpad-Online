@@ -86,7 +86,9 @@ class FadeSystem {
      * @param {Object} p - The pad element (HTML Node) or [x, y] coordinates.
      * @param {string} colorName - Color name key.
      * @param {number} duration - Total duration in ms.
-     * @param {string} mode - 'standard' or 'instant'.
+     * @param {string} mode - 'standard', 'instant', 'multi' or 'steady'.
+     * @param {object|null} [config] - 'multi': { sequence }; 'steady': { level, start? }, where
+     *   `start` is the scheduled start time (defaults to now), so late ticks do not delay frames.
      */
     add(p, colorName, duration, mode = 'standard', config = null) {
         const key = Array.isArray(p) ? `${p[0]},${p[1]}` : p;
@@ -100,13 +102,19 @@ class FadeSystem {
 
         state.p = p;
         state.color = colorName;
-        state.start = performance.now();
+        state.start = config?.start ?? performance.now();
         state.dur = duration || 300;
         state.mode = mode;
         state.config = config;
 
         state.base = getLpColor(colorName);
         state.off = getLpColor('off');
+
+        // Steady frames (custom animations) paint at once: a frame that replaces
+        // one ending in the same tick must not leave the pad dark for a frame.
+        if (mode === 'steady') {
+            this._updateSteadyFade(key, state, performance.now() - state.start);
+        }
     }
 
     update(now) {
@@ -131,6 +139,8 @@ class FadeSystem {
             this._recycle(key, state); // Unknown colour: drop silently
         } else if (state.mode === 'instant') {
             this._updateInstantFade(key, state, elapsed);
+        } else if (state.mode === 'steady') {
+            this._updateSteadyFade(key, state, elapsed);
         } else {
             this._updateStandardFade(key, state, elapsed);
         }
@@ -156,6 +166,17 @@ class FadeSystem {
         }
         setWebColor(state.color, state.p, LED_LEVELS.full);
         setPhysicalColor(state.base?.full, state.p);
+    }
+
+    /** Steady: one colour at a fixed level for the whole duration (custom animation frames). */
+    _updateSteadyFade(key, state, elapsed) {
+        if (elapsed >= state.dur) {
+            this._finish(key, state);
+            return;
+        }
+        const level = state.config?.level || 'full';
+        setWebColor(state.color, state.p, level);
+        setPhysicalColor(getLpColor(state.color, level), state.p);
     }
 
     /** Standard fade: full -> medium -> low, one level per third, then off. */

@@ -6,6 +6,7 @@
  */
 
 import { normalizeAppearance } from './appearanceModel.js';
+import { normalizeCustomAnimations } from './customAnimationModel.js';
 import { LAUNCHPAD_PADS, DEFAULT_LIGHT_DURATION_SEC, isAppAssetPath } from './constants.js';
 
 /**
@@ -39,6 +40,7 @@ export function createPathResolver(configPath) {
  * @property {object} project - The validated project JSON (with `configPath`).
  * @property {PadStep[][][]} pages - `pages[pageIndex][padIndex]` is the pad's step list.
  * @property {object} appearance - Normalized appearance (see appearanceModel.js).
+ * @property {object[]} animations - The project's custom light animations (see customAnimationModel.js).
  */
 
 /**
@@ -142,7 +144,8 @@ export function normalizeProjectData(project, configPath = '') {
     return {
         project,
         pages,
-        appearance: normalizeAppearance(project, resolvePath)
+        appearance: normalizeAppearance(project, resolvePath),
+        animations: normalizeCustomAnimations(project?.animations)
     };
 }
 

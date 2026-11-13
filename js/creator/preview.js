@@ -5,10 +5,9 @@
  * momentary lights, and stopping draft playback.
  */
 
-import { resolveLightDuration } from '../animationData.js';
 import { audioEngine } from '../audio.js';
 import { LAUNCHPAD_COLS, LAUNCHPAD_PADS } from '../constants.js';
-import { animations, releaseAnimation, triggerAnimation } from '../lights.js';
+import { animations, releaseAnimation, resolveStepLightDuration, triggerAnimation } from '../lights.js';
 import { getPadSteps } from '../projectCreatorModel.js';
 import { creatorSession } from '../projectCreatorState.js';
 import { getPadElement } from '../webInterface.js';
@@ -74,10 +73,9 @@ export function previewPad(index = creatorSession.getActivePadIndex()) {
     }
 
     if (ctx.animation) {
-        const animDuration = resolveLightDuration(
-            ctx.syncToSound,
-            duration,
-            ctx.manualDuration
+        const animDuration = resolveStepLightDuration(
+            { light: ctx.animation, syncToSound: ctx.syncToSound, duration: ctx.manualDuration },
+            duration
         );
         triggerAnimation(ctx.animation, ctx.x, ctx.y, animDuration);
     }

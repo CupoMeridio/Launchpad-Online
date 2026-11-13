@@ -1,7 +1,6 @@
 import { audioEngine } from './audio.js';
 import { getActiveProject, getCurrentPage, setCurrentPage, getCurrentMode, setCurrentMode, isProjectReady } from './projectState.js';
-import { triggerAnimation, releaseAnimation } from './lights.js';
-import { resolveLightDuration } from './animationData.js';
+import { triggerAnimation, releaseAnimation, resolveStepLightDuration } from './lights.js';
 import { setPhysicalColor, getLpColor, flushPhysicalColors } from './physicalInterface.js';
 import { getPadElement, updatePageButtonHighlight, updateModeButtonHighlight } from './webInterface.js';
 import { registerListener } from './eventCleanup.js';
@@ -36,10 +35,15 @@ import {
  * @typedef {object} PadSource
  * @property {function(number): (PadPlayback|null)} getPadPlayback - Resolves the playback for a pad index (0-63).
  * @property {function(number): void} [onPadPress] - Notified before a pad plays.
+ * @property {function(number): void} [onPadDrag] - The pointer, still pressed, moved onto another pad
+ *   (e.g. painting a stroke). Without it, dragging does nothing.
+ * @property {function(): void} [onDragEnd] - The press that started a drag ended.
  * @property {function(number, boolean): void} [onPageChange] - Handles page buttons (replaces project paging).
  */
 
 let interactionInitialized = false; // Track if listeners have been set up
+/** Pad under a pressed pointer (mouse button or touch), or null when nothing is pressed. */
+let dragPadIndex = null;
 let shakeTimeoutId = null; // Track error shake timeout to prevent stacking
 
 /** A pad with no steps still gives press feedback, it just plays nothing. */
@@ -48,6 +52,11 @@ const EMPTY_STEP = Object.freeze(createPadStep());
 let currentPadSource = null;
 const padStepCounters = new Map();
 const activePressAnimations = new Map();
+/**
+ * Pads showing press feedback. A press the pad source ignores (e.g. painting a
+ * custom animation frame) adds none, so its release must not clear the LED.
+ */
+const pressedPads = new Set();
 
 /**
  * Resets pad step round-robin counters (e.g. on project load).
@@ -55,6 +64,7 @@ const activePressAnimations = new Map();
 export function resetPadStepCounters() {
     padStepCounters.clear();
     activePressAnimations.clear();
+    pressedPads.clear();
 }
 
 /**
@@ -127,7 +137,7 @@ export function triggerPad(index) {
     if (step.light) {
         const x = index % LAUNCHPAD_COLS;
         const y = Math.floor(index / LAUNCHPAD_COLS);
-        triggerAnimation(step.light, x, y, resolveLightDuration(step.syncToSound, soundDuration, step.duration));
+        triggerAnimation(step.light, x, y, resolveStepLightDuration(step, soundDuration));
         activePressAnimations.set(index, step.light);
     } else {
         activePressAnimations.delete(index);
@@ -141,6 +151,7 @@ export function triggerPad(index) {
         padStepCounters.set(playback.counterKey, (playback.stepIndex + 1) % playback.totalSteps);
     }
 
+    pressedPads.add(index);
     pad.classList.add('active');
 }
 
@@ -161,7 +172,45 @@ export function releasePad(index) {
         releaseAnimation(animationName, x, y);
     }
 
-    pad.classList.remove('active');
+    if (pressedPads.delete(index)) pad.classList.remove('active');
+}
+
+/** @returns {number|null} The index of the virtual pad element, if `element` is inside one. */
+function padIndexOf(element) {
+    const pad = element?.closest?.('.grid-item');
+    return pad && pad.dataset.index !== undefined ? parseInt(pad.dataset.index, 10) : null;
+}
+
+/** The pressed pointer reached `index`: tell the pad source once per new pad. */
+function dragOver(index) {
+    if (dragPadIndex === null || index === null || index === dragPadIndex) return;
+    dragPadIndex = index;
+    currentPadSource?.onPadDrag?.(index);
+}
+
+function endDrag() {
+    if (dragPadIndex === null) return;
+    dragPadIndex = null;
+    currentPadSource?.onDragEnd?.();
+}
+
+/**
+ * Dragging across pads with the button (or finger) down. Only pad sources that
+ * implement onPadDrag react, so performance mode is unaffected.
+ * @param {HTMLElement} launchpad
+ */
+function initPadDrag(launchpad) {
+    registerListener(launchpad, 'mouseover', (e) => {
+        if (e.buttons === 1) dragOver(padIndexOf(e.target));
+    });
+    registerListener(launchpad, 'touchmove', (e) => {
+        const touch = e.touches[0];
+        if (touch) dragOver(padIndexOf(document.elementFromPoint(touch.clientX, touch.clientY)));
+    }, { passive: true });
+    // Released anywhere, even outside the Launchpad.
+    registerListener(window, 'mouseup', endDrag);
+    registerListener(window, 'touchend', endDrag);
+    registerListener(window, 'touchcancel', endDrag);
 }
 
 /**
@@ -189,7 +238,8 @@ export function initInteraction() {
         if (!target) return;
 
         if (target.dataset.index !== undefined) {
-            triggerPad(parseInt(target.dataset.index, 10));
+            dragPadIndex = parseInt(target.dataset.index, 10);
+            triggerPad(dragPadIndex);
         } else if (target.dataset.page !== undefined) {
             changeSoundSet(parseInt(target.dataset.page, 10));
         } else if (target.dataset.mode !== undefined) {
@@ -222,6 +272,7 @@ export function initInteraction() {
     registerListener(launchpad, 'touchcancel', handleRelease);
 
     registerListener(launchpad, 'mouseout', handleMouseOut);
+    initPadDrag(launchpad);
 
     registerListener(window, 'launchpad-view-changed', () => {
         if (currentPadSource) return;

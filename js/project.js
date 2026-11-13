@@ -21,6 +21,7 @@ import { changeSoundSet, resetPadStepCounters } from './interaction.js';
 import { stopAnimationLoop, startAnimationLoop } from './lights.js';
 import { validateProject, getErrorSummary } from './projectValidator.js';
 import { normalizeProjectData, collectSoundUrls, assignStepBuffers } from './projectModel.js';
+import { setCustomAnimations } from './customAnimations.js';
 import { debug, logger } from './logger.js';
 import { PROJECT_LOADING_TIMEOUT_MS } from './constants.js';
 
@@ -288,6 +289,7 @@ async function loadProjectInternal(configPath, button, onProgress = null) {
         // Commit: a single assignment swaps sounds, lights and timing together,
         // and makes the project ready to play.
         commitProject(runtimeProject);
+        setCustomAnimations('project', runtimeProject.animations);
         selectProjectButton(button);
 
         debug(`Project "${runtimeProject.project.name}" loaded.`);

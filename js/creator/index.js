@@ -8,7 +8,7 @@
  */
 
 import { audioEngine } from '../audio.js';
-import { LAUNCHPAD_PADS } from '../constants.js';
+import { LAUNCHPAD_COLS, LAUNCHPAD_PADS } from '../constants.js';
 import { getTranslation } from '../i18n.js';
 import {
     getPadStepCursor,
@@ -19,9 +19,17 @@ import {
     updatePhysicalPageLights
 } from '../interaction.js';
 import { restoreProjectAppearance } from '../project.js';
+import { setCustomAnimations } from '../customAnimations.js';
 import { creatorSession } from '../projectCreatorState.js';
 import { getPadElement, updatePageButtonHighlight } from '../webInterface.js';
 import { listen, setProps } from './dom.js';
+import {
+    clearAnimationCanvas,
+    initAnimationEditorListeners,
+    renderAnimationEditor,
+    syncAnimationCanvas,
+    syncAnimationCanvasChanges
+} from './animationEditor.js';
 import { exportProject, initImportExportListeners } from './importExport.js';
 import {
     initLightPickerListeners,
@@ -47,13 +55,25 @@ import {
     themeFormNeedsRender
 } from './themeEditor.js';
 
+/** In the "Custom lights" view (edit mode), pad presses paint the current frame. */
+function isPaintingFrames() {
+    return creatorSession.getActiveCreatorView() === 'animations' && creatorSession.getStudioSubMode() === 'edit';
+}
+
 const creatorPadSource = {
-    getPadPlayback: (index) => creatorSession.getPadPlayback(index, getPadStepCursor),
+    getPadPlayback: (index) => (isPaintingFrames() ? null : creatorSession.getPadPlayback(index, getPadStepCursor)),
     onPadPress: (index) => {
-        if (creatorSession.getStudioSubMode() === 'edit') {
+        if (isPaintingFrames()) {
+            creatorSession.paintPad(index % LAUNCHPAD_COLS, Math.floor(index / LAUNCHPAD_COLS));
+        } else if (creatorSession.getStudioSubMode() === 'edit') {
             selectProjectPad(index, false);
         }
     },
+    // Dragging with the button down paints a stroke across the pads.
+    onPadDrag: (index) => {
+        if (isPaintingFrames()) creatorSession.continueStroke(index % LAUNCHPAD_COLS, Math.floor(index / LAUNCHPAD_COLS));
+    },
+    onDragEnd: () => creatorSession.endStroke(),
     onPageChange: (pageIndex) => {
         selectProjectPage(pageIndex);
     }
@@ -62,22 +82,23 @@ const creatorPadSource = {
 /**
  * Shows the pads or theme view according to the session.
  */
+const CREATOR_VIEWS = [
+    { view: 'pads', tab: 'creator-tab-pads', panel: 'creator-pads-view' },
+    { view: 'theme', tab: 'creator-tab-theme', panel: 'creator-theme-view' },
+    { view: 'animations', tab: 'creator-tab-animations', panel: 'creator-animations-view' }
+];
+
 function applyCreatorViewUi() {
-    const view = creatorSession.getActiveCreatorView();
-    const padsTab = document.getElementById('creator-tab-pads');
-    const themeTab = document.getElementById('creator-tab-theme');
-    const padsView = document.getElementById('creator-pads-view');
-    const themeView = document.getElementById('creator-theme-view');
-
-    if (padsTab && themeTab && padsView && themeView) {
-        padsTab.classList.toggle('selected', view === 'pads');
-        padsTab.setAttribute('aria-selected', String(view === 'pads'));
-        themeTab.classList.toggle('selected', view === 'theme');
-        themeTab.setAttribute('aria-selected', String(view === 'theme'));
-
-        padsView.hidden = (view !== 'pads');
-        themeView.hidden = (view !== 'theme');
-    }
+    const active = creatorSession.getActiveCreatorView();
+    CREATOR_VIEWS.forEach(({ view, tab, panel }) => {
+        const tabEl = document.getElementById(tab);
+        if (tabEl) {
+            tabEl.classList.toggle('selected', view === active);
+            tabEl.setAttribute('aria-selected', String(view === active));
+        }
+        const panelEl = document.getElementById(panel);
+        if (panelEl) panelEl.hidden = view !== active;
+    });
 }
 
 function renderEditor() {
@@ -98,56 +119,67 @@ function syncCreatorPageButtons() {
 }
 
 /**
+ * Custom animation edits. Pads show their assigned light's name and colours,
+ * so renaming or deleting refreshes the picker and the inspector; drawing only
+ * marks them stale (they are hidden in this view and re-render when it changes).
+ * Drawing does not change the panel either, and a drag (one change per pad
+ * crossed) repaints the Launchpad incrementally.
+ * @param {import('../projectCreatorState.js').SessionChange} change
+ * @returns {string[]}
+ */
+function planAnimationChange({ field }) {
+    if (field === 'stroke') return ['registerAnimations', 'animationStroke', 'rebuildPresets', 'warnings'];
+    return ['registerAnimations', 'animationCanvas', 'rebuildPresets',
+        ...(field === 'pads' ? [] : ['animationEditor']),
+        ...(field === 'list' || field === 'meta' ? ['presets', 'inspector'] : []),
+        ...(['pads', 'frames', 'list'].includes(field) ? ['warnings'] : [])];
+}
+
+/**
  * Translates one session change into the reactions and renders it requires.
  * @param {import('./projectCreatorState.js').SessionChange} change
  * @param {Set<string>} plan
  */
-function planSessionChange(change, plan) {
-    const add = (...steps) => steps.forEach(step => plan.add(step));
-    const isEditMode = creatorSession.getStudioSubMode() === 'edit';
+/**
+ * Reactions and renders for each type of session change.
+ * @type {Record<string, function(import('../projectCreatorState.js').SessionChange, boolean): string[]>}
+ */
+const CHANGE_PLANNERS = {
+    draft: () => ['registerAnimations', 'stopPlayback', 'resetCounters', 'modeUi', 'viewUi', 'previewAppearance',
+        'tabs', 'grid', 'inspector', 'theme', 'warnings', 'liveToolbar', 'pageButtons', 'animationEditor'],
+    page: (_change, isEditMode) => ['stopPlayback', 'grid', 'liveToolbar', 'pageButtons', ...(isEditMode ? ['tabs', 'inspector'] : [])],
+    selection: () => ['grid', 'inspector'],
+    // The duration input is the source of the value: re-rendering the
+    // inspector would rewrite it while the user is still typing.
+    pads: (change) => (change.field === 'duration' ? [] : ['grid', 'inspector', 'warnings']),
+    meta: (change) => (change.field === 'targetDevice'
+        ? ['rebuildPresets', 'presets', 'warnings', 'animationEditor']
+        : ['liveToolbar']),
+    theme: (change) => [`preview:${change.aspect}`, ...(themeFormNeedsRender(change) ? ['theme'] : [])],
+    mode: (_change, isEditMode) => ['resetCounters', 'stopPlayback', 'modeUi', 'liveToolbar', ...(isEditMode ? ['grid', 'inspector'] : [])],
+    // The pad inspector and light picker are hidden while drawing: they catch up here.
+    view: () => ['viewUi', 'grid', 'inspector', 'animationEditor'],
+    lightPicker: () => ['textBox', 'presets'],
+    animations: planAnimationChange,
+    animationEditor: () => ['animationEditor', 'animationCanvas']
+};
 
-    switch (change.type) {
-        case 'draft':
-            add('stopPlayback', 'resetCounters', 'modeUi', 'viewUi', 'previewAppearance',
-                'tabs', 'grid', 'inspector', 'theme', 'warnings', 'liveToolbar', 'pageButtons');
-            break;
-        case 'page':
-            add('stopPlayback', 'grid', 'liveToolbar', 'pageButtons');
-            if (isEditMode) add('tabs', 'inspector');
-            break;
-        case 'selection':
-            add('grid', 'inspector');
-            break;
-        case 'pads':
-            // The duration input is the source of the value: re-rendering the
-            // inspector would rewrite it while the user is still typing.
-            if (change.field !== 'duration') add('grid', 'inspector', 'warnings');
-            break;
-        case 'meta':
-            if (change.field === 'targetDevice') add('rebuildPresets', 'presets', 'warnings');
-            else add('liveToolbar');
-            break;
-        case 'theme':
-            add(`preview:${change.aspect}`);
-            if (themeFormNeedsRender(change)) add('theme');
-            break;
-        case 'mode':
-            add('resetCounters', 'stopPlayback', 'modeUi', 'liveToolbar');
-            if (isEditMode) add('grid', 'inspector');
-            break;
-        case 'view':
-            add('viewUi');
-            break;
-        case 'lightPicker':
-            add('textBox', 'presets');
-            break;
-        default:
-            break;
-    }
+/**
+ * Translates one session change into the reactions and renders it requires.
+ * @param {import('../projectCreatorState.js').SessionChange} change
+ * @param {Set<string>} plan
+ */
+function planSessionChange(change, plan) {
+    const isEditMode = creatorSession.getStudioSubMode() === 'edit';
+    (CHANGE_PLANNERS[change.type]?.(change, isEditMode) ?? []).forEach(step => plan.add(step));
+    // Grid renders decorate the pads: the animation canvas repaints over them.
+    if (plan.has('grid')) plan.add('animationCanvas');
 }
 
 /** Plan steps in execution order: reactions first, then renders. */
 const PLAN_STEPS = [
+    // The draft's custom animations must be playable before anything previews them.
+    ['registerAnimations', () => setCustomAnimations('draft', creatorSession.getDraft()?.animations || [])],
     ['stopPlayback', () => { stopPreview(); stopAllDraftPads(); }],
     ['resetCounters', resetPadStepCounters],
     ['modeUi', applyStudioModeUi],
@@ -163,7 +195,11 @@ const PLAN_STEPS = [
     ['theme', renderThemeView],
     ['warnings', updateTargetDeviceWarnings],
     ['liveToolbar', updateLiveToolbar],
-    ['pageButtons', syncCreatorPageButtons]
+    ['pageButtons', syncCreatorPageButtons],
+    ['animationEditor', renderAnimationEditor],
+    // A full repaint, when planned too, comes after and supersedes the incremental one.
+    ['animationStroke', syncAnimationCanvasChanges],
+    ['animationCanvas', syncAnimationCanvas]
 ];
 
 /**
@@ -216,6 +252,8 @@ function closeUnsavedDialog() {
 function forceCloseCreator() {
     closeUnsavedDialog();
     creatorSession.close();
+    clearAnimationCanvas();
+    setCustomAnimations('draft', []);
     stopPreview();
     stopAllDraftPads();
     setPadSource(null);
@@ -371,6 +409,7 @@ function initEditorShellListeners() {
 
     listen('creator-tab-pads', 'click', () => creatorSession.setCreatorView('pads'));
     listen('creator-tab-theme', 'click', () => creatorSession.setCreatorView('theme'));
+    listen('creator-tab-animations', 'click', () => creatorSession.setCreatorView('animations'));
 
     listen('creator-target-device', 'change', event => {
         creatorSession.setTargetDevice(event.target.value);
@@ -388,6 +427,7 @@ function initEditorShellListeners() {
     listen(window, 'deviceprofilechange', () => {
         if (creatorSession.isEditorActive()) {
             updateTargetDeviceWarnings();
+            syncAnimationCanvas(); // A Launchpad just connected shows the frame being drawn
         }
     });
 }
@@ -408,4 +448,5 @@ export function initializeProjectCreator() {
     initLightPickerListeners();
     initThemeEditorListeners();
     initImportExportListeners();
+    initAnimationEditorListeners();
 }

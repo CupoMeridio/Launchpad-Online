@@ -18,9 +18,24 @@ import {
 } from './animationLibrary.js';
 
 import { TextAnimation, ScrollingTextAnimation } from './animationClasses.js';
+import { resolveLightDuration } from './animationData.js';
+import { getCustomAnimationDuration } from './customAnimations.js';
 
 // Re-export for external modules if needed
 export { animations };
+
+/**
+ * Light duration of a pad step, in seconds: the sound's length when the step
+ * is synced to a sound it actually has; otherwise the custom animation's own
+ * length, or the step's manual duration for built-in lights.
+ * @param {{light: string|null, syncToSound: boolean, duration: number}} step
+ * @param {number|null} soundDuration - Seconds, or 0/null without a sound.
+ * @returns {number}
+ */
+export function resolveStepLightDuration(step, soundDuration) {
+    const ownDuration = getCustomAnimationDuration(step.light) ?? step.duration;
+    return resolveLightDuration(step.syncToSound, soundDuration, ownDuration);
+}
 
 let animationFrameId = null;
 let isLoopRunning = false;

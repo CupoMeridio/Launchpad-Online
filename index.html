@@ -503,6 +503,9 @@
         <button type="button" id="creator-tab-theme" class="creator-view-tab" role="tab" aria-selected="false" aria-controls="creator-theme-view">
           <span data-i18n="creator.tabs.theme">Appearance &amp; Theme</span>
         </button>
+        <button type="button" id="creator-tab-animations" class="creator-view-tab" role="tab" aria-selected="false" aria-controls="creator-animations-view">
+          <span data-i18n="creator.tabs.animations">Custom Lights</span>
+        </button>
       </div>
       <div id="creator-pads-view" class="creator-view-panel">
         <section class="inspector-section">
@@ -567,6 +570,7 @@
                 <label for="creator-light-duration" data-i18n="creator.lightDuration">Light duration (seconds)</label>
                 <input type="number" id="creator-light-duration" min="0.1" max="60" step="0.1" value="2.5">
               </div>
+              <p id="creator-custom-light-timing" class="creator-duration-note" hidden></p>
             </section>
           </div>
           <label for="creator-light-search" data-i18n="creator.searchAnimations">Search animations</label>
@@ -580,6 +584,105 @@
             <button type="button" class="inspector-action" id="creator-assign-text-animation"
               data-i18n="creator.assignAnimation">Assign animation</button>
           </section>
+        </section>
+      </div>
+      <div id="creator-animations-view" class="creator-view-panel" hidden>
+        <section class="inspector-section">
+          <div class="inspector-page-heading">
+            <span data-i18n="creator.anim.library">Custom animations</span>
+          </div>
+          <div id="creator-anim-list" class="creator-page-tabs" role="tablist" aria-label="Custom animations"
+            data-i18n-aria-label="creator.anim.library"></div>
+          <p id="creator-anim-empty" class="creator-duration-note" data-i18n="creator.anim.empty">No custom animations yet. Create one, then draw its frames on the Launchpad.</p>
+          <div class="inspector-actions">
+            <button type="button" class="inspector-action primary" id="creator-anim-new" data-i18n="creator.anim.new">New animation</button>
+            <button type="button" class="inspector-action danger" id="creator-anim-delete" data-i18n="creator.anim.delete">Delete</button>
+          </div>
+        </section>
+        <section id="creator-anim-editor" class="inspector-section" hidden>
+          <label for="creator-anim-name" data-i18n="creator.anim.name">Name</label>
+          <input type="text" id="creator-anim-name" maxlength="40" autocomplete="off">
+          <label for="creator-anim-playback" data-i18n="creator.anim.playback">Playback</label>
+          <select id="creator-anim-playback" class="creator-select">
+            <option value="once" data-i18n="creator.anim.playbackOnce">Play once</option>
+            <option value="hold" data-i18n="creator.anim.playbackHold">While held (loop)</option>
+          </select>
+
+          <div class="inspector-page-heading">
+            <span data-i18n="creator.anim.frames">Frames</span>
+            <span id="creator-anim-frame-indicator"></span>
+          </div>
+          <div id="creator-anim-frames" class="creator-step-pills" role="tablist" aria-label="Frames"
+            data-i18n-aria-label="creator.anim.frames"></div>
+          <div class="inspector-actions">
+            <button type="button" class="inspector-action" id="creator-anim-add-frame" data-i18n="creator.anim.addFrame">Add frame</button>
+            <button type="button" class="inspector-action" id="creator-anim-duplicate-frame" data-i18n="creator.anim.duplicateFrame">Duplicate</button>
+            <button type="button" class="inspector-action" id="creator-anim-delete-frame" data-i18n="creator.anim.deleteFrame">Delete frame</button>
+          </div>
+          <div class="inspector-actions">
+            <button type="button" class="inspector-action" id="creator-anim-move-left" data-i18n="creator.anim.moveLeft">Move earlier</button>
+            <button type="button" class="inspector-action" id="creator-anim-move-right" data-i18n="creator.anim.moveRight">Move later</button>
+          </div>
+          <div class="inspector-actions">
+            <button type="button" class="inspector-action" id="creator-anim-copy-frame" data-i18n="creator.anim.copyFrame">Copy drawing</button>
+            <button type="button" class="inspector-action" id="creator-anim-paste-frame" data-i18n="creator.anim.pasteFrame">Paste drawing</button>
+          </div>
+          <label for="creator-anim-frame-duration" data-i18n="creator.anim.frameDuration">Frame duration (ms)</label>
+          <input type="number" id="creator-anim-frame-duration" min="10" max="10000" step="10" value="100">
+          <p id="creator-anim-total" class="creator-duration-note"></p>
+          <label class="creator-sync-toggle">
+            <input type="checkbox" id="creator-anim-onion">
+            <span data-i18n="creator.anim.onionSkin">Show the previous frame (onion skin)</span>
+          </label>
+
+          <div class="inspector-page-heading">
+            <span data-i18n="creator.anim.brush">Brush</span>
+          </div>
+          <div id="creator-anim-palette" class="creator-animation-variants" role="group" aria-label="Brush colour"
+            data-i18n-aria-label="creator.anim.brush"></div>
+          <label for="creator-anim-level" data-i18n="creator.anim.level">Brightness</label>
+          <select id="creator-anim-level" class="creator-select">
+            <option value="full" data-i18n="creator.anim.levelFull">Full</option>
+            <option value="medium" data-i18n="creator.anim.levelMedium">Medium</option>
+            <option value="low" data-i18n="creator.anim.levelLow">Low</option>
+          </select>
+          <label for="creator-anim-tool" data-i18n="creator.anim.tool">Tool</label>
+          <select id="creator-anim-tool" class="creator-select">
+            <option value="pencil" data-i18n="creator.anim.toolPencil">Pencil (click or drag)</option>
+            <option value="fill" data-i18n="creator.anim.toolFill">Fill (paint bucket)</option>
+          </select>
+          <p class="creator-duration-note" data-i18n="creator.anim.drawHint">Click or drag across the pads (or press them on your Launchpad) to paint the current frame. Starting on a pad already painted with the brush colour erases instead.</p>
+          <div class="inspector-actions">
+            <button type="button" class="inspector-action" id="creator-anim-clear-frame" data-i18n="creator.anim.clearFrame">Clear frame</button>
+            <button type="button" class="inspector-action primary" id="creator-anim-preview" data-i18n="creator.anim.preview">Preview</button>
+          </div>
+
+          <div class="inspector-page-heading">
+            <span data-i18n="creator.anim.transform.title">Transform</span>
+          </div>
+          <div id="creator-anim-transforms" class="creator-anim-transforms" role="group" aria-label="Transform"
+            data-i18n-aria-label="creator.anim.transform.title">
+            <button type="button" class="inspector-action" data-transform="shiftLeft" title="Move left" aria-label="Move left"
+              data-i18n-title="creator.anim.transform.shiftLeft" data-i18n-aria-label="creator.anim.transform.shiftLeft">←</button>
+            <button type="button" class="inspector-action" data-transform="shiftRight" title="Move right" aria-label="Move right"
+              data-i18n-title="creator.anim.transform.shiftRight" data-i18n-aria-label="creator.anim.transform.shiftRight">→</button>
+            <button type="button" class="inspector-action" data-transform="shiftUp" title="Move up" aria-label="Move up"
+              data-i18n-title="creator.anim.transform.shiftUp" data-i18n-aria-label="creator.anim.transform.shiftUp">↑</button>
+            <button type="button" class="inspector-action" data-transform="shiftDown" title="Move down" aria-label="Move down"
+              data-i18n-title="creator.anim.transform.shiftDown" data-i18n-aria-label="creator.anim.transform.shiftDown">↓</button>
+            <button type="button" class="inspector-action" data-transform="flipHorizontal" title="Mirror left–right" aria-label="Mirror left–right"
+              data-i18n-title="creator.anim.transform.flipHorizontal" data-i18n-aria-label="creator.anim.transform.flipHorizontal">⇆</button>
+            <button type="button" class="inspector-action" data-transform="flipVertical" title="Mirror top–bottom" aria-label="Mirror top–bottom"
+              data-i18n-title="creator.anim.transform.flipVertical" data-i18n-aria-label="creator.anim.transform.flipVertical">⇅</button>
+            <button type="button" class="inspector-action" data-transform="rotateCounterClockwise" title="Rotate left" aria-label="Rotate left"
+              data-i18n-title="creator.anim.transform.rotateCounterClockwise" data-i18n-aria-label="creator.anim.transform.rotateCounterClockwise">↺</button>
+            <button type="button" class="inspector-action" data-transform="rotateClockwise" title="Rotate right" aria-label="Rotate right"
+              data-i18n-title="creator.anim.transform.rotateClockwise" data-i18n-aria-label="creator.anim.transform.rotateClockwise">↻</button>
+          </div>
+          <label class="creator-sync-toggle">
+            <input type="checkbox" id="creator-anim-transform-all">
+            <span data-i18n="creator.anim.transform.allFrames">Apply to every frame</span>
+          </label>
         </section>
       </div>
       <div id="creator-theme-view" class="creator-view-panel" hidden>

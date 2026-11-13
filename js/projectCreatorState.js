@@ -31,8 +31,29 @@ import {
     setPadStepLightDuration,
     removePadStepSample,
     assignSampleGuarded,
-    getPadSteps
+    getPadSteps,
+    clearLightReferences
 } from './projectCreatorModel.js';
+import {
+    createCustomAnimation,
+    createCustomAnimationId,
+    customLightName,
+    addFrameAfter,
+    duplicateFrame,
+    removeFrame,
+    moveFrame,
+    paintFrameCell,
+    setFrameCell,
+    floodFillFrame,
+    transformFramePads,
+    copyFramePads,
+    isValidFrameDuration,
+    PLAYBACK_MODES,
+    LIGHT_LEVELS
+} from './customAnimationModel.js';
+
+/** Pencil: paints pad by pad (click or drag). Fill: paint bucket. */
+export const BRUSH_TOOLS = Object.freeze(['pencil', 'fill']);
 import { normalizeVisualizer } from './appearanceModel.js';
 
 /**
@@ -46,7 +67,11 @@ import { normalizeVisualizer } from './appearanceModel.js';
  *                  and for 'visualizer' \`keys\` lists the changed settings;
  * - 'mode':        the studio sub-mode (edit/live) changed;
  * - 'view':        the creator view (pads/theme) changed;
- * - 'lightPicker': the light category or the pending text animation changed.
+ * - 'lightPicker': the light category or the pending text animation changed;
+ * - 'animations':  a custom animation changed; `field` is 'list' (added/removed),
+ *                  'meta' (name, playback), 'frames' (added/removed/moved), 'pads', 'timing'
+ *                  or 'stroke' (pads painted by dragging: frequent, one per pad crossed);
+ * - 'animationEditor': the animation, frame or brush being edited changed.
  * @typedef {{type: string, field?: string, aspect?: string, keys?: string[]}} SessionChange
  */
 
@@ -134,6 +159,25 @@ export class ProjectCreatorSession {
         this.pendingTextAnimation = null;
         this.activeMomentaryPreview = null;
         this.activeImportId = 0;
+        this.resetAnimationEditor();
+        this.resetAnimationTools();
+    }
+
+    /** Selection of the animation editor (the animation and frame being edited). */
+    resetAnimationEditor(animationId = null) {
+        this.activeAnimationId = animationId;
+        this.activeFrameIndex = 0;
+        this.stroke = null;
+    }
+
+    /**
+     * Drawing tools: they outlive the selection, so a copied frame can be
+     * pasted into another animation and the brush stays as the user set it.
+     */
+    resetAnimationTools() {
+        this.brush = { color: 'red', level: 'full', erase: false, tool: 'pencil' };
+        this.frameClipboard = null;
+        this.onionSkin = false;
     }
 
     open(initialDraft = null) {
@@ -147,6 +191,8 @@ export class ProjectCreatorSession {
         this.activeLightCategory = 'all';
         this.pendingTextAnimation = null;
         this.activeMomentaryPreview = null;
+        this.resetAnimationEditor(this.draft.animations?.[0]?.id ?? null);
+        this.resetAnimationTools();
         this.#notify({ type: 'draft' });
     }
 
@@ -381,7 +427,7 @@ export class ProjectCreatorSession {
     }
 
     setCreatorView(view) {
-        if (view !== 'pads' && view !== 'theme') return false;
+        if (!['pads', 'theme', 'animations'].includes(view)) return false;
         if (view === this.activeCreatorView) return true;
         this.activeCreatorView = view;
         this.#notify({ type: 'view' });
@@ -505,6 +551,248 @@ export class ProjectCreatorSession {
         if (!page || padIndex === null || !isValidLightDuration(value)) return false;
         setPadStepLightDuration(page, padIndex, stepIndex, Math.round(value * 10) / 10);
         this.#commit({ type: 'pads', field: 'duration' });
+        return true;
+    }
+
+    // ------------------------------------------------------------------------
+    // Custom animations
+    // ------------------------------------------------------------------------
+
+    getAnimations() {
+        return this.draft?.animations ?? [];
+    }
+
+    getActiveAnimation() {
+        return this.getAnimations().find(animation => animation.id === this.activeAnimationId) ?? null;
+    }
+
+    getActiveFrame() {
+        return this.getActiveAnimation()?.frames[this.activeFrameIndex] ?? null;
+    }
+
+    getActiveFrameIndex() {
+        return this.activeFrameIndex;
+    }
+
+    getBrush() {
+        return { ...this.brush };
+    }
+
+    /**
+     * Creates an animation (one empty frame) and selects it.
+     * @param {string} [name]
+     * @returns {string|null} The new animation id.
+     */
+    createAnimation(name = '') {
+        if (!this.draft) return null;
+        this.draft.animations ??= [];
+        const id = createCustomAnimationId(this.draft.animations.map(animation => animation.id));
+        this.draft.animations.push(createCustomAnimation({ id, name }));
+        this.activeAnimationId = id;
+        this.activeFrameIndex = 0;
+        this.#commit({ type: 'animations', field: 'list' });
+        return id;
+    }
+
+    /**
+     * Deletes an animation and removes it from the pad steps that used it, so
+     * the project never references a missing animation.
+     * @param {string} [id]
+     * @returns {boolean}
+     */
+    deleteAnimation(id = this.activeAnimationId) {
+        const index = this.getAnimations().findIndex(animation => animation.id === id);
+        if (index < 0) return false;
+        this.draft.animations.splice(index, 1);
+        const neighbour = this.draft.animations[Math.min(index, this.draft.animations.length - 1)];
+        this.resetAnimationEditor(neighbour?.id ?? null);
+        this.batch(() => {
+            this.#commit({ type: 'animations', field: 'list' });
+            if (clearLightReferences(this.draft, customLightName(id)) > 0) {
+                this.#notify({ type: 'pads', field: 'light' });
+            }
+        });
+        return true;
+    }
+
+    selectAnimation(id) {
+        if (!this.getAnimations().some(animation => animation.id === id)) return false;
+        this.activeAnimationId = id;
+        this.activeFrameIndex = 0;
+        this.#notify({ type: 'animationEditor' });
+        return true;
+    }
+
+    renameAnimation(name) {
+        const animation = this.getActiveAnimation();
+        if (!animation || typeof name !== 'string' || animation.name === name) return false;
+        animation.name = name;
+        this.#commit({ type: 'animations', field: 'meta' });
+        return true;
+    }
+
+    setAnimationPlayback(playback) {
+        const animation = this.getActiveAnimation();
+        if (!animation || !PLAYBACK_MODES.includes(playback) || animation.playback === playback) return false;
+        animation.playback = playback;
+        this.#commit({ type: 'animations', field: 'meta' });
+        return true;
+    }
+
+    selectFrame(index) {
+        const animation = this.getActiveAnimation();
+        if (!animation || !Number.isInteger(index) || !animation.frames[index]) return false;
+        this.activeFrameIndex = index;
+        this.stroke = null;
+        this.#notify({ type: 'animationEditor' });
+        return true;
+    }
+
+    /** Applies a frame operation that returns the frame to select (or -1). */
+    #editFrames(operation) {
+        const animation = this.getActiveAnimation();
+        if (!animation) return false;
+        const nextIndex = operation(animation);
+        if (nextIndex < 0) return false;
+        this.activeFrameIndex = nextIndex;
+        this.#commit({ type: 'animations', field: 'frames' });
+        return true;
+    }
+
+    addFrame() {
+        return this.#editFrames(animation => addFrameAfter(animation, this.activeFrameIndex));
+    }
+
+    duplicateActiveFrame() {
+        return this.#editFrames(animation => duplicateFrame(animation, this.activeFrameIndex));
+    }
+
+    deleteActiveFrame() {
+        return this.#editFrames(animation => (
+            removeFrame(animation, this.activeFrameIndex) ? Math.max(0, this.activeFrameIndex - 1) : -1
+        ));
+    }
+
+    moveActiveFrame(delta) {
+        return this.#editFrames(animation => moveFrame(animation, this.activeFrameIndex, delta));
+    }
+
+    /** @param {number|string} ms - New duration of the active frame. */
+    setFrameDuration(ms) {
+        const frame = this.getActiveFrame();
+        const value = Math.round(Number(ms));
+        if (!frame || !isValidFrameDuration(value)) return false;
+        if (frame.duration === value) return true;
+        frame.duration = value;
+        this.#commit({ type: 'animations', field: 'timing' });
+        return true;
+    }
+
+    /** The cell the brush paints (null for the eraser). */
+    #brushCell() {
+        return this.brush.erase ? null : { color: this.brush.color, level: this.brush.level };
+    }
+
+    /**
+     * A press on a pad: the pencil paints it (or toggles it off) and starts a
+     * stroke; the fill tool fills its region.
+     */
+    paintPad(x, y) {
+        const frame = this.getActiveFrame();
+        this.stroke = null;
+        if (!frame) return false;
+        if (this.brush.tool === 'fill') {
+            if (!floodFillFrame(frame, x, y, this.#brushCell())) return false;
+        } else {
+            if (!paintFrameCell(frame, x, y, this.brush)) return false;
+            // Dragging on gives the other pads what the first one got: paint or erase.
+            const cell = frame.pads[`${x},${y}`];
+            this.stroke = { cell: cell ? { ...cell } : null };
+        }
+        this.#commit({ type: 'animations', field: 'pads' });
+        return true;
+    }
+
+    /** Dragging over a pad during a pencil stroke (never toggles). */
+    continueStroke(x, y) {
+        const frame = this.getActiveFrame();
+        if (!frame || !this.stroke || !setFrameCell(frame, x, y, this.stroke.cell)) return false;
+        this.#commit({ type: 'animations', field: 'stroke' });
+        return true;
+    }
+
+    endStroke() {
+        this.stroke = null;
+    }
+
+    /**
+     * Moves, mirrors or rotates the drawing of the active frame, or of every frame.
+     * @param {string} name - A key of FRAME_TRANSFORMS.
+     * @param {boolean} [allFrames]
+     */
+    transformFrames(name, allFrames = false) {
+        const animation = this.getActiveAnimation();
+        const frame = this.getActiveFrame();
+        if (!animation || !frame || !transformFramePads({}, name)) return false;
+        (allFrames ? animation.frames : [frame]).forEach(target => {
+            target.pads = transformFramePads(target.pads, name);
+        });
+        this.#commit({ type: 'animations', field: 'pads' });
+        return true;
+    }
+
+    copyActiveFrame() {
+        const frame = this.getActiveFrame();
+        if (!frame) return false;
+        this.frameClipboard = copyFramePads(frame.pads);
+        this.#notify({ type: 'animationEditor' });
+        return true;
+    }
+
+    hasFrameClipboard() {
+        return this.frameClipboard !== null;
+    }
+
+    /** Replaces the drawing of the active frame with the copied one (its duration is kept). */
+    pasteIntoActiveFrame() {
+        const frame = this.getActiveFrame();
+        if (!frame || !this.frameClipboard) return false;
+        frame.pads = copyFramePads(this.frameClipboard);
+        this.#commit({ type: 'animations', field: 'pads' });
+        return true;
+    }
+
+    isOnionSkinEnabled() {
+        return this.onionSkin;
+    }
+
+    /** Onion skin: the previous frame shows faintly under the one being drawn. */
+    setOnionSkin(enabled) {
+        if (this.onionSkin === Boolean(enabled)) return false;
+        this.onionSkin = Boolean(enabled);
+        this.#notify({ type: 'animationEditor' });
+        return true;
+    }
+
+    /** The frame before the active one (none for the first frame). */
+    getPreviousFrame() {
+        return this.activeFrameIndex > 0 ? this.getActiveAnimation()?.frames[this.activeFrameIndex - 1] ?? null : null;
+    }
+
+    clearActiveFrame() {
+        const frame = this.getActiveFrame();
+        if (!frame || Object.keys(frame.pads).length === 0) return false;
+        frame.pads = {};
+        this.#commit({ type: 'animations', field: 'pads' });
+        return true;
+    }
+
+    /** @param {{color?: string, level?: string, erase?: boolean, tool?: 'pencil'|'fill'}} patch */
+    setBrush(patch) {
+        const next = { ...this.brush, ...patch };
+        if (!LIGHT_LEVELS.includes(next.level) || !BRUSH_TOOLS.includes(next.tool)) return false;
+        this.brush = { color: next.color, level: next.level, erase: Boolean(next.erase), tool: next.tool };
+        this.#notify({ type: 'animationEditor' });
         return true;
     }
 

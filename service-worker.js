@@ -34,7 +34,7 @@ function debug(...args) {
 // CUSTOMIZATION: When you make changes to App Shell files, update this timestamp.
 // This invalidates the old cache and forces the Service Worker to download new files.
 // Example: 'launchpad-pwa-cache-2026-03-21-1430' → update to → 'launchpad-pwa-cache-2026-03-21-1505'
-const CACHE_NAME = 'launchpad-pwa-cache-2026-11-13-1558';
+const CACHE_NAME = 'launchpad-pwa-cache-2026-11-13-2321';
 
 // Get the base path dynamically to support both local dev and GitHub Pages
 const basePath = self.registration.scope.replace(self.location.origin, '');
@@ -65,6 +65,8 @@ const APP_SHELL_FILES = [
     `${basePath}js/audio.js`,
     `${basePath}js/constants.js`,
     `${basePath}js/creatorLoader.js`,
+    `${basePath}js/customAnimationModel.js`,
+    `${basePath}js/customAnimations.js`,
     `${basePath}js/formControls.js`,
     `${basePath}js/i18n.js`,
     `${basePath}js/interaction.js`,
@@ -83,6 +85,7 @@ const APP_SHELL_FILES = [
     `${basePath}js/project.js`,
     `${basePath}js/projectModel.js`,
     `${basePath}js/concurrency.js`,
+    `${basePath}js/creator/animationEditor.js`,
     `${basePath}js/creator/dom.js`,
     `${basePath}js/creator/importExport.js`,
     `${basePath}js/creator/index.js`,

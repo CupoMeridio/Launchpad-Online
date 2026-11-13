@@ -533,7 +533,14 @@
 }
 
 .layout[data-studio="edit"] #Launchpad .grid-item[data-creator-led] {
-    box-shadow: inset 0 0 0 3px var(--creator-led-color, var(--accent-blue));
+    box-shadow: inset 0 0 0 3px var(--creator-led-color);
+}
+
+/* A light without colours (e.g. an empty custom animation): dashed, never a stand-in colour */
+.layout[data-studio="edit"] #Launchpad .grid-item[data-creator-led].creator-pad-colorless {
+    box-shadow: none;
+    outline: 2px dashed var(--text-faint);
+    outline-offset: -5px;
 }
 
 .creator-light-timing {
@@ -703,7 +710,7 @@
 
 .creator-view-tab-bar {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
     background: var(--surface-recessed);
     border: 1px solid var(--border-dark);
     border-radius: var(--radius-sm);
@@ -727,6 +734,7 @@
     border-radius: var(--radius-xs);
     cursor: pointer;
     transition: all 0.15s ease;
+    text-align: center;
 }
 
 .creator-view-tab:hover {
@@ -890,4 +898,46 @@
 .studio-exit-live-btn:hover {
     background: var(--accent-blue-hover);
     box-shadow: 0 0 14px var(--accent-blue-glow);
+}
+
+/* Eraser in the custom animation brush palette */
+.creator-anim-eraser {
+    color: var(--text-primary);
+    font-size: 1rem;
+    line-height: 1;
+}
+
+/* Custom animation library: named tabs, unlike the numbered page tabs */
+.creator-page-tab.creator-anim-tab {
+    width: auto;
+    max-width: 100%;
+    padding: 0 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Custom animation transforms: one row of arrow buttons */
+.creator-anim-transforms {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+}
+
+.creator-anim-transforms .inspector-action {
+    font-size: 1rem;
+    padding: 6px 0;
+}
+
+/* Onion skin: the previous frame, faint and outlined, under the current one */
+.layout[data-studio="edit"] #Launchpad .grid-item[data-onion] {
+    outline: 1px dashed var(--led-color);
+    outline-offset: -4px;
+}
+
+/* Swatch of a light without colours: empty and dashed (see paintLightSwatch) */
+.creator-light-swatch.is-colorless {
+    background: transparent;
+    border: 1px dashed var(--text-faint);
+    box-shadow: none;
 }

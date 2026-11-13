@@ -206,9 +206,6 @@ export const ANIMATION_COLOR_TIERS = {
 // Palette order derives from the tier map, so the two never drift apart.
 export const ANIMATION_COLORS = Object.keys(ANIMATION_COLOR_TIERS);
 
-// Fallback swatch/ring color for a light whose LED colors cannot be resolved
-// (e.g. an unknown or legacy animation name loaded from a project file).
-export const DEFAULT_ANIMATION_SWATCH_COLOR = '#59bfe8';
 
 export const TARGET_DEVICES = ['universal', 'legacy', 'rgb'];
 export const DEFAULT_TARGET_DEVICE = 'universal';

@@ -8,14 +8,13 @@
 import {
     ANIMATION_COLORS,
     ANIMATION_COLOR_TIERS,
-    DEFAULT_ANIMATION_SWATCH_COLOR,
     DEFAULT_LIGHT_DURATION_SEC,
     DEFAULT_TARGET_DEVICE,
     LAUNCHPAD_COLS,
     getColorFromAnimationName
 } from '../constants.js';
 import { getTranslation } from '../i18n.js';
-import { animations, releaseAnimation, triggerAnimation } from '../lights.js';
+import { animations, releaseAnimation, resolveStepLightDuration, triggerAnimation } from '../lights.js';
 import { showNotification } from '../notifications.js';
 import {
     buildAnimationCatalog,
@@ -24,6 +23,12 @@ import {
     resolveLightColors
 } from '../projectCreatorModel.js';
 import { creatorSession } from '../projectCreatorState.js';
+import {
+    customLightName,
+    getCustomAnimationColors,
+    parseCustomLightName,
+    usesRgbOnlyColors
+} from '../customAnimationModel.js';
 import { webColorMap } from '../webInterface.js';
 import { listen, setProps } from './dom.js';
 
@@ -32,7 +37,7 @@ const LIGHT_COLOR_SWATCHES = Object.fromEntries(
     ANIMATION_COLORS.map(color => [color, webColorMap[color].baseColor])
 );
 
-const LIGHT_CATEGORY_KEYS = ['all', 'basic', 'geometric', 'directional', 'multicolor', 'characters', 'special', 'text'];
+const LIGHT_CATEGORY_KEYS = ['all', 'custom', 'basic', 'geometric', 'directional', 'multicolor', 'characters', 'special', 'text'];
 const DYNAMIC_TEXT_PRESETS = [
     { id: 'text', template: 'text', labelKey: 'creator.light.text' },
     { id: 'scroll', template: 'scroll', labelKey: 'creator.light.scroll' },
@@ -67,10 +72,17 @@ function getAnimationGroups() {
     return allAnimationGroups;
 }
 
-function getManualLightDuration(page, padIndex, stepIndex) {
-    const steps = getPadSteps(page, padIndex);
+/**
+ * Duration used to preview a light just assigned to a step (no sound plays):
+ * a custom animation's own length, otherwise the step's manual duration.
+ */
+function getLightPreviewDuration(animationName, page, padIndex, stepIndex) {
+    const steps = page ? getPadSteps(page, padIndex) : [];
     const step = steps[stepIndex] || steps[0];
-    return step?.duration ?? DEFAULT_LIGHT_DURATION_SEC;
+    return resolveStepLightDuration(
+        { light: animationName, syncToSound: false, duration: step?.duration ?? DEFAULT_LIGHT_DURATION_SEC },
+        null
+    );
 }
 
 function isSwatchSelected(selectedLight, isDynamic, template, color, animationName) {
@@ -89,8 +101,38 @@ function isSwatchSelected(selectedLight, isDynamic, template, color, animationNa
     return selectedLight === animationName;
 }
 
+/**
+ * The draft's custom animations as light picker groups (one swatch each).
+ * They stay visible whatever the target device: RGB-only colours are reported
+ * by the target device warnings instead.
+ */
+function getCustomAnimationGroups() {
+    return creatorSession.getAnimations().map(animation => {
+        const colors = getCustomAnimationColors(animation);
+        return {
+            id: customLightName(animation.id),
+            label: animation.name || getTranslation('creator.anim.untitled'),
+            category: 'custom',
+            variants: [{
+                animation: customLightName(animation.id),
+                color: null,
+                tier: usesRgbOnlyColors(animation) ? 'rgb' : 'legacy',
+                supportsDuration: animation.playback === 'once',
+                swatchColors: colors
+            }]
+        };
+    });
+}
+
+function findCustomAnimation(animationName) {
+    const id = parseCustomLightName(animationName);
+    return id === null ? null : creatorSession.getAnimations().find(animation => animation.id === id) ?? null;
+}
+
 export function getAnimationDisplayName(animationName) {
     if (!animationName) return '';
+    const custom = findCustomAnimation(animationName);
+    if (custom) return custom.name || getTranslation('creator.anim.untitled');
     if (animationName.startsWith('scroll_')) {
         const parts = animationName.split('_');
         return `Scroll "${parts.slice(1, -1).join(' ')}"`;
@@ -171,19 +213,17 @@ function renderAnimationVariantSwatch(variant, group, groupLabel, selectedLight)
         : variant.sequence
             ? getTranslation(`creator.light.sequence.${variant.sequence}`)
             : groupLabel;
+    const swatchColors = variant.swatchColors ?? resolveLightColors(variant);
     const tierBadge = variant.tier === 'rgb' ? ` (${getTranslation('creator.targetDevice.badgeRgb')})` : '';
-    button.setAttribute('aria-label', `${groupLabel} ${colorLabel}${tierBadge}`);
-    button.title = `${groupLabel} · ${colorLabel}${tierBadge}`;
+    const colorlessNote = swatchColors.length ? '' : ` · ${getTranslation('creator.lightNoColor')}`;
+    // Single-variant lights (e.g. custom animations) have no colour name of their own.
+    const labelParts = colorLabel === groupLabel ? [groupLabel] : [groupLabel, colorLabel];
+    button.setAttribute('aria-label', `${labelParts.join(' ')}${tierBadge}${colorlessNote}`);
+    button.title = `${labelParts.join(' · ')}${tierBadge}${colorlessNote}`;
 
     const swatch = document.createElement('span');
     swatch.className = 'creator-light-swatch';
-    const swatchColors = variant.swatchColors ?? resolveLightColors(variant);
-    if (swatchColors.length > 1) {
-        swatch.style.background = getAnimationSwatchGradient(swatchColors);
-    }
-    swatch.style.setProperty('--preset-color', swatchColors.length
-        ? LIGHT_COLOR_SWATCHES[swatchColors[0]]
-        : DEFAULT_ANIMATION_SWATCH_COLOR);
+    paintLightSwatch(swatch, swatchColors);
     button.appendChild(swatch);
     button.addEventListener('click', () => {
         if (isDynamic) {
@@ -250,7 +290,7 @@ export function renderLightPresets() {
     lastRenderedSearch = search;
     lastRenderedTargetDevice = targetDevice;
 
-    const groups = filterCatalogByDevice(getAnimationGroups(), targetDevice)
+    const groups = [...filterCatalogByDevice(getAnimationGroups(), targetDevice), ...getCustomAnimationGroups()]
         .filter(group => {
             const groupLabel = group.labelKey ? getTranslation(group.labelKey) : group.label;
             const matchesCategory = activeLightCategory === 'all' || group.category === activeLightCategory;
@@ -294,6 +334,8 @@ function assignTextAnimation() {
 // Ordered LED colors for a light: declared metadata when available, otherwise
 // derived from the animation-name suffix (covers dynamic text/scroll lights).
 export function getAnimationSwatchColors(animationName) {
+    const custom = findCustomAnimation(animationName);
+    if (custom) return getCustomAnimationColors(custom);
     const colors = resolveLightColors(animations[animationName] ?? {});
     if (colors.length) return colors;
     const suffix = getColorFromAnimationName(animationName);
@@ -305,25 +347,39 @@ export function getAnimationSwatchGradient(colors) {
 }
 
 /**
- * CSS background for a light's swatch: a gradient for multicolour lights,
- * otherwise its single colour.
- * @param {string} animationName
- * @returns {string}
+ * Paints a light swatch: its colour, a gradient for multicolour lights, or the
+ * "no colour" look (dashed, empty) for a light that shows nothing (an empty
+ * custom animation) or whose colours are unknown. No real colour stands in for
+ * that state, so it cannot be mistaken for a light of that colour.
+ * @param {HTMLElement} swatch
+ * @param {string[]} colors
  */
-export function getAnimationSwatchBackground(animationName) {
-    const colors = getAnimationSwatchColors(animationName);
-    return colors.length > 1 ? getAnimationSwatchGradient(colors) : getAnimationColor(animationName);
+export function paintLightSwatch(swatch, colors) {
+    swatch.classList.toggle('is-colorless', colors.length === 0);
+    swatch.style.background = colors.length > 1 ? getAnimationSwatchGradient(colors) : '';
+    if (colors.length) {
+        swatch.style.setProperty('--preset-color', LIGHT_COLOR_SWATCHES[colors[0]]);
+    } else {
+        swatch.style.removeProperty('--preset-color');
+    }
 }
 
+/**
+ * The single colour that stands for a light (e.g. the ring of a pad in the
+ * Studio grid): for a custom animation its most visible colour (its colours
+ * come sorted by weight), for a built-in sequence its middle step.
+ * @param {string} animationName
+ * @returns {string|null} A CSS colour, or null for a light without colours.
+ */
 export function getAnimationColor(animationName) {
     const colors = getAnimationSwatchColors(animationName);
-    if (!colors.length) return DEFAULT_ANIMATION_SWATCH_COLOR;
-    return LIGHT_COLOR_SWATCHES[colors[Math.floor(colors.length / 2)]];
+    if (!colors.length) return null;
+    const representative = findCustomAnimation(animationName) ? 0 : Math.floor(colors.length / 2);
+    return LIGHT_COLOR_SWATCHES[colors[representative]];
 }
 
 function previewAnimation(animationName, index, stepIndex) {
-    const page = creatorSession.getCurrentPage();
-    const duration = page ? getManualLightDuration(page, index, stepIndex) : DEFAULT_LIGHT_DURATION_SEC;
+    const duration = getLightPreviewDuration(animationName, creatorSession.getCurrentPage(), index, stepIndex);
     const x = index % LAUNCHPAD_COLS;
     const y = Math.floor(index / LAUNCHPAD_COLS);
     triggerAnimation(animationName, x, y, duration);

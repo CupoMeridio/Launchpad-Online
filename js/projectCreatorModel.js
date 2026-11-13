@@ -11,6 +11,7 @@ import {
 import { validateProject, countRgbOnlyLights } from './projectValidator.js';
 import { normalizeAppearance, normalizeVisualizer, createDefaultAppearance, isFileAsset } from './appearanceModel.js';
 import { createPadStep, readPagePads, writePagePads } from './projectModel.js';
+import { normalizeCustomAnimations } from './customAnimationModel.js';
 
 /**
  * Drops the color variants a target device cannot display.
@@ -47,6 +48,8 @@ export function buildAnimationCatalog(animationRegistry, targetDevice = DEFAULT_
     const groups = new Map();
 
     Object.entries(animationRegistry).forEach(([animationName, anim]) => {
+        // User-drawn animations are listed separately, not as catalog groups.
+        if (anim.custom) return;
         const baseName = anim.baseName || animationName;
         const category = anim.category || 'special';
         const color = anim.color ?? null;
@@ -201,6 +204,23 @@ export function removePadStepSample(page, padIndex, stepIndex = 0) {
     }
 }
 
+/**
+ * Removes a light from every pad step that uses it (e.g. a deleted custom animation).
+ * @param {object} draft
+ * @param {string} lightName
+ * @returns {number} How many steps lost the light.
+ */
+export function clearLightReferences(draft, lightName) {
+    let cleared = 0;
+    draft.pages.forEach(page => (page.padSteps || []).forEach(steps => steps.forEach(step => {
+        if (step.light === lightName) {
+            step.light = null;
+            cleared++;
+        }
+    })));
+    return cleared;
+}
+
 export function assignPadStepLight(page, padIndex, stepIndex, animationName) {
     const steps = getPadSteps(page, padIndex);
     if (stepIndex >= 0 && stepIndex < steps.length) {
@@ -256,7 +276,7 @@ export async function assignSampleGuarded({ targetDraft, page, padIndex, stepInd
 export function checkDraftDeviceConsistency(draft) {
     if (!draft || normalizeTargetDevice(draft.targetDevice) !== 'legacy') return { rgbLightCount: 0 };
     const lightNames = draft.pages.flatMap(page => (page.padSteps || []).flat().map(step => step.light));
-    return { rgbLightCount: countRgbOnlyLights(lightNames) };
+    return { rgbLightCount: countRgbOnlyLights(lightNames, draft.animations || []) };
 }
 
 export function createProjectId(name) {
@@ -294,9 +314,10 @@ export function normalizeZipPath(rawPath) {
  * @param {string} [options.targetDevice] - 'universal' | 'legacy' | 'rgb'.
  * @param {object} [options.appearance] - Canonical appearance (see appearanceModel.js);
  *   each asset is a catalog path string, an uploaded File, or null.
+ * @param {object[]} [options.animations] - Custom light animations (see customAnimationModel.js).
  * @returns {object} Draft object with changeCount and savedChangeCount tracking.
  */
-export function createDraft(name = '', pages = null, { targetDevice, appearance } = {}) {
+export function createDraft(name = '', pages = null, { targetDevice, appearance, animations } = {}) {
     return {
         name: typeof name === 'string' ? name.trim() : '',
         targetDevice: normalizeTargetDevice(targetDevice),
@@ -309,7 +330,8 @@ export function createDraft(name = '', pages = null, { targetDevice, appearance 
             ...createDefaultAppearance(),
             ...appearance,
             visualizer: normalizeVisualizer({ visualizer: appearance?.visualizer })
-        }
+        },
+        animations: normalizeCustomAnimations(animations)
     };
 }
 
@@ -397,7 +419,8 @@ export function buildDraftFromProject(projectData, fileMap = new Map()) {
 
     const draft = createDraft(projectData.name, draftPages, {
         targetDevice: projectData.targetDevice,
-        appearance: normalizeAppearance(projectData, path => (isAppAssetPath(path) ? path : getFile(path)))
+        appearance: normalizeAppearance(projectData, path => (isAppAssetPath(path) ? path : getFile(path))),
+        animations: projectData.animations
     });
     draft.missingAssets = missingAssets;
     return draft;
@@ -489,6 +512,9 @@ export function buildProjectExport(draft) {
     const id = createProjectId(name);
     const project = { id, name, targetDevice: normalizeTargetDevice(draft?.targetDevice), pages };
     exportAppearance(draft.appearance || createDefaultAppearance(), project, files);
+    if (draft.animations?.length > 0) {
+        project.animations = normalizeCustomAnimations(draft.animations);
+    }
 
     const validation = validateProject(project);
     if (!validation.isValid) {

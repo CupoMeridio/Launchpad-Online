@@ -99,6 +99,7 @@ Launchpad-Online/
 │   │   ├── padEditor.js    # Page tabs, pad grid, pad inspector (steps, sample, timing)
 │   │   ├── lightPicker.js  # Animation catalog, presets, dynamic text lights
 │   │   ├── themeEditor.js  # Draft appearance (background, skin, icon, visualizer, layout)
+│   │   ├── animationEditor.js # Custom Lights view: animation library, frames, brush, drawing on the pads
 │   │   ├── preview.js      # Pad step preview and hold-to-play
 │   │   ├── importExport.js # Project .zip export and import
 │   │   └── dom.js          # Small DOM helpers
@@ -113,6 +114,8 @@ Launchpad-Online/
 │   ├── concurrency.js      # Bounded-concurrency helper (audio loading, zip import)
 │   ├── constants.js        # Global constants and grid definitions
 │   ├── creatorLoader.js    # Lazy loader for the Studio Creator module and styles
+│   ├── customAnimationModel.js # Custom (user-drawn) light animations: frames, validation, compilation
+│   ├── customAnimations.js # Custom animation playback and registry (project + Studio draft)
 │   ├── i18n.js             # Locale loading and translation lookup
 │   ├── interaction.js      # User interaction handling
 │   ├── lights.js           # Light animation engine and presets

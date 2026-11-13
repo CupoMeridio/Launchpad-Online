@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ProjectCreatorSession } from '../js/projectCreatorState.js';
 import { MAX_PROJECT_PAGES } from '../js/constants.js';
+import { createDraft } from '../js/projectCreatorModel.js';
 
 test('ProjectCreatorSession lifecycle: open, state initialization, and close', () => {
     const session = new ProjectCreatorSession();
@@ -290,4 +291,174 @@ test('assignStepSample decodes into the selected step and notifies once assigned
     const failed = await session.assignStepSample({ name: 'bad.wav' }, async () => { throw new Error('decode'); });
     assert.equal(failed, 'failed');
     assert.equal(notifications.length, 0);
+});
+
+test('animation editor: create, select, rename, playback and delete with reference cleanup', () => {
+    const session = new ProjectCreatorSession();
+    session.open();
+    const notifications = recordChanges(session);
+
+    const first = session.createAnimation('Intro');
+    const second = session.createAnimation();
+    assert.deepEqual([first, second], ['anim-1', 'anim-2']);
+    assert.equal(session.getActiveAnimation().id, 'anim-2', 'a new animation is selected');
+    assert.equal(session.isDirty(), true);
+
+    assert.equal(session.selectAnimation('anim-1'), true);
+    assert.equal(session.renameAnimation('Opening'), true);
+    assert.equal(session.setAnimationPlayback('hold'), true);
+    assert.equal(session.setAnimationPlayback('forever'), false);
+    assert.deepEqual(session.getActiveAnimation(), {
+        id: 'anim-1', name: 'Opening', playback: 'hold', frames: [{ duration: 100, pads: {} }]
+    });
+
+    session.setActivePadIndex(2);
+    session.assignStepLight(2, 0, 'custom:anim-1');
+    notifications.length = 0;
+
+    assert.equal(session.deleteAnimation(), true);
+    assert.equal(session.getCurrentStep().light, null, 'pads lose the deleted light');
+    assert.equal(session.getActiveAnimation().id, 'anim-2', 'the neighbour is selected');
+    assert.deepEqual(notifications, [[{ type: 'animations', field: 'list' }, { type: 'pads', field: 'light' }]]);
+});
+
+test('animation editor: frame operations keep a sensible selection', () => {
+    const session = new ProjectCreatorSession();
+    session.open();
+    session.createAnimation('Chase');
+
+    assert.equal(session.setFrameDuration(250), true);
+    assert.equal(session.setFrameDuration(1), false, 'out of range');
+    session.paintPad(0, 0);
+    assert.equal(session.duplicateActiveFrame(), true);
+    assert.equal(session.getActiveFrameIndex(), 1);
+    assert.deepEqual(session.getActiveFrame(), { duration: 250, pads: { '0,0': { color: 'red', level: 'full' } } });
+
+    assert.equal(session.addFrame(), true);
+    assert.equal(session.getActiveFrameIndex(), 2);
+    assert.deepEqual(session.getActiveFrame(), { duration: 250, pads: {} }, 'new frames are empty, same duration');
+
+    assert.equal(session.moveActiveFrame(-2), true);
+    assert.equal(session.getActiveFrameIndex(), 0);
+    assert.deepEqual(session.getActiveAnimation().frames.map(f => Object.keys(f.pads).length), [0, 1, 1]);
+    assert.equal(session.moveActiveFrame(-1), false, 'already first');
+
+    assert.equal(session.deleteActiveFrame(), true);
+    assert.equal(session.getActiveAnimation().frames.length, 2);
+    session.deleteActiveFrame();
+    assert.equal(session.deleteActiveFrame(), false, 'the last frame cannot be deleted');
+});
+
+test('animation editor: the brush paints, toggles and erases pads', () => {
+    const session = new ProjectCreatorSession();
+    session.open();
+    session.createAnimation();
+    const pads = () => session.getActiveFrame().pads;
+
+    session.paintPad(1, 1);
+    assert.deepEqual(pads(), { '1,1': { color: 'red', level: 'full' } });
+    session.paintPad(1, 1);
+    assert.deepEqual(pads(), {}, 'same brush again toggles the pad off');
+
+    session.setBrush({ color: 'green', level: 'low' });
+    session.paintPad(2, 2);
+    session.paintPad(3, 3);
+    assert.deepEqual(pads()['2,2'], { color: 'green', level: 'low' });
+
+    session.setBrush({ erase: true });
+    session.paintPad(2, 2);
+    assert.equal(session.paintPad(5, 5), false, 'erasing an empty pad changes nothing');
+    assert.deepEqual(Object.keys(pads()), ['3,3']);
+
+    assert.equal(session.setBrush({ level: 'dim' }), false);
+    assert.equal(session.clearActiveFrame(), true);
+    assert.equal(session.clearActiveFrame(), false);
+});
+
+test('animation editor: opening a draft selects its first animation', () => {
+    const session = new ProjectCreatorSession();
+    const draft = createDraft('With animations', null, {
+        animations: [{ id: 'a', name: 'A', playback: 'once', frames: [{ duration: 100, pads: {} }] }]
+    });
+    session.open(draft);
+    assert.equal(session.getActiveAnimation().id, 'a');
+    assert.equal(session.setCreatorView('animations'), true);
+});
+
+test('animation editor: dragging a stroke paints or erases like its first pad', () => {
+    const session = new ProjectCreatorSession();
+    session.open();
+    session.createAnimation();
+    const lit = () => Object.keys(session.getActiveFrame().pads).sort();
+
+    session.paintPad(0, 0); // paints: the stroke paints
+    session.continueStroke(1, 0);
+    session.continueStroke(1, 0); // dragging back over a pad does not toggle it off
+    session.continueStroke(2, 0);
+    assert.deepEqual(lit(), ['0,0', '1,0', '2,0']);
+    session.endStroke();
+    assert.equal(session.continueStroke(3, 0), false, 'no stroke after the release');
+
+    session.paintPad(1, 0); // toggles a lit pad off: the stroke erases
+    session.continueStroke(2, 0);
+    session.continueStroke(4, 4);
+    assert.deepEqual(lit(), ['0,0']);
+
+    session.selectFrame(0);
+    assert.equal(session.continueStroke(5, 5), false, 'changing frame ends the stroke');
+});
+
+test('animation editor: the fill tool fills a region and starts no stroke', () => {
+    const session = new ProjectCreatorSession();
+    session.open();
+    session.createAnimation();
+    assert.equal(session.setBrush({ tool: 'bucket' }), false);
+    assert.equal(session.setBrush({ tool: 'fill', color: 'blue' }), true);
+
+    assert.equal(session.paintPad(4, 4), true);
+    assert.equal(Object.keys(session.getActiveFrame().pads).length, 64);
+    assert.equal(session.continueStroke(0, 0), false);
+    assert.equal(session.paintPad(4, 4), false, 'already filled with this colour');
+
+    session.setBrush({ erase: true });
+    session.paintPad(0, 0);
+    assert.deepEqual(session.getActiveFrame().pads, {});
+});
+
+test('animation editor: transforms, copy and paste, onion skin', () => {
+    const session = new ProjectCreatorSession();
+    session.open();
+    session.createAnimation();
+    session.paintPad(0, 0);
+    session.addFrame();
+    session.paintPad(0, 7);
+
+    assert.equal(session.transformFrames('shiftRight'), true);
+    assert.deepEqual(Object.keys(session.getActiveFrame().pads), ['1,7']);
+    assert.deepEqual(Object.keys(session.getActiveAnimation().frames[0].pads), ['0,0'], 'other frames untouched');
+    assert.equal(session.transformFrames('flipVertical', true), true);
+    assert.deepEqual(session.getActiveAnimation().frames.map(f => Object.keys(f.pads)), [['0,7'], ['1,0']]);
+    assert.equal(session.transformFrames('explode'), false);
+
+    assert.equal(session.hasFrameClipboard(), false);
+    assert.equal(session.pasteIntoActiveFrame(), false);
+    session.copyActiveFrame();
+    session.getActiveFrame().pads['1,0'].color = 'green';
+    session.createAnimation('Other'); // the clipboard survives switching animation
+    assert.equal(session.pasteIntoActiveFrame(), true);
+    assert.deepEqual(session.getActiveFrame().pads, { '1,0': { color: 'red', level: 'full' } }, 'a copy, not a reference');
+
+    assert.equal(session.getPreviousFrame(), null, 'the first frame has none');
+    session.addFrame();
+    assert.deepEqual(session.getPreviousFrame().pads, { '1,0': { color: 'red', level: 'full' } });
+    assert.equal(session.isOnionSkinEnabled(), false);
+    assert.equal(session.setOnionSkin(true), true);
+    assert.equal(session.setOnionSkin(true), false);
+
+    session.deleteAnimation();
+    assert.equal(session.hasFrameClipboard(), true, 'tools outlive deletions');
+    session.close();
+    session.open();
+    assert.equal(session.hasFrameClipboard(), false, 'a new session starts clean');
+    assert.equal(session.isOnionSkinEnabled(), false);
 });

@@ -12,6 +12,7 @@ import {
     MAX_PAD_STEPS,
     MAX_PROJECT_PAGES
 } from '../constants.js';
+import { getShortestFrameMs, MIN_VISIBLE_FRAME_MS, parseCustomLightName } from '../customAnimationModel.js';
 import { getTranslation, translate } from '../i18n.js';
 import { animations } from '../lights.js';
 import { showNotification } from '../notifications.js';
@@ -23,7 +24,8 @@ import { listen, setProps } from './dom.js';
 import {
     getAnimationColor,
     getAnimationDisplayName,
-    getAnimationSwatchBackground,
+    getAnimationSwatchColors,
+    paintLightSwatch,
     renderLightPresets
 } from './lightPicker.js';
 import { previewPad, stopPreview } from './preview.js';
@@ -86,11 +88,17 @@ export function renderPadGrid() {
         if (led) labels.push(translate('creator.padLightAssigned'));
         pad.setAttribute('aria-label', labels.join(', '));
 
+        const ledColor = led ? getAnimationColor(led) : null;
         if (led) {
             pad.dataset.creatorLed = led;
-            pad.style.setProperty('--creator-led-color', getAnimationColor(led));
         } else {
             delete pad.dataset.creatorLed;
+        }
+        // A light without colours gets a dashed ring, never a stand-in colour.
+        pad.classList.toggle('creator-pad-colorless', Boolean(led) && !ledColor);
+        if (ledColor) {
+            pad.style.setProperty('--creator-led-color', ledColor);
+        } else {
             pad.style.removeProperty('--creator-led-color');
         }
     }
@@ -206,14 +214,40 @@ function renderPadSampleControls(sample, animation, isMomentary) {
     setProps('creator-remove-sample', { disabled: !sample });
 }
 
+function findDraftAnimation(lightName) {
+    const id = parseCustomLightName(lightName);
+    return id === null ? null : creatorSession.getAnimations().find(animation => animation.id === id) ?? null;
+}
+
+/**
+ * A custom light plays at its own speed, or stretched to the sample when synced;
+ * compressed too much, its shortest frames may not be seen at all.
+ */
+function describeCustomLightTiming(step, sample, animation) {
+    const syncedMs = sample && step.syncToSound && step.buffer?.duration > 0 ? step.buffer.duration * 1000 : 0;
+    if (!syncedMs) {
+        const naturalMs = animation.frames.reduce((sum, frame) => sum + frame.duration, 0);
+        return translate('creator.customLightOwnSpeed', { seconds: (naturalMs / 1000).toFixed(2) });
+    }
+    const shortest = getShortestFrameMs(animation, syncedMs);
+    return shortest < MIN_VISIBLE_FRAME_MS
+        ? translate('creator.customLightTooFast', { ms: Math.round(shortest) })
+        : translate('creator.customLightSynced', { seconds: (syncedMs / 1000).toFixed(2) });
+}
+
 /**
  * Light timing: "sync to sound" needs a sample; the manual duration is shown
- * whenever the light is not synced to one.
+ * whenever the light is not synced to one. Custom lights have no manual
+ * duration (their frames set it): a note explains their timing instead.
  */
 function renderLightTiming(step, sample) {
+    const custom = findDraftAnimation(step.light);
     setProps('creator-light-sync', { checked: step.syncToSound, disabled: !sample });
     setProps('creator-light-duration', { value: step.duration });
-    setProps('creator-manual-light-duration', { hidden: Boolean(sample && step.syncToSound) });
+    setProps('creator-manual-light-duration', { hidden: Boolean(custom || (sample && step.syncToSound)) });
+    setProps('creator-custom-light-timing', custom
+        ? { hidden: false, textContent: describeCustomLightTiming(step, sample, custom) }
+        : { hidden: true });
 }
 
 function renderPadLightControls(currentStep, sample, animation, isMomentary) {
@@ -227,7 +261,11 @@ function renderPadLightControls(currentStep, sample, animation, isMomentary) {
     if (!animation) return;
     setProps('creator-assigned-name', { textContent: getAnimationDisplayName(animation) });
     const assignedSwatch = document.getElementById('creator-assigned-swatch');
-    if (assignedSwatch) assignedSwatch.style.background = getAnimationSwatchBackground(animation);
+    if (assignedSwatch) {
+        const colors = getAnimationSwatchColors(animation);
+        paintLightSwatch(assignedSwatch, colors);
+        assignedSwatch.title = colors.length ? '' : getTranslation('creator.lightNoColor');
+    }
     if (showTiming) renderLightTiming(currentStep, sample);
 }
 

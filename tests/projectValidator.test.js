@@ -263,3 +263,63 @@ test('checkProjectDeviceConsistency counts RGB animations on legacy projects', (
     project.pages[0].lights[0] = ['fade_red'];
     assert.deepEqual(checkProjectDeviceConsistency(project), { rgbLightCount: 0 });
 });
+
+function withCustomAnimation(animation = {}) {
+    const project = createValidProject();
+    project.animations = [{
+        id: 'intro',
+        name: 'Intro',
+        playback: 'once',
+        frames: [{ duration: 100, pads: { '0,0': { color: 'red', level: 'full' } } }],
+        ...animation
+    }];
+    project.pages[0].lights[5] = ['custom:intro'];
+    return project;
+}
+
+test('custom animations: a well-formed list and its references are valid', () => {
+    const result = validateProject(withCustomAnimation());
+    assert.deepEqual(result.errors, []);
+});
+
+test('custom animations: malformed fields are reported precisely', () => {
+    const errors = validateProject(withCustomAnimation({
+        id: 'Bad Id!',
+        playback: 'forever',
+        frames: [
+            { duration: 5, pads: { '9,9': { color: 'red' }, '1,1': { color: 'nope' }, '2,2': { color: 'red', level: 'dim' } } },
+            { duration: 100, pads: [] }
+        ]
+    })).errors.join('\n');
+    assert.match(errors, /Animation 1: "id" must use lowercase letters/);
+    assert.match(errors, /Animation 1: "playback" must be one of: once, hold/);
+    assert.match(errors, /Animation 1, Frame 1: duration must be between 10 and 10000 ms/);
+    assert.match(errors, /Frame 1, pad "9,9": is not a pad of the 8x8 grid/);
+    assert.match(errors, /Frame 1, pad "1,1": has an unknown color "nope"/);
+    assert.match(errors, /Frame 1, pad "2,2": level must be one of: full, medium, low/);
+    assert.match(errors, /Animation 1, Frame 2: "pads" must be an object/);
+
+    const empty = withCustomAnimation({ frames: [] });
+    assert.match(validateProject(empty).errors.join('\n'), /must have between 1 and 256 frames/);
+
+    const notArray = createValidProject();
+    notArray.animations = {};
+    assert.match(validateProject(notArray).errors.join('\n'), /"animations" must be an array if provided/);
+});
+
+test('custom animations: duplicate ids and dangling references are errors', () => {
+    const project = withCustomAnimation();
+    project.animations.push({ ...project.animations[0] });
+    project.pages[0].lights[6] = ['custom:missing'];
+    const errors = validateProject(project).errors.join('\n');
+    assert.match(errors, /Animation 2: duplicate id "intro"/);
+    assert.match(errors, /Page 1, Light 6, Step 0: custom animation "missing" is not defined/);
+});
+
+test('custom animations with RGB-only colours count for legacy targets', () => {
+    const project = withCustomAnimation({ frames: [{ duration: 100, pads: { '0,0': { color: 'blue', level: 'full' } } }] });
+    project.targetDevice = 'legacy';
+    assert.deepEqual(checkProjectDeviceConsistency(project), { rgbLightCount: 1 });
+    project.targetDevice = 'rgb';
+    assert.deepEqual(checkProjectDeviceConsistency(project), { rgbLightCount: 0 });
+});
