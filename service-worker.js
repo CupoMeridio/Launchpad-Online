@@ -34,7 +34,7 @@ function debug(...args) {
 // CUSTOMIZATION: When you make changes to App Shell files, update this timestamp.
 // This invalidates the old cache and forces the Service Worker to download new files.
 // Example: 'launchpad-pwa-cache-2026-03-21-1430' → update to → 'launchpad-pwa-cache-2026-03-21-1505'
-const CACHE_NAME = 'launchpad-pwa-cache-2026-11-09-2048';
+const CACHE_NAME = 'launchpad-pwa-cache-2026-11-13-0212';
 
 // Get the base path dynamically to support both local dev and GitHub Pages
 const basePath = self.registration.scope.replace(self.location.origin, '');
@@ -46,6 +46,8 @@ const APP_SHELL_FILES = [
     `${basePath}`, // The root, for requests to the main page
     `${basePath}index.html`,
     `${basePath}css/style.css`,
+    `${basePath}css/sidebar.css`,
+    `${basePath}css/creator.css`,
     `${basePath}css/launchpad.css`,
     `${basePath}js/animationClasses.js`,
     `${basePath}js/animationData.js`,
@@ -62,7 +64,9 @@ const APP_SHELL_FILES = [
     `${basePath}js/appearanceModel.js`,
     `${basePath}js/audio.js`,
     `${basePath}js/constants.js`,
+    `${basePath}js/creatorLoader.js`,
     `${basePath}js/formControls.js`,
+    `${basePath}js/i18n.js`,
     `${basePath}js/interaction.js`,
     `${basePath}js/launchpadView.js`,
     `${basePath}js/lights.js`,
@@ -71,12 +75,19 @@ const APP_SHELL_FILES = [
     `${basePath}js/midi-profiles/DeviceProfile.js`,
     `${basePath}js/midi-profiles/LaunchpadLegacy.js`,
     `${basePath}js/midi-profiles/LaunchpadRGB.js`,
+    `${basePath}js/midi-profiles/modelDetection.js`,
     `${basePath}js/midi-profiles/ProfileRegistry.js`,
+    `${basePath}js/notifications.js`,
     `${basePath}js/physicalInterface.js`,
     `${basePath}js/project.js`,
+    `${basePath}js/projectModel.js`,
     `${basePath}js/projectCreator.js`,
     `${basePath}js/projectCreatorModel.js`,
+    `${basePath}js/projectCreatorState.js`,
     `${basePath}js/projectZip.js`,
+    `${basePath}js/projectState.js`,
+    `${basePath}js/settings.js`,
+    `${basePath}js/staticCatalog.js`,
     `${basePath}js/ui.js`,
     `${basePath}js/background.js`,
     `${basePath}js/visibilityManager.js`,

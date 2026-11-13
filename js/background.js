@@ -4,7 +4,7 @@
  * and applies visual effects (overlay opacity, blur, brightness).
  */
 
-import { syncInputSlider, isCustomizationTabActive } from './ui.js';
+import { syncInputSlider } from './formControls.js';
 
 let currentBackgroundEl = null;
 
@@ -14,21 +14,30 @@ const MEDIA_EFFECT_DEFAULTS = {
     brightness: 100
 };
 
+// Whether the panel hosting the media effect controls is on screen. Pushed by
+// the UI layer (ui.js), which owns menu and tab state, so this module never
+// needs to import the UI.
+let mediaControlsPanelVisible = false;
+
+/**
+ * Informs the module whether the Background customization panel is visible.
+ * @param {boolean} isVisible
+ */
+export function setMediaControlsPanelVisible(isVisible) {
+    mediaControlsPanelVisible = Boolean(isVisible);
+    updateVideoControlsVisibility();
+}
+
 /**
  * Shows the media effect controls only when a background is active AND the
- * Background tab of the Customization menu is the currently visible one.
- * Relies on ui.js as the single source of truth for the active tab
- * (isCustomizationTabActive) and for the menu open state (`#customization-menu`).
+ * Background panel of the Customization menu is visible.
  */
-export function updateVideoControlsVisibility() {
-    const customizationMenu = document.getElementById('customization-menu');
+function updateVideoControlsVisibility() {
     const videoControls = document.querySelector('.media-controls');
-    if (!videoControls || !customizationMenu) return;
+    if (!videoControls) return;
 
     const isMediaActive = currentBackgroundEl !== null;
-    const isMenuOpen = customizationMenu.classList.contains('open') && isCustomizationTabActive('background');
-
-    videoControls.classList.toggle('visible', isMediaActive && isMenuOpen);
+    videoControls.classList.toggle('visible', isMediaActive && mediaControlsPanelVisible);
 }
 
 function isImageSource(source, file) {

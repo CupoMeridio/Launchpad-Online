@@ -96,74 +96,25 @@ export function createProjectPage(pageNumber) {
     const padSteps = Array.from({ length: LAUNCHPAD_PADS }, () => [createEmptyPadStep()]);
     return {
         name: `Page ${pageNumber}`,
-        padSteps,
-        samples: Array(LAUNCHPAD_PADS).fill(null),
-        soundBuffers: Array(LAUNCHPAD_PADS).fill(null),
-        sampleTokens: Array(LAUNCHPAD_PADS).fill(0),
-        lights: Array(LAUNCHPAD_PADS).fill(''),
-        lightSyncToSound: Array(LAUNCHPAD_PADS).fill(true),
-        lightDurations: Array(LAUNCHPAD_PADS).fill(DEFAULT_LIGHT_DURATION_SEC)
+        padSteps
     };
 }
 
+/**
+ * Returns a pad's mutable step list. `padSteps` is the single source of truth:
+ * the legacy page-level mirrors (samples, lights, ...) are derived only when
+ * exporting, so there is nothing to reconcile here.
+ * @param {object} page
+ * @param {number} padIndex
+ * @returns {Array<object>}
+ */
 export function getPadSteps(page, padIndex) {
     if (!page) return [];
     if (!page.padSteps) {
-        page.padSteps = Array.from({ length: LAUNCHPAD_PADS }, (_, i) => [{
-            sample: page.samples?.[i] || null,
-            soundBuffer: page.soundBuffers?.[i] || null,
-            light: page.lights?.[i] || '',
-            lightSyncToSound: page.lightSyncToSound?.[i] ?? true,
-            lightDuration: page.lightDurations?.[i] ?? DEFAULT_LIGHT_DURATION_SEC
-        }]);
+        page.padSteps = Array.from({ length: LAUNCHPAD_PADS }, () => [createEmptyPadStep()]);
     }
     if (!page.padSteps[padIndex] || page.padSteps[padIndex].length === 0) {
-        page.padSteps[padIndex] = [{
-            sample: page.samples?.[padIndex] || null,
-            soundBuffer: page.soundBuffers?.[padIndex] || null,
-            light: page.lights?.[padIndex] || '',
-            lightSyncToSound: page.lightSyncToSound?.[padIndex] ?? true,
-            lightDuration: page.lightDurations?.[padIndex] ?? DEFAULT_LIGHT_DURATION_SEC
-        }];
-    }
-    // Reflect mutations between step-0 and legacy page-level mirrors
-    if (page.padSteps[padIndex]?.[0]) {
-        const step0 = page.padSteps[padIndex][0];
-        if (page.samples) {
-            if (page.samples[padIndex] && page.samples[padIndex] !== step0.sample) {
-                step0.sample = page.samples[padIndex];
-            } else if (step0.sample) {
-                page.samples[padIndex] = step0.sample;
-            }
-        }
-        if (page.soundBuffers) {
-            if (page.soundBuffers[padIndex] && page.soundBuffers[padIndex] !== step0.soundBuffer) {
-                step0.soundBuffer = page.soundBuffers[padIndex];
-            } else if (step0.soundBuffer) {
-                page.soundBuffers[padIndex] = step0.soundBuffer;
-            }
-        }
-        if (page.lights) {
-            if (page.lights[padIndex] && page.lights[padIndex] !== step0.light) {
-                step0.light = page.lights[padIndex];
-            } else if (step0.light) {
-                page.lights[padIndex] = step0.light;
-            }
-        }
-        if (page.lightSyncToSound) {
-            if (page.lightSyncToSound[padIndex] === false) {
-                step0.lightSyncToSound = false;
-            } else if (step0.lightSyncToSound === false) {
-                page.lightSyncToSound[padIndex] = false;
-            }
-        }
-        if (page.lightDurations) {
-            if (typeof page.lightDurations[padIndex] === 'number' && page.lightDurations[padIndex] !== DEFAULT_LIGHT_DURATION_SEC) {
-                step0.lightDuration = page.lightDurations[padIndex];
-            } else if (typeof step0.lightDuration === 'number' && step0.lightDuration !== DEFAULT_LIGHT_DURATION_SEC) {
-                page.lightDurations[padIndex] = step0.lightDuration;
-            }
-        }
+        page.padSteps[padIndex] = [createEmptyPadStep()];
     }
     return page.padSteps[padIndex];
 }
@@ -183,12 +134,6 @@ export function removePadStep(page, padIndex, stepIndex) {
     if (removedStep) {
         removedStep.sampleToken = (removedStep.sampleToken || 0) + 1;
     }
-    // Sync step 0 mirror
-    if (page.samples) page.samples[padIndex] = steps[0]?.sample || null;
-    if (page.soundBuffers) page.soundBuffers[padIndex] = steps[0]?.soundBuffer || null;
-    if (page.lights) page.lights[padIndex] = steps[0]?.light || '';
-    if (page.lightSyncToSound) page.lightSyncToSound[padIndex] = steps[0]?.lightSyncToSound ?? true;
-    if (page.lightDurations) page.lightDurations[padIndex] = steps[0]?.lightDuration ?? DEFAULT_LIGHT_DURATION_SEC;
     return true;
 }
 
@@ -206,13 +151,6 @@ export async function assignPadStepSample(page, padIndex, stepIndex, file, decod
         targetStep.sampleToken = 0;
     }
     const token = ++targetStep.sampleToken;
-
-    if (stepIndex === 0) {
-        if (!page.sampleTokens) {
-            page.sampleTokens = Array(LAUNCHPAD_PADS).fill(0);
-        }
-        page.sampleTokens[padIndex]++;
-    }
 
     let buffer = null;
     if (typeof decoder === 'function') {
@@ -237,11 +175,6 @@ export async function assignPadStepSample(page, padIndex, stepIndex, file, decod
     targetStep.sample = file;
     targetStep.soundBuffer = buffer;
 
-    if (currentSteps[0] === targetStep) {
-        if (page.samples) page.samples[padIndex] = file;
-        if (page.soundBuffers) page.soundBuffers[padIndex] = buffer;
-    }
-
     return 'assigned';
 }
 
@@ -256,24 +189,12 @@ export function removePadStepSample(page, padIndex, stepIndex = 0) {
             step.soundBuffer = null;
         }
     }
-
-    if (stepIndex === 0) {
-        if (!page.sampleTokens) {
-            page.sampleTokens = Array(LAUNCHPAD_PADS).fill(0);
-        }
-        page.sampleTokens[padIndex]++;
-        if (page.samples) page.samples[padIndex] = null;
-        if (page.soundBuffers) page.soundBuffers[padIndex] = null;
-    }
 }
 
 export function assignPadStepLight(page, padIndex, stepIndex, animationName) {
     const steps = getPadSteps(page, padIndex);
     if (stepIndex >= 0 && stepIndex < steps.length) {
         steps[stepIndex].light = animationName || '';
-        if (stepIndex === 0 && page.lights) {
-            page.lights[padIndex] = steps[0].light;
-        }
     }
 }
 
@@ -281,9 +202,6 @@ export function setPadStepLightSync(page, padIndex, stepIndex, sync) {
     const steps = getPadSteps(page, padIndex);
     if (stepIndex >= 0 && stepIndex < steps.length) {
         steps[stepIndex].lightSyncToSound = Boolean(sync);
-        if (stepIndex === 0 && page.lightSyncToSound) {
-            page.lightSyncToSound[padIndex] = steps[0].lightSyncToSound;
-        }
     }
 }
 
@@ -293,18 +211,29 @@ export function setPadStepLightDuration(page, padIndex, stepIndex, duration) {
         steps[stepIndex].lightDuration = typeof duration === 'number' && Number.isFinite(duration)
             ? duration
             : DEFAULT_LIGHT_DURATION_SEC;
-        if (stepIndex === 0 && page.lightDurations) {
-            page.lightDurations[padIndex] = steps[0].lightDuration;
-        }
     }
 }
 
-export async function assignPadSample(page, padIndex, file, decoder = null) {
-    return assignPadStepSample(page, padIndex, 0, file, decoder);
-}
-
-export function removePadSample(page, padIndex) {
-    removePadStepSample(page, padIndex, 0);
+/**
+ * Decodes `file` and assigns it to a pad step, guarding against the editor
+ * swapping drafts while the decode is in flight. Deliberately free of DOM and
+ * UI concerns so the guard is testable without touching the creator module.
+ *
+ * @param {object} targetDraft - Draft captured when the decode started.
+ * @param {object} page - Page (owned by `targetDraft`) that holds the pad.
+ * @param {number} padIndex
+ * @param {number} stepIndex
+ * @param {File|Blob} file
+ * @param {Function|null} decoder - Async (file) => AudioBuffer.
+ * @param {Function} getActiveDraft - Returns the currently active draft.
+ * @returns {Promise<'assigned'|'failed'|'superseded'|'stale'>} 'stale' when the
+ *   active draft changed, so the caller must not re-render or mark it modified.
+ */
+export async function assignSampleGuarded(targetDraft, page, padIndex, stepIndex, file, decoder, getActiveDraft) {
+    if (!file || !page) return 'failed';
+    const result = await assignPadStepSample(page, padIndex, stepIndex, file, decoder);
+    if (getActiveDraft() !== targetDraft) return 'stale';
+    return result;
 }
 
 export function createProjectId(name) {
@@ -355,11 +284,7 @@ export function createDraft(name = '', pages = null, theme = {}) {
         coverImage: typeof theme?.coverImage === 'string' ? theme.coverImage : '',
         iconImage: typeof theme?.iconImage === 'string' ? theme.iconImage : '',
         backgroundMedia: typeof backgroundMedia === 'string' ? backgroundMedia : '',
-        visualizerMode: visualizer.mode,
-        visualizerColor1: visualizer.color1,
-        visualizerColor2: visualizer.color2,
-        visualizerGradient: visualizer.gradient,
-        visualizerGradientDirection: visualizer.gradientDirection,
+        visualizer,
         // `null` means "the project does not specify it" so the user's personal
         // rotation/size preference must not be overwritten.
         launchpadRotation: layout.rotation,
@@ -442,15 +367,10 @@ export function buildDraftFromProject(projectData, fileMap = new Map()) {
         }
 
         for (let padIdx = 0; padIdx < LAUNCHPAD_PADS; padIdx++) {
-            const rawSound = page.sounds?.[padIdx];
-            const rawLight = page.lights?.[padIdx];
-            const rawSync = page.lightSyncToSound?.[padIdx];
-            const rawDur = page.lightDurations?.[padIdx];
-
-            const soundSteps = Array.isArray(rawSound) ? rawSound : (rawSound ? [rawSound] : []);
-            const lightSteps = Array.isArray(rawLight) ? rawLight : (rawLight ? [rawLight] : []);
-            const syncSteps = Array.isArray(rawSync) ? rawSync : (typeof rawSync === 'boolean' ? [rawSync] : []);
-            const durSteps = Array.isArray(rawDur) ? rawDur : (typeof rawDur === 'number' ? [rawDur] : []);
+            const soundSteps = page.sounds?.[padIdx] || [];
+            const lightSteps = page.lights?.[padIdx] || [];
+            const syncSteps = page.lightSyncToSound?.[padIdx] || [];
+            const durSteps = page.lightDurations?.[padIdx] || [];
 
             const totalSteps = Math.max(soundSteps.length, lightSteps.length, 1);
             const steps = [];
@@ -473,10 +393,6 @@ export function buildDraftFromProject(projectData, fileMap = new Map()) {
             }
 
             draftPage.padSteps[padIdx] = steps;
-            draftPage.samples[padIdx] = steps[0]?.sample || null;
-            draftPage.lights[padIdx] = steps[0]?.light || '';
-            draftPage.lightSyncToSound[padIdx] = steps[0]?.lightSyncToSound ?? true;
-            draftPage.lightDurations[padIdx] = steps[0]?.lightDuration ?? DEFAULT_LIGHT_DURATION_SEC;
         }
 
         return draftPage;
@@ -496,11 +412,7 @@ export function buildDraftFromProject(projectData, fileMap = new Map()) {
         coverImage: coverFile ? projectData.coverImage : '',
         iconImage: iconFile ? projectData.iconImage : '',
         backgroundMedia: backgroundFile ? bgSource : '',
-        visualizerMode: visualizer.mode,
-        visualizerColor1: visualizer.color1,
-        visualizerColor2: visualizer.color2,
-        visualizerGradient: visualizer.gradient,
-        visualizerGradientDirection: visualizer.gradientDirection,
+        visualizer,
         launchpadRotation: layout.rotation,
         launchpadSize: layout.size,
         customCoverFile: coverFile,
@@ -522,7 +434,7 @@ export function buildProjectExport(draft) {
 
     const files = [];
     const pages = draft.pages.map((page, pageIndex) => {
-        const padCount = page?.padSteps?.length ?? page?.samples?.length;
+        const padCount = page?.padSteps?.length;
         if (padCount !== LAUNCHPAD_PADS) {
             throw new Error(`Each page must provide ${LAUNCHPAD_PADS} pad slots`);
         }

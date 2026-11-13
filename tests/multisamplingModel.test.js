@@ -11,8 +11,7 @@ import {
     assignPadStepLight,
     setPadStepLightSync,
     setPadStepLightDuration,
-    buildProjectExport,
-    buildDraftFromProject
+    buildProjectExport
 } from '../js/projectCreatorModel.js';
 import { exportProjectToZip, importProjectFromZip } from '../js/projectZip.js';
 import { validateProject } from '../js/projectValidator.js';
@@ -53,7 +52,7 @@ test('multisampling model manages pad step addition and removal within limits', 
     assert.equal(getPadSteps(freshPage, 0).length, 1);
 });
 
-test('multisampling step sample assignment and removal updates step-0 mirror', async () => {
+test('multisampling step sample assignment and removal updates the targeted step', async () => {
     const page = createProjectPage(1);
     addPadStep(page, 0);
 
@@ -63,24 +62,21 @@ test('multisampling step sample assignment and removal updates step-0 mirror', a
 
     // Assign to step 0
     await assignPadStepSample(page, 0, 0, fakeFile1, mockDecoder);
-    assert.equal(page.samples[0]?.name, 'sample-01.wav');
-    assert.equal(page.soundBuffers[0]?.duration, 1.5);
     assert.equal(getPadSteps(page, 0)[0].sample?.name, 'sample-01.wav');
+    assert.equal(getPadSteps(page, 0)[0].soundBuffer?.duration, 1.5);
 
     // Assign to step 1
     await assignPadStepSample(page, 0, 1, fakeFile2, mockDecoder);
-    assert.equal(page.samples[0]?.name, 'sample-01.wav', 'step-0 mirror untouched by step-1 mutation');
+    assert.equal(getPadSteps(page, 0)[0].sample?.name, 'sample-01.wav', 'step 0 untouched by step 1 mutation');
     assert.equal(getPadSteps(page, 0)[1].sample?.name, 'sample-02.wav');
 
-    // Remove step 0: step 1 becomes step 0 and step-0 mirror is updated
+    // Remove step 0: step 1 becomes step 0
     removePadStep(page, 0, 0);
     assert.equal(getPadSteps(page, 0).length, 1);
-    assert.equal(page.samples[0]?.name, 'sample-02.wav');
     assert.equal(getPadSteps(page, 0)[0].sample?.name, 'sample-02.wav');
 
     // Remove sample from remaining step 0
     removePadStepSample(page, 0, 0);
-    assert.equal(page.samples[0], null);
     assert.equal(getPadSteps(page, 0)[0].sample, null);
 });
 
@@ -95,7 +91,6 @@ test('multisampling step lights and timings synchronize correctly', () => {
 
     const steps = getPadSteps(page, 5);
     assert.equal(steps[0].light, 'fade_red');
-    assert.equal(page.lights[5], 'fade_red');
     assert.equal(steps[1].light, 'wave_blue');
     assert.equal(steps[1].lightSyncToSound, false);
     assert.equal(steps[1].lightDuration, 4.5);
@@ -205,8 +200,6 @@ test('async sample decode stays anchored to the targeted step even if steps shif
     // Index 1 (originally step 2) must remain untouched
     assert.equal(remainingSteps[1].sample, null);
     assert.equal(remainingSteps[1].soundBuffer, null);
-    // Mirror on page.samples[0] was updated because target step is now at index 0
-    assert.equal(page.samples[0]?.name, 'target-step.wav');
 });
 
 test('simultaneous uploads on different steps of the same pad do not cancel each other', async () => {

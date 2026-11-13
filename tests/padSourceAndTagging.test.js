@@ -62,10 +62,7 @@ const { animations } = await import('../js/lights.js');
 const { setPadSource, getPadSource, triggerPad, releasePad } = await import('../js/interaction.js');
 const { setWebColor, webColorMap, setWebModel, isLegacyModeActive, getWebColor, getEffectiveWebColorName } = await import('../js/webInterface.js');
 const { setDeviceProfile, getActiveDeviceProfile } = await import('../js/physicalInterface.js');
-const { buildAnimationCatalog, createProjectPage, assignPadSample, removePadSample, createDraft } = await import('../js/projectCreatorModel.js');
-const { assignSample, getDraft, setDraftForTesting } = await import('../js/projectCreator.js');
-const { audioEngine } = await import('../js/audio.js');
-const { ANIMATION_COLORS } = await import('../js/constants.js');
+const { createProjectPage, assignPadStepSample, removePadStepSample, createDraft, assignSampleGuarded, getPadSteps } = await import('../js/projectCreatorModel.js');
 
 test('all registered animations are pre-tagged with correct metadata', () => {
     const keys = Object.keys(animations);
@@ -105,7 +102,7 @@ test('pad source provider correctly routes pad presses and releases', () => {
     let configQueried = false;
 
     const mockProvider = {
-        getPadConfig: (index) => {
+        getPadConfig: (_index) => {
             configQueried = true;
             return {
                 soundIndex: undefined,
@@ -161,6 +158,7 @@ test('audioEngine stopSoundsWithPrefix isolates draft sounds from performance so
 test('creator sample token logic rejects superseded or canceled audio decodes', async () => {
     const page = createProjectPage(1);
     const targetIndex = 5;
+    const step = () => getPadSteps(page, targetIndex)[0];
 
     let resolveSlow = null;
     let resolveFast = null;
@@ -169,49 +167,49 @@ test('creator sample token logic rejects superseded or canceled audio decodes', 
     const fastDecode = new Promise(resolve => { resolveFast = resolve; });
 
     // First assignment starts (slow)
-    const p1 = assignPadSample(page, targetIndex, { name: 'slow.wav' }, () => slowDecode);
+    const p1 = assignPadStepSample(page, targetIndex, 0, { name: 'slow.wav' }, () => slowDecode);
     // Second assignment starts immediately after (fast)
-    const p2 = assignPadSample(page, targetIndex, { name: 'fast.wav' }, () => fastDecode);
+    const p2 = assignPadStepSample(page, targetIndex, 0, { name: 'fast.wav' }, () => fastDecode);
 
     // Fast resolves first
     resolveFast('fastBuffer');
     const res2 = await p2;
     assert.equal(res2, 'assigned');
-    assert.equal(page.samples[targetIndex].name, 'fast.wav');
-    assert.equal(page.soundBuffers[targetIndex], 'fastBuffer');
+    assert.equal(step().sample.name, 'fast.wav');
+    assert.equal(step().soundBuffer, 'fastBuffer');
 
     // Slow resolves late (superseded)
     resolveSlow('slowBuffer');
     const res1 = await p1;
     assert.equal(res1, 'superseded', 'Superseded assignment must return superseded');
-    assert.equal(page.samples[targetIndex].name, 'fast.wav');
-    assert.equal(page.soundBuffers[targetIndex], 'fastBuffer');
+    assert.equal(step().sample.name, 'fast.wav');
+    assert.equal(step().soundBuffer, 'fastBuffer');
 
     // User removes sample while another decode is in-flight
     let resolveLate = null;
     const lateDecode = new Promise(resolve => { resolveLate = resolve; });
-    const p3 = assignPadSample(page, targetIndex, { name: 'cancelled.wav' }, () => lateDecode);
+    const p3 = assignPadStepSample(page, targetIndex, 0, { name: 'cancelled.wav' }, () => lateDecode);
 
-    removePadSample(page, targetIndex);
-    assert.equal(page.samples[targetIndex], null);
-    assert.equal(page.soundBuffers[targetIndex], null);
+    removePadStepSample(page, targetIndex, 0);
+    assert.equal(step().sample, null);
+    assert.equal(step().soundBuffer, null);
 
     // Late decode resolves after removal
     resolveLate('cancelledBuffer');
     const res3 = await p3;
     assert.equal(res3, 'superseded', 'Decode after removal must return superseded');
-    assert.equal(page.samples[targetIndex], null);
-    assert.equal(page.soundBuffers[targetIndex], null);
+    assert.equal(step().sample, null);
+    assert.equal(step().soundBuffer, null);
 
     // Corrupt file decoding failure leaves previous valid sample intact
-    page.samples[targetIndex] = { name: 'good.wav' };
-    page.soundBuffers[targetIndex] = 'goodBuffer';
+    step().sample = { name: 'good.wav' };
+    step().soundBuffer = 'goodBuffer';
 
     const failDecode = Promise.reject(new Error('Corrupt file'));
-    const pFail = await assignPadSample(page, targetIndex, { name: 'corrupted.wav' }, () => failDecode);
+    const pFail = await assignPadStepSample(page, targetIndex, 0, { name: 'corrupted.wav' }, () => failDecode);
     assert.equal(pFail, 'failed', 'Decode failure must return failed');
-    assert.equal(page.samples[targetIndex].name, 'good.wav', 'Previous sample must remain intact on decode error');
-    assert.equal(page.soundBuffers[targetIndex], 'goodBuffer', 'Previous buffer must remain intact on decode error');
+    assert.equal(step().sample.name, 'good.wav', 'Previous sample must remain intact on decode error');
+    assert.equal(step().soundBuffer, 'goodBuffer', 'Previous buffer must remain intact on decode error');
 });
 
 test('setWebColor sets dataset.ledColor and --led-level for monotonic white LED steps and clears on off', () => {
@@ -302,39 +300,39 @@ test('setDeviceProfile updates active profile and dispatches deviceprofilechange
     assert.equal(receivedEvent?.detail?.profile, null);
 });
 
-test('assignSample discards decode results if active draft changed during decoding (draft !== targetDraft)', async () => {
+test('assignSampleGuarded discards decode results if the active draft changed during decoding', async () => {
     const draftA = createDraft('Draft A');
     const draftB = createDraft('Draft B');
+    const page = draftA.pages[0];
 
-    setDraftForTesting(draftA);
-    assert.equal(getDraft(), draftA);
-
+    let activeDraft = draftA;
     let resolveDecode = null;
     const decodePromise = new Promise(resolve => { resolveDecode = resolve; });
-    const originalDecode = audioEngine.decodeAudioFile;
-    audioEngine.decodeAudioFile = () => decodePromise;
 
-    try {
-        const fakeFile = { name: 'delayed.wav' };
-        const assignPromise = assignSample(fakeFile);
+    const assignment = assignSampleGuarded(
+        draftA,
+        page,
+        0,
+        0,
+        { name: 'delayed.wav' },
+        () => decodePromise,
+        () => activeDraft
+    );
 
-        // While decode is in-flight, user switches active draft to Draft B
-        setDraftForTesting(draftB);
-        assert.equal(getDraft(), draftB);
+    // While decode is in-flight, the user switches to Draft B
+    activeDraft = draftB;
 
-        // Decode finishes late for Draft A
-        resolveDecode('decodedAudioBuffer');
-        await assignPromise;
+    // Decode finishes late for Draft A
+    resolveDecode('decodedAudioBuffer');
+    const status = await assignment;
 
-        // Draft B must remain pristine (never mutated by Draft A's late decode)
-        assert.equal(draftB.changeCount, 0, 'New draft changeCount must not increment');
-        assert.equal(draftB.pages[0].samples[0], null, 'New draft pad 0 must not receive sample');
-        assert.equal(draftB.pages[0].soundBuffers[0], null, 'New draft pad 0 must not receive buffer');
+    assert.equal(status, 'stale', 'Stale draft must be reported as stale');
 
-        // Draft A also must not have had markDraftModified called on it
-        assert.equal(draftA.changeCount, 0, 'Stale draft changeCount must not be incremented by markDraftModified');
-    } finally {
-        audioEngine.decodeAudioFile = originalDecode;
-        setDraftForTesting(null);
-    }
+    // Draft B must remain pristine (never mutated by Draft A's late decode)
+    assert.equal(draftB.changeCount, 0, 'New draft changeCount must not increment');
+    assert.equal(getPadSteps(draftB.pages[0], 0)[0].sample, null, 'New draft pad 0 must not receive sample');
+    assert.equal(getPadSteps(draftB.pages[0], 0)[0].soundBuffer, null, 'New draft pad 0 must not receive buffer');
+
+    // Draft A must not be flagged modified either
+    assert.equal(draftA.changeCount, 0, 'Stale draft changeCount must not be incremented');
 });

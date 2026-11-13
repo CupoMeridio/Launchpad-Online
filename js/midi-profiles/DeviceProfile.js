@@ -59,7 +59,7 @@ export class DeviceProfile {
      * @param {Uint8Array|number[]} msg - Raw MIDI message [status, data1, data2].
      * @returns {{ x: number, y: number, pressed: boolean }|null}
      */
-    parseMessage(msg) {
+    parseMessage(_msg) {
         return null;
     }
 
@@ -81,7 +81,7 @@ export class DeviceProfile {
      * @param {number} colorCode - MIDI velocity / color index.
      * @returns {number[]|null} Array of 3 bytes [status, noteOrCC, velocity] or null.
      */
-    buildColorMessage(x, y, colorCode) {
+    buildColorMessage(_x, _y, _colorCode) {
         return null;
     }
 
@@ -112,5 +112,5 @@ export class DeviceProfile {
      * Switches hardware internal layout (e.g. User 1 vs Session) if supported.
      * @param {number} modeIndex - Mode index (e.g. 4-7).
      */
-    setLayout(modeIndex) {}
+    setLayout(_modeIndex) {}
 }

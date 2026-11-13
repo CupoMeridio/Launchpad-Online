@@ -14,7 +14,7 @@ let visibilityListenerAdded = false;
 function handleVisibilityChange() {
     const isVisible = document.visibilityState === 'visible';
 
-    for (const [subscriber, callback] of listeners) {
+    for (const [_subscriber, callback] of listeners) {
         try {
             callback(isVisible);
         } catch (e) {

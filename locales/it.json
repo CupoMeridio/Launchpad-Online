@@ -166,6 +166,8 @@
     "creator.importSuccess": "Progetto importato: {name}",
     "creator.missingAssets": "Alcuni file del progetto non sono stati trovati nell'archivio e sono stati ignorati ({count}): {files}",
     "error.offline": "Impossibile caricare la risorsa: sei offline.",
+    "audio.loadFailures": "{count} file audio non caricati. Saranno silenziosi.",
+    "audio.initError": "Impossibile inizializzare l'audio. Alcune funzioni potrebbero non funzionare.",
     "creator.tabs.pads": "Suoni e Luci",
     "creator.tabs.theme": "Aspetto e Tema",
     "creator.theme.background": "Sfondo progetto",

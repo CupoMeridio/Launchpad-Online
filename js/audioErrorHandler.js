@@ -4,9 +4,7 @@
  * Centralized error handling for Web Audio API operations.
  * Provides:
  * - Error categorization (network, decoding, unsupported codec, etc.)
- * - User-friendly error messages
  * - Detailed logging for debugging
- * - Recovery suggestions
  */
 
 /**
@@ -47,56 +45,6 @@ export function categorizeDecodeError(error) {
     }
     
     return AUDIO_ERROR_TYPES.DECODE_ERROR;
-}
-
-/**
- * Generates a user-friendly error message for UI display
- * @param {string} errorType - One of AUDIO_ERROR_TYPES
- * @param {string} url - The audio file URL that failed
- * @returns {object} {title, message, suggestion}
- */
-export function getErrorMessage(errorType, url = null) {
-    const urlDisplay = url ? url.split('/').pop() : 'unknown file';
-    
-    const messages = {
-        [AUDIO_ERROR_TYPES.NETWORK_ERROR]: {
-            title: 'Network Error',
-            message: `Could not download audio file: ${urlDisplay}`,
-            suggestion: 'Check your internet connection and try reloading the project.'
-        },
-        [AUDIO_ERROR_TYPES.DECODE_ERROR]: {
-            title: 'Decoding Error',
-            message: `Failed to decode audio file: ${urlDisplay}`,
-            suggestion: 'The audio file may be corrupted. Try uploading a different file.'
-        },
-        [AUDIO_ERROR_TYPES.UNSUPPORTED_CODEC]: {
-            title: 'Unsupported Format',
-            message: `Audio codec not supported: ${urlDisplay}`,
-            suggestion: 'Use MP3, WAV, or OGG format. Your browser may not support this codec.'
-        },
-        [AUDIO_ERROR_TYPES.CORRUPTED_FILE]: {
-            title: 'Corrupted File',
-            message: `Audio file appears to be corrupted: ${urlDisplay}`,
-            suggestion: 'Try re-downloading or converting the audio file to a standard format.'
-        },
-        [AUDIO_ERROR_TYPES.CONTEXT_ERROR]: {
-            title: 'Audio Context Error',
-            message: 'Audio system is not initialized',
-            suggestion: 'Click on the interface to activate the audio system.'
-        },
-        [AUDIO_ERROR_TYPES.PLAYBACK_ERROR]: {
-            title: 'Playback Error',
-            message: 'Failed to play audio',
-            suggestion: 'Check that your audio output is connected and working.'
-        },
-        [AUDIO_ERROR_TYPES.UNKNOWN_ERROR]: {
-            title: 'Unknown Error',
-            message: `An unexpected error occurred: ${urlDisplay}`,
-            suggestion: 'Reload the page and try again.'
-        }
-    };
-    
-    return messages[errorType] || messages[AUDIO_ERROR_TYPES.UNKNOWN_ERROR];
 }
 
 /**
@@ -163,10 +111,6 @@ class AudioLoadingTracker {
             error: error.message || error.toString(),
             timestamp: new Date().toISOString()
         });
-    }
-    
-    getFailedUrls() {
-        return Array.from(this.failedLoads.keys());
     }
     
     getFailureStats() {

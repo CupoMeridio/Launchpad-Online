@@ -7,11 +7,13 @@
  * without third-party dependencies.
  */
 
-import { ProfileRegistry, detectModel } from './midi-profiles/ProfileRegistry.js';
-import { getTranslation, showNotification } from './ui.js';
+import { ProfileRegistry } from './midi-profiles/ProfileRegistry.js';
+import { detectModel } from './midi-profiles/modelDetection.js';
+import { getTranslation } from './i18n.js';
+import { showNotification } from './notifications.js';
 import { setDeviceProfile } from './physicalInterface.js';
 import { triggerPad, releasePad, changeSoundSet, changeMode } from './interaction.js';
-import { getProjectStateSnapshot } from './app.js';
+import { getCurrentPage, getCurrentMode } from './projectState.js';
 import { registerListener, removeListener } from './eventCleanup.js';
 import { onVisibilityChange } from './visibilityManager.js';
 import { isProjectReady, waitForProjectReady } from './projectLoadingState.js';
@@ -210,10 +212,10 @@ async function connectToLaunchpad() {
         setupLaunchpadEvents();
 
         // Always sync the current mode and hardware layout immediately
-        const state = getProjectStateSnapshot();
-        if (state.mode !== null) {
-            debug(`[MIDI] Initial hardware layout sync to mode ${state.mode}`);
-            changeMode(state.mode, true);
+        const mode = getCurrentMode();
+        if (mode !== null) {
+            debug(`[MIDI] Initial hardware layout sync to mode ${mode}`);
+            changeMode(mode, true);
         }
 
         // Refresh physical lights for the current page
@@ -228,9 +230,9 @@ async function connectToLaunchpad() {
         
         // Sync project lights if available
         if (isProjectReady()) {
-            const currentState = getProjectStateSnapshot();
-            debug(`[MIDI] Syncing to page ${currentState.page}`);
-            changeSoundSet(currentState.page, true);
+            const page = getCurrentPage();
+            debug(`[MIDI] Syncing to page ${page}`);
+            changeSoundSet(page, true);
         }
 
     } catch (error) {
@@ -385,6 +387,8 @@ async function disposeMidi({ releaseAccess = false } = {}) {
 /**
  * Cleanup on page unload
  */
-registerListener(window, 'beforeunload', () => {
-    disposeMidi({ releaseAccess: true });
-});
+if (typeof window !== 'undefined') {
+    registerListener(window, 'beforeunload', () => {
+        disposeMidi({ releaseAccess: true });
+    });
+}

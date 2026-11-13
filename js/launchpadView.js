@@ -7,6 +7,7 @@
 
 import { invalidatePadCache, setWebModel } from './webInterface.js';
 import { debug } from './logger.js';
+import { getModelPreferenceSetting, setModelPreferenceSetting } from './settings.js';
 
 export const LAUNCHPAD_MODELS = {
     AUTO: 'auto',
@@ -15,8 +16,6 @@ export const LAUNCHPAD_MODELS = {
     PRO: 'pro',
     PRO_MK3: 'pro-mk3'
 };
-
-const STORAGE_KEY = 'launchpad_model_preference';
 
 let currentPreference = LAUNCHPAD_MODELS.AUTO;
 let detectedHardwareModel = null;
@@ -305,11 +304,7 @@ export function setModelPreference(preference) {
         return;
     }
     currentPreference = preference;
-    try {
-        localStorage.setItem(STORAGE_KEY, preference);
-    } catch (e) {
-        // localStorage may fail in restricted/private contexts
-    }
+    setModelPreferenceSetting(preference);
     const effective = getEffectiveModel();
     if (effective !== currentRenderedModel) {
         renderLaunchpad(effective);
@@ -393,15 +388,7 @@ function syncModelSelectUI() {
  * Initializes the Launchpad View controller.
  */
 export function initLaunchpadView() {
-    try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved && Object.values(LAUNCHPAD_MODELS).includes(saved)) {
-            currentPreference = saved;
-        }
-    } catch (e) {
-        currentPreference = LAUNCHPAD_MODELS.AUTO;
-    }
-
+    currentPreference = getModelPreferenceSetting(Object.values(LAUNCHPAD_MODELS));
     const effective = getEffectiveModel();
     setWebModel(effective);
     renderLaunchpad(effective);

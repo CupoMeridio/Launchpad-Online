@@ -166,6 +166,8 @@
     "creator.importSuccess": "Projet importé : {name}",
     "creator.missingAssets": "Certains fichiers du projet sont introuvables dans l'archive et ont été ignorés ({count}) : {files}",
     "error.offline": "Impossible de charger la ressource : vous êtes hors ligne.",
+    "audio.loadFailures": "{count} fichiers audio n'ont pas pu être chargés. Ils resteront silencieux.",
+    "audio.initError": "Impossible d'initialiser le système audio. Certaines fonctionnalités pourraient ne pas fonctionner.",
     "creator.tabs.pads": "Sons et Lumières",
     "creator.tabs.theme": "Apparence et Thème",
     "creator.theme.background": "Arrière-plan du projet",

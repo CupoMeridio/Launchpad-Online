@@ -97,9 +97,9 @@ test('application defines resizers for sidebar and project inspector with access
 });
 
 test('accent reset button does not use !important or hardcoded colors', () => {
-    const css = readFileSync(path.join(workspaceRoot, 'css', 'style.css'), 'utf8');
+    const css = readFileSync(path.join(workspaceRoot, 'css', 'sidebar.css'), 'utf8');
     const resetRuleMatch = css.match(/\.menu-dropdown \.accent-reset-btn\s*\{([^}]+)\}/);
-    assert.ok(resetRuleMatch, 'accent-reset-btn rule exists in style.css');
+    assert.ok(resetRuleMatch, 'accent-reset-btn rule exists in sidebar.css');
     assert.strictEqual(resetRuleMatch[1].includes('!important'), false, 'accent-reset-btn should not have !important declarations');
     assert.strictEqual(resetRuleMatch[1].includes('#2b2b2b'), false, 'accent-reset-btn should use CSS custom properties instead of hardcoded hex');
 });
@@ -133,7 +133,17 @@ test('creator target warning element exists and uses CSS custom properties', () 
     assert.match(css, /--warning-color:\s*#ffaa00;/);
     assert.match(css, /--warning-bg:\s*rgba\(255,\s*170,\s*0,\s*0\.12\);/);
     assert.match(css, /--warning-border:\s*rgba\(255,\s*170,\s*0,\s*0\.3\);/);
-    assert.match(css, /color:\s*var\(--warning-color\);/);
+    const creatorCss = readFileSync(path.join(workspaceRoot, 'css', 'creator.css'), 'utf8');
+    assert.match(creatorCss, /color:\s*var\(--warning-color\);/);
+});
+
+test('component stylesheets are present and registered in app shell', () => {
+    const swJs = readFileSync(path.join(workspaceRoot, 'service-worker.js'), 'utf8');
+    assert.match(swJs, /css\/sidebar\.css/);
+    assert.match(swJs, /css\/creator\.css/);
+
+    const creatorLoaderJs = readFileSync(path.join(workspaceRoot, 'js', 'creatorLoader.js'), 'utf8');
+    assert.match(creatorLoaderJs, /css\/creator\.css/);
 });
 
 test('--pad-rest is declared per model skin and wired to white LED styling for monotonic brightness', () => {

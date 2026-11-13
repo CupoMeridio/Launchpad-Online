@@ -5,8 +5,9 @@
  */
 
 import { audioEngine } from './audio.js';
-import { getTranslation, showNotification } from './ui.js';
-import { normalizeAppearance, createDefaultAppearance } from './appearanceModel.js';
+import { getTranslation } from './i18n.js';
+import { showNotification } from './notifications.js';
+import { createDefaultAppearance } from './appearanceModel.js';
 import {
     applySkin,
     applyIcon,
@@ -15,7 +16,7 @@ import {
     applyLayout,
     applyAppearance
 } from './appearance.js';
-import { selectedProjectButton, setCurrentProject, setProjectSounds, setProjectLights, setProjectLightSyncToSound, setProjectLightDurations, setSelectedProjectButton, currentProject } from './app.js';
+import { getActiveProject, commitProject } from './projectState.js';
 import { changeSoundSet, resetPadStepCounters } from './interaction.js';
 import { stopAnimationLoop, startAnimationLoop } from './lights.js';
 import { validateProject, getErrorSummary } from './projectValidator.js';
@@ -24,24 +25,125 @@ import {
     markProjectReady, 
     markProjectLoadError
 } from './projectLoadingState.js';
-import { LAUNCHPAD_PADS, DEFAULT_LIGHT_DURATION_SEC } from './constants.js';
+import { normalizeProjectData } from './projectModel.js';
 import { debug } from './logger.js';
 
 let activeProjectLoad = null;
+let selectedProjectButton = null;
 
 /**
- * Builds a resolver that turns a project-relative asset path into a usable URL.
- * Absolute URLs, root paths and `assets/` refs are returned unchanged.
- * @param {string} configPath - Path of the project configuration JSON.
- * @returns {(path: string) => string}
+ * Fetches and validates a project JSON configuration from a remote or local URL.
+ * @param {string} configPath - URL or path to the project JSON.
+ * @returns {Promise<object>} Parsed and validated project object.
  */
-function createPathResolver(configPath) {
-    const baseUrl = configPath ? configPath.substring(0, configPath.lastIndexOf('/') + 1) : '';
-    return (path) => {
-        if (!path) return path;
-        if (path.startsWith('http') || path.startsWith('/') || path.startsWith('assets/')) return path;
-        return baseUrl ? baseUrl + path : path;
+async function fetchAndValidateProject(configPath) {
+    const response = await fetch(configPath);
+    if (!response.ok) {
+        if (response.status === 503) {
+            let errData = null;
+            try { errData = await response.json(); } catch (_) { /* ignore */ }
+            if (errData?.error === 'offline') {
+                const offlineMessage = getTranslation('error.offline');
+                showNotification(offlineMessage, 'warning', 5000);
+                throw new Error(offlineMessage);
+            }
+        }
+        throw new Error(`HTTP Error: ${response.status} - Failed to load project`);
+    }
+
+    const project = await response.json();
+    const validation = validateProject(project);
+    if (!validation.isValid) {
+        const errorSummary = getErrorSummary(validation.errors);
+        console.error('[Project] Validation failed:', validation.errors);
+        throw new Error(`Project validation failed:\n${errorSummary}`);
+    }
+
+    project.configPath = configPath;
+    return project;
+}
+
+/**
+ * Loads project media and audio assets, reporting overall progress.
+ * Visual assets are applied as they load; decoded audio is returned so the
+ * caller can install it together with the project state (atomic commit).
+ * @param {object} normalized - Output of normalizeProjectData.
+ * @param {function} [onProgress] - Optional progress callback (0..100).
+ * @param {HTMLElement} [progressText] - Optional DOM text element for status.
+ * @returns {Promise<Array<Array<AudioBuffer|null>>>} Decoded sound buffers.
+ */
+async function loadProjectAssets(normalized, onProgress = null, progressText = null) {
+    const { sounds, appearance } = normalized;
+    let audioLoaded = 0;
+    let skinLoaded = 0;
+    let iconLoaded = 0;
+    let videoLoaded = 0;
+
+    const hasSkin = !!appearance.skin;
+    const hasIcon = !!appearance.icon;
+    const hasVideo = !!appearance.background;
+    const totalAudioFiles = sounds.reduce((acc, entry) => acc + entry.filter(Boolean).length, 0);
+    const totalAssets = Math.max(totalAudioFiles + (hasSkin ? 1 : 0) + (hasIcon ? 1 : 0) + (hasVideo ? 1 : 0), 1);
+
+    const updateOverallProgress = () => {
+        const totalLoaded = audioLoaded + skinLoaded + iconLoaded + videoLoaded;
+        const percentage = Math.min(Math.round((totalLoaded / totalAssets) * 100), 100);
+        if (progressText) {
+            const loadingText = getTranslation('overlay.loading').replace('{progress}', percentage);
+            progressText.textContent = loadingText;
+        }
+        if (onProgress) onProgress(percentage);
     };
+
+    const loadingPromises = [];
+    let soundBuffers = [];
+
+    // 1. Audio Loading
+    const audioPromise = audioEngine.loadSounds(sounds, (loadedCount) => {
+        audioLoaded = loadedCount;
+        updateOverallProgress();
+    }).then((result) => {
+        soundBuffers = result.buffers;
+    }).catch((error) => {
+        console.error('[Project] Audio loading error:', error);
+        showNotification('Failed to load all project audio files. Some pads may be silent.', 'warning');
+    });
+    loadingPromises.push(audioPromise);
+
+    // 2. Skin Loading
+    loadingPromises.push(Promise.resolve(applySkin(appearance.skin)).then(() => {
+        if (hasSkin) {
+            skinLoaded = 1;
+            updateOverallProgress();
+        }
+    }));
+
+    // 3. Icon Loading
+    loadingPromises.push(Promise.resolve(applyIcon(appearance.icon)).then(() => {
+        if (hasIcon) {
+            iconLoaded = 1;
+            updateOverallProgress();
+        }
+    }));
+
+    // 4. Background Media Loading
+    if (hasVideo) {
+        debug('Loading project background media:', appearance.background);
+        loadingPromises.push(Promise.resolve(applyBackground(appearance.background)).then(() => {
+            videoLoaded = 1;
+            updateOverallProgress();
+        }));
+    } else {
+        applyBackground(null);
+    }
+
+    await Promise.all(loadingPromises);
+    updateOverallProgress();
+
+    applyVisualizer(appearance.visualizer);
+    applyLayout(appearance.rotation, appearance.size);
+
+    return soundBuffers;
 }
 
 /**
@@ -73,7 +175,7 @@ export function initializeBackgroundMenu(videoFiles) {
  */
 export function loadProject(configPath, button, onProgress = null) {
     if (activeProjectLoad) {
-        debug("[Project] A project is already loading; ignoring the new request.");
+        debug('[Project] A project is already loading; ignoring the new request.');
         return activeProjectLoad;
     }
 
@@ -85,17 +187,14 @@ export function loadProject(configPath, button, onProgress = null) {
 }
 
 async function loadProjectInternal(configPath, button, onProgress = null) {
-    // Mark loading as started
     await beginLoadingProject();
 
     const overlay = document.getElementById('audio-unlock-overlay');
     const progressText = overlay ? overlay.querySelector('p') : null;
 
     try {
-        // Stop the animation loop to clean up previous animations before loading new project
         stopAnimationLoop();
 
-        // Mostra l'overlay durante il caricamento del progetto
         if (overlay) {
             overlay.classList.remove('hidden');
             if (progressText) {
@@ -104,179 +203,32 @@ async function loadProjectInternal(configPath, button, onProgress = null) {
             }
         }
 
-        const response = await fetch(configPath);
-        if (!response.ok) {
-            // Gestione specifica per il caso offline restituito dal Service Worker
-            if (response.status === 503) {
-                let errData = null;
-                try { errData = await response.json(); } catch (_) { /* parsing fallito, usa errore generico */ }
+        // 1. Fetch & Validate
+        const project = await fetchAndValidateProject(configPath);
 
-                if (errData?.error === "offline") {
-                    const offlineMessage = getTranslation('error.offline');
-                    showNotification(offlineMessage, "warning", 5000);
-                    throw new Error(offlineMessage);
-                }
-            }
-            throw new Error(`HTTP Error: ${response.status} - Failed to load project`);
-        }
-        const project = await response.json();
+        // 2. Normalize into the runtime shape
+        const runtimeProject = normalizeProjectData(project, configPath);
 
-        // Validate project schema before processing
-        const validation = validateProject(project);
-        if (!validation.isValid) {
-            const errorSummary = getErrorSummary(validation.errors);
-            console.error('[Project] Validation failed:', validation.errors);
-            throw new Error(`Project validation failed:\n${errorSummary}`);
-        }
+        // 3. Load Assets (the active project keeps playing meanwhile)
+        const soundBuffers = await loadProjectAssets(runtimeProject, onProgress, progressText);
 
-        // CRITICAL: Set current project BEFORE any operations that depend on it
-        // This ensures MIDI and other modules see consistent state
-        project.configPath = configPath;
-        setCurrentProject(project);
-
-        const resolvePath = createPathResolver(configPath);
-
-        const sounds = [];
-        const lights = [];
-        const lightSyncToSound = [];
-        const lightDurations = [];
-        if (project.pages) {
-            project.pages.forEach(page => {
-                const pageSounds = (page.sounds || []).map(stepEntry => {
-                    if (Array.isArray(stepEntry)) {
-                        return stepEntry.map(s => resolvePath(s));
-                    }
-                    return stepEntry ? [resolvePath(stepEntry)] : [];
-                });
-                sounds.push(...pageSounds);
-
-                const pageLights = (page.lights || []).map(stepEntry => {
-                    if (Array.isArray(stepEntry)) return stepEntry;
-                    return stepEntry ? [stepEntry] : [];
-                });
-                while (pageLights.length < LAUNCHPAD_PADS) pageLights.push([]);
-                lights.push(...pageLights);
-
-                const pageSync = (page.lightSyncToSound || []).map(stepEntry => {
-                    if (Array.isArray(stepEntry)) return stepEntry;
-                    return typeof stepEntry === 'boolean' ? [stepEntry] : [true];
-                });
-                while (pageSync.length < LAUNCHPAD_PADS) pageSync.push([true]);
-                lightSyncToSound.push(...pageSync);
-
-                const pageDurs = (page.lightDurations || []).map(stepEntry => {
-                    if (Array.isArray(stepEntry)) return stepEntry;
-                    return typeof stepEntry === 'number' ? [stepEntry] : [DEFAULT_LIGHT_DURATION_SEC];
-                });
-                while (pageDurs.length < LAUNCHPAD_PADS) pageDurs.push([DEFAULT_LIGHT_DURATION_SEC]);
-                lightDurations.push(...pageDurs);
-            });
-        }
-        setProjectSounds(sounds);
-        setProjectLights(lights);
-        setProjectLightSyncToSound(lightSyncToSound);
-        setProjectLightDurations(lightDurations);
-
-        // --- PROGRESS TRACKING ---
-        const appearance = normalizeAppearance(project, resolvePath);
-        let audioLoaded = 0;
-        let skinLoaded = 0;
-        let iconLoaded = 0;
-        let videoLoaded = 0;
-        const hasSkin = !!appearance.skin;
-        const hasIcon = !!appearance.icon;
-        const hasVideo = !!appearance.background;
-        const totalAudioFiles = sounds.reduce((acc, entry) => acc + (Array.isArray(entry) ? entry.filter(Boolean).length : (entry ? 1 : 0)), 0);
-        const totalAssets = (totalAudioFiles || 1) + (hasSkin ? 1 : 0) + (hasIcon ? 1 : 0) + (hasVideo ? 1 : 0);
-
-        const updateOverallProgress = () => {
-            const totalLoaded = audioLoaded + skinLoaded + iconLoaded + videoLoaded;
-            const percentage = Math.min(Math.round((totalLoaded / totalAssets) * 100), 100);
-            if (progressText) {
-                const loadingText = getTranslation('overlay.loading').replace('{progress}', percentage);
-                progressText.textContent = loadingText;
-            }
-            if (onProgress) onProgress(percentage);
-        };
-
-        // Start all loading processes
-        const loadingPromises = [];
-
-        // 1. Audio Loading
-        const audioPromise = audioEngine.loadSounds(sounds, (loadedSoundsCount) => {
-            audioLoaded = loadedSoundsCount;
-            updateOverallProgress();
-        }).catch((error) => {
-            console.error("[Project] Audio loading error:", error);
-            showNotification('Failed to load all project audio files. Some pads may be silent.', 'warning');
-        });
-        loadingPromises.push(audioPromise);
-
-        // 2. Skin Loading
-        const skinPromise = Promise.resolve(applySkin(appearance.skin)).then(() => {
-            if (hasSkin) {
-                skinLoaded = 1;
-                updateOverallProgress();
-            }
-        });
-        loadingPromises.push(skinPromise);
-
-        // 3. Icon Loading (falls back to the default icon when the project has none)
-        const iconPromise = Promise.resolve(applyIcon(appearance.icon)).then(() => {
-            if (hasIcon) {
-                iconLoaded = 1;
-                updateOverallProgress();
-            }
-        });
-        loadingPromises.push(iconPromise);
-
-        // 4. Background Media Loading
-        if (hasVideo) {
-            debug("Loading project background media:", appearance.background);
-            const videoPromise = Promise.resolve(applyBackground(appearance.background)).then(() => {
-                videoLoaded = 1;
-                updateOverallProgress();
-            });
-            loadingPromises.push(videoPromise);
-        } else {
-            applyBackground(null);
-        }
-
-        // Wait for everything to finish
-        await Promise.all(loadingPromises);
-
-        // Ensure final UI update
-        updateOverallProgress();
-
-        // Visualizer styling and layout overrides
-        applyVisualizer(appearance.visualizer);
-        applyLayout(appearance.rotation, appearance.size);
-
-        if (selectedProjectButton) {
-            selectedProjectButton.classList.remove('selected');
-        }
-        if (button) {
-            button.classList.add('selected');
-            setSelectedProjectButton(button);
-        }
+        // 4. Commit. Everything below is synchronous, so no pad press can
+        // observe the new project's state paired with the old audio, or vice versa.
+        audioEngine.setSoundBuffers(soundBuffers);
+        commitProject(runtimeProject);
+        selectProjectButton(button);
 
         debug(`Project "${project.name}" loaded.`);
-        
-        // MARK PROJECT AS READY - Critical for MIDI and other systems
-        // This signals that currentProject, projectSounds, and projectLights are all set
         markProjectReady();
-
-        // Reset to first page ONLY AFTER the project is marked as ready
         resetPadStepCounters();
         changeSoundSet(0);
-        
     } catch (error) {
-        console.error("[Project] Failed to load project:", error);
-        
-        // Mark loading as failed - prevents MIDI and other systems from using incomplete state
-        markProjectLoadError(error);
-        
-        // Extract meaningful error message
+        console.error('[Project] Failed to load project:', error);
+        // The commit never happened, so the previous project (if any) is intact:
+        // put its visuals back, since assets of the failed one may have been applied.
+        const previousProjectActive = restoreProjectAppearance();
+        markProjectLoadError(error, { previousProjectActive });
+
         let userMessage;
         if (error.message.includes('validation failed')) {
             userMessage = `Project configuration error: ${error.message}`;
@@ -288,16 +240,26 @@ async function loadProjectInternal(configPath, button, onProgress = null) {
             userMessage = `Failed to load project: ${error.message}`;
         }
 
-        // Show notification to user
-        if (typeof showNotification === 'function') {
-            showNotification(userMessage, 'error');
-        }
+        showNotification(userMessage, 'error');
     } finally {
         if (overlay) {
             overlay.classList.add('hidden');
         }
-        // Resume animation loop after project loading completes (success or failure)
         startAnimationLoop();
+    }
+}
+
+/**
+ * Moves the "selected" highlight in the project menu to the given button.
+ * @param {HTMLElement|null} button
+ */
+function selectProjectButton(button) {
+    if (selectedProjectButton) {
+        selectedProjectButton.classList.remove('selected');
+    }
+    if (button) {
+        button.classList.add('selected');
+        selectedProjectButton = button;
     }
 }
 
@@ -309,7 +271,7 @@ export function initializeProjectMenu(projects) {
     const projectMenu = document.getElementById('project-menu');
     if (!projectMenu) return;
 
-    projects.forEach((project, index) => {
+    projects.forEach(project => {
         const button = document.createElement('button');
         button.className = 'menu-option';
         button.textContent = project.name;
@@ -318,11 +280,6 @@ export function initializeProjectMenu(projects) {
             loadProject(project.configPath, button);
         };
         projectMenu.appendChild(button);
-
-        if (index === 0) {
-            // Pre-select the first project.
-            // Selected button handling logic is in loadProject
-        }
     });
 }
 
@@ -332,14 +289,13 @@ export function initializeProjectMenu(projects) {
  * @returns {boolean} True if a project appearance was restored, false if reset to defaults.
  */
 export function restoreProjectAppearance() {
-    if (!currentProject) {
+    const activeProject = getActiveProject();
+    if (!activeProject) {
         // No project: clear the visuals but leave rotation/size to the user preference.
         applyAppearance(createDefaultAppearance());
         return false;
     }
 
-    const resolvePath = createPathResolver(currentProject.configPath);
-
-    applyAppearance(normalizeAppearance(currentProject, resolvePath));
+    applyAppearance(activeProject.appearance);
     return true;
 }

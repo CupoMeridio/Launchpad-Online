@@ -1,4 +1,4 @@
-import { updateVideoControlsVisibility } from './background.js';
+import { setBackgroundMedia, setMediaControlsPanelVisible } from './background.js';
 import { syncInputSlider } from './formControls.js';
 import {
     LAUNCHPAD_ROTATION_MIN,
@@ -12,110 +12,19 @@ import {
     DEFAULT_VISUALIZER_COLOR
 } from './constants.js';
 import { setModelPreference } from './launchpadView.js';
-
-export { syncInputSlider };
-
-// ============================================================================
-// LOCALSTORAGE HELPERS - Safe wrappers to handle private browsing & disabled storage
-// ============================================================================
-
-/**
- * Safely retrieve a value from localStorage.
- * @param {string} key - The storage key to retrieve
- * @param {*} defaultValue - Value to return if key not found or storage unavailable
- * @returns {*} The stored value or defaultValue
- */
-function safeLocalStorageGetItem(key, defaultValue = null) {
-    try {
-        const value = localStorage.getItem(key);
-        return value !== null ? value : defaultValue;
-    } catch (error) {
-        // Fails in private browsing, disabled storage, or quota exceeded
-        console.warn(`[UI] localStorage.getItem('${key}') failed:`, error.message);
-        return defaultValue;
-    }
-}
-
-/**
- * Safely store a value in localStorage.
- * @param {string} key - The storage key to set
- * @param {*} value - The value to store
- * @returns {boolean} True if successful, false if storage unavailable
- */
-function safeLocalStorageSetItem(key, value) {
-    try {
-        localStorage.setItem(key, String(value));
-        return true;
-    } catch (error) {
-        // Fails in private browsing, disabled storage, or quota exceeded
-        console.warn(`[UI] localStorage.setItem('${key}') failed:`, error.message);
-        return false;
-    }
-}
-
-let translations = {};
-let currentLanguage = 'it';
-
-async function loadTranslations(lang) {
-    try {
-        const response = await fetch(`locales/${lang}.json`);
-        if (!response.ok) throw new Error(`Could not load translations for ${lang}`);
-        translations = await response.json();
-        currentLanguage = lang;
-        applyTranslations();
-    } catch (error) {
-        console.error("Translation error:", error);
-        // Fallback to Italian if not already Italian
-        if (lang !== 'it') {
-            await loadTranslations('it');
-        }
-    }
-}
-
-// Attributes that can be localized from static HTML via `data-i18n-<attribute>`
-// (e.g. data-i18n-aria-label="a11y.resizeSidebar").
-const TRANSLATABLE_ATTRIBUTES = ['aria-label', 'title'];
-
-function applyTranslations() {
-    document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.getAttribute('data-i18n');
-        const text = translations[key];
-        if (typeof text === 'string') {
-            el.textContent = text;
-        }
-    });
-
-    TRANSLATABLE_ATTRIBUTES.forEach(attr => {
-        const dataAttribute = `data-i18n-${attr}`;
-        document.querySelectorAll(`[${dataAttribute}]`).forEach(el => {
-            const text = translations[el.getAttribute(dataAttribute)];
-            if (typeof text === 'string') {
-                el.setAttribute(attr, text);
-            }
-        });
-    });
-}
-
-export function getTranslation(key) {
-    return translations[key] || key;
-}
-
-export async function initializeLanguageControls() {
-    const select = document.getElementById('language-select');
-    const saved = safeLocalStorageGetItem('ui.language', 'it');
-    const initialLang = saved || 'it';
-
-    if (select) {
-        select.value = initialLang;
-        select.addEventListener('change', async function () {
-            const newLang = this.value;
-            safeLocalStorageSetItem('ui.language', newLang);
-            await loadTranslations(newLang);
-        });
-    }
-
-    await loadTranslations(initialLang);
-}
+import {
+    SETTINGS_KEYS,
+    DEFAULT_UI_ACCENT,
+    getStorageItem,
+    getAccentColorSetting,
+    setAccentColorSetting,
+    getRotationSetting,
+    setRotationSetting,
+    getScaleSetting,
+    setScaleSetting,
+    getPanelWidthSetting,
+    setPanelWidthSetting
+} from './settings.js';
 
 /**
  * Shows or hides the sidebar.
@@ -156,7 +65,7 @@ function toggleMenu(menuId) {
         }
     }
 
-    updateVideoControlsVisibility();
+    syncMediaControlsPanel();
 }
 
 let currentSkinUrl = null;
@@ -256,11 +165,11 @@ export function initializePersonalizeLaunchpadMenu(imageFiles) {
     // Rotation/scale controls start from the saved preference, seeding it from
     // the controls' own defaults on first run.
     const rotationSlider = document.getElementById('rotation-slider');
-    if (rotationSlider && safeLocalStorageGetItem(LAUNCHPAD_LAYOUT_KEYS.rotation, null) === null) {
+    if (rotationSlider && getStorageItem(SETTINGS_KEYS.ROTATION, null) === null) {
         setSettingValue('rotation', parseInt(rotationSlider.value, 10));
     }
     const sizeSlider = document.getElementById('size-slider');
-    if (sizeSlider && safeLocalStorageGetItem(LAUNCHPAD_LAYOUT_KEYS.scale, null) === null) {
+    if (sizeSlider && getStorageItem(SETTINGS_KEYS.SCALE, null) === null) {
         setSettingValue('scale', parseInt(sizeSlider.value, 10) / 100);
     }
     restoreLaunchpadLayout();
@@ -283,32 +192,6 @@ export function initializePersonalizeLaunchpadMenu(imageFiles) {
 }
 
 /**
- * Shows a temporary notification on the screen.
- * @param {string} message - The message to display.
- * @param {string} type - The type of notification ('success', 'error', 'info').
- * @param {number} duration - Duration in milliseconds before it disappears.
- */
-export function showNotification(message, type = 'info', duration = 3000) {
-    const container = document.getElementById('notification-container');
-    if (!container) return;
-
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.textContent = message;
-
-    container.appendChild(notification);
-
-    // Trigger animation
-    setTimeout(() => notification.classList.add('show'), 10);
-
-    // Remove notification after duration
-    setTimeout(() => {
-        notification.classList.remove('show');
-        notification.addEventListener('transitionend', () => notification.remove());
-    }, duration);
-}
-
-/**
  * Launchpad UI settings, in two layers:
  * - `launchpadSettings` is what is currently applied to the Launchpad and may
  *   come from a project or Studio draft override.
@@ -328,11 +211,6 @@ let launchpadPreference = {
 
 let launchpadPreferenceLoaded = false;
 
-const LAUNCHPAD_LAYOUT_KEYS = {
-    rotation: 'launchpad.rotation',
-    scale: 'launchpad.scale'
-};
-
 /**
  * Gets the currently applied value of a launchpad setting.
  * @param {string} key - Setting key (e.g., 'rotation', 'scale')
@@ -344,26 +222,13 @@ function getSettingValue(key, defaultValue = null) {
 }
 
 /**
- * Reads a numeric layout preference from storage, falling back to `defaultValue`.
- * @param {'rotation'|'scale'} key
- * @param {number} defaultValue
- * @returns {number}
- */
-function readLayoutPreference(key, defaultValue) {
-    const stored = safeLocalStorageGetItem(LAUNCHPAD_LAYOUT_KEYS[key], null);
-    if (stored === null || stored === '') return defaultValue;
-    const parsed = parseFloat(stored);
-    return Number.isFinite(parsed) ? parsed : defaultValue;
-}
-
-/**
  * Loads the user's saved layout preference from storage on first use.
  */
 function ensureLaunchpadPreference() {
     if (launchpadPreferenceLoaded) return;
     launchpadPreferenceLoaded = true;
-    launchpadPreference.rotation = readLayoutPreference('rotation', 0);
-    launchpadPreference.scale = readLayoutPreference('scale', 1);
+    launchpadPreference.rotation = getRotationSetting(0);
+    launchpadPreference.scale = getScaleSetting(1);
 }
 
 /**
@@ -378,23 +243,17 @@ function setSettingValue(key, value, persist = true) {
     if (persist) {
         ensureLaunchpadPreference();
         launchpadPreference[key] = value;
-        safeLocalStorageSetItem(LAUNCHPAD_LAYOUT_KEYS[key] || `launchpad.${key}`, value);
+        if (key === 'rotation') {
+            setRotationSetting(value);
+        } else if (key === 'scale') {
+            setScaleSetting(value);
+        }
     }
 }
 
 // Single source of truth for the active Customization tab, kept in sync with the
-// `.active` classes toggled by switchCustomizationTab(). Exposed so other modules
-// (e.g. background.js) can query it instead of walking the DOM structure.
+// `.active` classes toggled by switchCustomizationTab().
 let activeCustomizationTab = 'launchpad';
-
-/**
- * Returns true when the given customization tab is the currently active one.
- * @param {'launchpad'|'background'|'visualizer'} tabName
- * @returns {boolean}
- */
-export function isCustomizationTabActive(tabName) {
-    return activeCustomizationTab === tabName;
-}
 
 /**
  * Switches the active panel inside the Customization menu.
@@ -422,10 +281,18 @@ function switchCustomizationTab(tabName) {
         panel.classList.toggle('active', name === tabName);
     });
 
-    updateVideoControlsVisibility();
+    syncMediaControlsPanel();
 }
 
-const DEFAULT_UI_ACCENT = '#00aaff';
+/**
+ * Tells the background module whether its media effect controls are on screen:
+ * the Customization menu must be open with the Background tab selected.
+ */
+function syncMediaControlsPanel() {
+    const customizationMenu = document.getElementById('customization-menu');
+    const isMenuOpen = !!customizationMenu && customizationMenu.classList.contains('open');
+    setMediaControlsPanelVisible(isMenuOpen && activeCustomizationTab === 'background');
+}
 
 /**
  * Sets the UI accent color and computes matching hover, dim, and glow variations.
@@ -463,7 +330,7 @@ function setUIAccentColor(hex, persist = true) {
     }
 
     if (persist) {
-        safeLocalStorageSetItem('ui.accentColor', cleanHex);
+        setAccentColorSetting(cleanHex);
     }
 }
 
@@ -471,7 +338,7 @@ function setUIAccentColor(hex, persist = true) {
  * Restores the saved UI accent color from localStorage or applies default.
  */
 function restoreUIAccentColor() {
-    const saved = safeLocalStorageGetItem('ui.accentColor', DEFAULT_UI_ACCENT);
+    const saved = getAccentColorSetting(DEFAULT_UI_ACCENT);
     setUIAccentColor(saved || DEFAULT_UI_ACCENT, false);
 }
 
@@ -539,10 +406,9 @@ function setupPanelResizer({ resizer, cssVar, defaultWidth, minWidth, maxWidth, 
         resizer.setAttribute('aria-valuenow', String(width));
         notifyThrottledResize();
     };
-    const rememberWidth = (width) => safeLocalStorageSetItem(storageKey, width);
+    const rememberWidth = (width) => setPanelWidthSetting(storageKey, width);
     const getPreferredWidth = () => {
-        const saved = parseInt(safeLocalStorageGetItem(storageKey, null), 10);
-        return (Number.isFinite(saved) && saved >= minWidth) ? saved : defaultWidth;
+        return getPanelWidthSetting(storageKey, defaultWidth, minWidth, maxWidth);
     };
 
     // Initialize WAI-ARIA separator attributes
@@ -642,7 +508,7 @@ function initializeResizablePanels() {
         defaultWidth: SIDEBAR_WIDTH_DEFAULT,
         minWidth: SIDEBAR_WIDTH_MIN,
         maxWidth: SIDEBAR_WIDTH_MAX,
-        storageKey: 'ui.sidebarWidth',
+        storageKey: SETTINGS_KEYS.SIDEBAR_WIDTH,
         minContentSpace: 300
     });
 
@@ -652,7 +518,7 @@ function initializeResizablePanels() {
         defaultWidth: INSPECTOR_WIDTH_DEFAULT,
         minWidth: INSPECTOR_WIDTH_MIN,
         maxWidth: INSPECTOR_WIDTH_MAX,
-        storageKey: 'ui.inspectorWidth',
+        storageKey: SETTINGS_KEYS.INSPECTOR_WIDTH,
         invert: true,
         minContentSpace: 350
     });
@@ -662,8 +528,10 @@ function initializeResizablePanels() {
  * Binds all static UI event listeners that previously relied on inline
  * onclick/onchange attributes in HTML or window.* globals.
  * Called once from app.js after DOMContentLoaded.
+ * @param {object} [handlers]
+ * @param {function(): void} [handlers.onResetProjectAppearance] - Restores the active project's appearance.
  */
-export function bindStaticUIEvents() {
+export function bindStaticUIEvents({ onResetProjectAppearance } = {}) {
     // Initialize UI accent color and resizable side panels
     restoreUIAccentColor();
     initializeResizablePanels();
@@ -739,7 +607,7 @@ export function bindStaticUIEvents() {
     if (clearBgBtn) {
         clearBgBtn.addEventListener('click', () => {
             if (clearBgBtn.classList.contains('selected')) return;
-            import('./background.js').then(m => m.setBackgroundMedia(null));
+            setBackgroundMedia(null);
         });
     }
 
@@ -752,14 +620,11 @@ export function bindStaticUIEvents() {
         });
     }
 
-    // "Reset project appearance" button in sidebar
+    // "Reset project appearance" button in sidebar. The action itself belongs to
+    // the project layer, so it is injected by the composition root (app.js).
     const resetAppearanceBtn = document.getElementById('reset-project-appearance');
-    if (resetAppearanceBtn) {
-        resetAppearanceBtn.addEventListener('click', async () => {
-            const { restoreProjectAppearance } = await import('./project.js');
-            restoreProjectAppearance();
-            showNotification(getTranslation('notification.appearanceReset'), 'success');
-        });
+    if (resetAppearanceBtn && typeof onResetProjectAppearance === 'function') {
+        resetAppearanceBtn.addEventListener('click', onResetProjectAppearance);
     }
 
     // File pickers' `accept` lists come from the same extension lists used by
@@ -860,8 +725,9 @@ export function restoreLaunchpadLayout({ rotation = true, size = true } = {}) {
 /**
  * Initializes the menu for selecting the Launchpad mode.
  * Only the 4 official modes (4-7) are displayed.
+ * @param {function(number): void} onSelectMode - Called with the selected mode index.
  */
-export function initializeModeMenu() {
+export function initializeModeMenu(onSelectMode) {
     const menu = document.getElementById('mode-menu');
     if (!menu) return;
 
@@ -880,7 +746,7 @@ export function initializeModeMenu() {
         button.textContent = mode.name;
         button.onclick = () => {
             if (button.classList.contains('selected')) return;
-            import('./interaction.js').then(m => m.changeMode(mode.index));
+            onSelectMode(mode.index);
         };
         menu.appendChild(button);
     });

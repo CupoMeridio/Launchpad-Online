@@ -105,17 +105,23 @@ export function markProjectReady() {
 /**
  * Marks project loading as failed
  * Automatically cancels the safety timeout since load completed (with error)
- * 
+ *
+ * When the previously loaded project is still the active one (loads commit
+ * atomically, so a failure never replaces it), pass `previousProjectActive`
+ * to return to READY instead of leaving the app blocked in ERROR.
+ *
  * @param {Error} error - The error that occurred
+ * @param {object} [options]
+ * @param {boolean} [options.previousProjectActive=false] - A previous project is still loaded and usable.
  */
-export function markProjectLoadError(error) {
+export function markProjectLoadError(error, { previousProjectActive = false } = {}) {
     // Cancel the safety timeout since loading completed (even if with error)
     if (loadingTimeoutId !== null) {
         clearTimeout(loadingTimeoutId);
         loadingTimeoutId = null;
     }
     
-    currentLoadingState = LOADING_STATES.ERROR;
+    currentLoadingState = previousProjectActive ? LOADING_STATES.READY : LOADING_STATES.ERROR;
     console.error("[ProjectLoading] Project loading failed:", error);
     
     if (resolveLoadingPromise) {

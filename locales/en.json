@@ -166,6 +166,8 @@
     "creator.importSuccess": "Project imported: {name}",
     "creator.missingAssets": "Some project files were not found in the archive and were skipped ({count}): {files}",
     "error.offline": "Unable to load resource: you are offline.",
+    "audio.loadFailures": "{count} audio files could not be loaded. They will be silent.",
+    "audio.initError": "Audio system initialization failed. Some features may not work.",
     "creator.tabs.pads": "Sounds & Lights",
     "creator.tabs.theme": "Appearance & Theme",
     "creator.theme.background": "Project Background",

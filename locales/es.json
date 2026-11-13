@@ -166,6 +166,8 @@
     "creator.importSuccess": "Proyecto importado: {name}",
     "creator.missingAssets": "Algunos archivos del proyecto no se encontraron en el archivo y se omitieron ({count}): {files}",
     "error.offline": "No se puede cargar el recurso: estás desconectado.",
+    "audio.loadFailures": "{count} archivos de audio no se pudieron cargar. Permanecerán en silencio.",
+    "audio.initError": "No se pudo inicializar el sistema de audio. Algunas funciones podrían no funcionar.",
     "creator.tabs.pads": "Sonidos y Luces",
     "creator.tabs.theme": "Aspecto y Tema",
     "creator.theme.background": "Fondo del proyecto",

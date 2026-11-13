@@ -1,5 +1,5 @@
 import { audioEngine } from './audio.js';
-import { currentPage, setCurrentPage, currentMode, setCurrentMode, getProjectStateSnapshot } from './app.js';
+import { getActiveProject, getCurrentPage, setCurrentPage, getCurrentMode, setCurrentMode } from './projectState.js';
 import { triggerAnimation, releaseAnimation } from './lights.js';
 import { resolveLightDuration } from './animationData.js';
 import { setPhysicalColor, getLpColor, flushPhysicalColors } from './physicalInterface.js';
@@ -48,24 +48,31 @@ export function getPadSource() {
     return currentPadSource;
 }
 
+/**
+ * Reads a pad's round-robin step cursor without advancing it.
+ * Letting the pad source read (but never mutate) the cursor keeps the
+ * advancement in a single place: `triggerPad`.
+ * @param {string} counterKey
+ * @returns {number}
+ */
+export function getPadStepCursor(counterKey) {
+    return padStepCounters.get(counterKey) || 0;
+}
+
 function getDefaultPadConfig(index) {
-    const state = getProjectStateSnapshot();
-    if (!state.project) return null;
-    const soundIndex = state.page * LAUNCHPAD_PADS + index;
+    const active = getActiveProject();
+    const page = getCurrentPage();
+    if (!active || page === null) return null;
+    const soundIndex = page * LAUNCHPAD_PADS + index;
     const isReady = isProjectReady();
 
-    const rawSounds = state.sounds?.[soundIndex];
-    const rawLights = state.lights?.[soundIndex];
-    const rawSync = state.lightSyncToSound?.[soundIndex];
-    const rawDur = state.lightDurations?.[soundIndex];
-
-    const soundSteps = Array.isArray(rawSounds) ? rawSounds : (rawSounds ? [rawSounds] : []);
-    const lightSteps = Array.isArray(rawLights) ? rawLights : (rawLights ? [rawLights] : []);
-    const syncSteps = Array.isArray(rawSync) ? rawSync : (typeof rawSync === 'boolean' ? [rawSync] : []);
-    const durSteps = Array.isArray(rawDur) ? rawDur : (typeof rawDur === 'number' ? [rawDur] : []);
+    const soundSteps = active.sounds[soundIndex] || [];
+    const lightSteps = active.lights[soundIndex] || [];
+    const syncSteps = active.lightSyncToSound[soundIndex] || [];
+    const durSteps = active.lightDurations[soundIndex] || [];
 
     const totalSteps = Math.max(soundSteps.length, lightSteps.length, 1);
-    const counterKey = `${state.page}:${index}`;
+    const counterKey = `${page}:${index}`;
     const currentStep = (padStepCounters.get(counterKey) || 0) % totalSteps;
 
     const animName = isReady && lightSteps.length > 0 ? (lightSteps[currentStep] || null) : null;
@@ -117,8 +124,11 @@ export function triggerPad(index) {
         activePressAnimations.delete(index);
     }
 
-    // Advance round-robin counter if default provider and multi-step
-    if (!currentPadSource && config.counterKey && config.totalSteps > 1) {
+    // Advance the round-robin step cursor here, and only here, for every pad
+    // source (performance project and Studio Creator live preview alike).
+    // Advancing while *reading* the config would double-count whenever the pad
+    // is released without an active animation (e.g. a step with no light).
+    if (config.counterKey && config.totalSteps > 1) {
         padStepCounters.set(config.counterKey, ((config.stepIndex ?? 0) + 1) % config.totalSteps);
     }
 
@@ -140,13 +150,6 @@ export function releasePad(index) {
         const x = index % LAUNCHPAD_COLS;
         const y = Math.floor(index / LAUNCHPAD_COLS);
         releaseAnimation(animationName, x, y);
-    } else {
-        const config = currentPadSource ? currentPadSource.getPadConfig(index) : getDefaultPadConfig(index);
-        if (config?.animationName) {
-            const x = index % LAUNCHPAD_COLS;
-            const y = Math.floor(index / LAUNCHPAD_COLS);
-            releaseAnimation(config.animationName, x, y);
-        }
     }
 
     pad.classList.remove('active');
@@ -243,7 +246,7 @@ export function updatePhysicalPageLights(activeIndex) {
  * with the active performance page.
  * @param {number} pageIndex
  */
-export function syncPerformancePageButtons(pageIndex = currentPage) {
+export function syncPerformancePageButtons(pageIndex = getCurrentPage()) {
     if (currentPadSource) return; // Prevent highlighting performance page during Creator editing
     if (pageIndex === null || pageIndex === undefined) return;
     updatePageButtonHighlight(pageIndex);
@@ -267,18 +270,14 @@ export function changeSoundSet(index, updateVisuals = true) {
         return;
     }
 
-    // Check if project is ready before proceeding
-    // This prevents race condition where currentProject is set but projectLights isn't
     if (!isProjectReady()) {
-        console.warn(`[Interaction] Cannot change sound set: Project not ready (state: ${isProjectReady() ? 'ready' : 'loading'})`);
+        console.warn('[Interaction] Cannot change sound set: Project not ready');
         return;
     }
 
-    // Get a consistent snapshot to ensure project state is coherent
-    const state = getProjectStateSnapshot();
-    
-    if (state.project && index < state.project.pages.length) {
-        const pageChanged = (index !== state.page);
+    const active = getActiveProject();
+    if (active && index < active.project.pages.length) {
+        const pageChanged = (index !== getCurrentPage());
         setCurrentPage(index);
         
         if (pageChanged) {
@@ -330,7 +329,7 @@ function updatePhysicalModeLights(activeIndex) {
  * with the active mode.
  * @param {number} modeIndex
  */
-export function syncPerformanceModeButtons(modeIndex = currentMode) {
+export function syncPerformanceModeButtons(modeIndex = getCurrentMode()) {
     if (modeIndex === null || modeIndex === undefined) return;
     updateModeButtonHighlight(modeIndex);
     updatePhysicalModeLights(modeIndex);
@@ -354,8 +353,7 @@ export function changeMode(index, updateVisuals = true) {
         return;
     }
 
-    const state = getProjectStateSnapshot();
-    const modeChanged = (index !== state.mode);
+    const modeChanged = (index !== getCurrentMode());
 
     setCurrentMode(index);
     if (modeChanged) {

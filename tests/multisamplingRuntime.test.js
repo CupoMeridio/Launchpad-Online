@@ -5,6 +5,7 @@ import test from 'node:test';
 globalThis.window = {
     addEventListener() {},
     dispatchEvent() {},
+    setTimeout() { return 0; },
     AudioContext: class {
         createGain() { return { connect() {}, gain: { value: 1, setValueAtTime() {} } }; }
         createBufferSource() { return { connect() {}, start() {}, stop() {}, buffer: null }; }
@@ -56,13 +57,25 @@ function makeMockElement(id = '') {
 
 const dummyPads = Array.from({ length: 64 }, (_, i) => makeMockElement(`pad-${i}`));
 
+// Walks the mock DOM tree produced by renderLightPresets to find a preset swatch.
+function findAnimationSwatch(animationName) {
+    const stack = [elements.get('creator-light-presets')];
+    while (stack.length > 0) {
+        const node = stack.pop();
+        if (!node) continue;
+        if (node.dataset?.animation === animationName) return node;
+        stack.push(...(node.children || []));
+    }
+    return null;
+}
+
 globalThis.document = {
     visibilityState: 'visible',
     addEventListener() {},
     createDocumentFragment() {
         return makeMockElement('');
     },
-    createElement(tag) {
+    createElement(_tag) {
         return makeMockElement('');
     },
     getElementById(id) {
@@ -83,7 +96,22 @@ globalThis.requestAnimationFrame = () => 1;
 globalThis.cancelAnimationFrame = () => {};
 
 const { triggerPad, releasePad, resetPadStepCounters, setPadSource } = await import('../js/interaction.js');
-const { setCurrentProject, setProjectSounds, setProjectLights, setProjectLightSyncToSound, setProjectLightDurations, setCurrentPage } = await import('../js/app.js');
+const { commitProject, setCurrentPage } = await import('../js/projectState.js');
+
+/**
+ * Commits a single-page runtime project, filling unspecified per-pad fields
+ * with the same defaults `normalizeProjectData` produces.
+ */
+function commitTestProject(project, { sounds, lights, lightSyncToSound, lightDurations }) {
+    commitProject({
+        project,
+        sounds,
+        lights,
+        lightSyncToSound: lightSyncToSound || Array(64).fill(null).map(() => [true]),
+        lightDurations: lightDurations || Array(64).fill(null).map(() => [2.5]),
+        appearance: {}
+    });
+}
 const { markProjectReady } = await import('../js/projectLoadingState.js');
 const { audioEngine } = await import('../js/audio.js');
 const { animations } = await import('../js/lights.js');
@@ -97,7 +125,6 @@ test('multisampling runtime round-robin cycles through steps on each press', () 
         name: 'Runtime Test',
         pages: [{ name: 'Page 1' }]
     };
-    setCurrentProject(mockProject);
     setCurrentPage(0);
     markProjectReady();
 
@@ -107,10 +134,12 @@ test('multisampling runtime round-robin cycles through steps on each press', () 
     const lights = Array(64).fill(null).map(() => []);
     lights[0] = ['fade_red', 'wave_green', 'pulse_blue'];
 
-    setProjectSounds(sounds);
-    setProjectLights(lights);
-    setProjectLightSyncToSound(Array(64).fill(null).map(() => [true, true, true]));
-    setProjectLightDurations(Array(64).fill(null).map(() => [2.5, 2.5, 2.5]));
+    commitTestProject(mockProject, {
+        sounds,
+        lights,
+        lightSyncToSound: Array(64).fill(null).map(() => [true, true, true]),
+        lightDurations: Array(64).fill(null).map(() => [2.5, 2.5, 2.5])
+    });
 
     // Track calls to audioEngine.playPadSound
     const playedSteps = [];
@@ -156,6 +185,52 @@ test('multisampling runtime round-robin cycles through steps on each press', () 
     }
 });
 
+test('multi-step pad without lights advances the round-robin cursor exactly once per press', () => {
+    setPadSource(null);
+    resetPadStepCounters();
+
+    const mockProject = {
+        name: 'Lightless Runtime Test',
+        pages: [{ name: 'Page 1' }]
+    };
+    setCurrentPage(0);
+    markProjectReady();
+
+    const sounds = Array(64).fill(null).map(() => []);
+    sounds[2] = ['a.wav', 'b.wav', 'c.wav'];
+
+    // No light on any step: releasePad must not re-read/re-advance the cursor.
+    const lights = Array(64).fill(null).map(() => []);
+
+    commitTestProject(mockProject, {
+        sounds,
+        lights,
+        lightSyncToSound: Array(64).fill(null).map(() => [true, true, true]),
+        lightDurations: Array(64).fill(null).map(() => [2.5, 2.5, 2.5])
+    });
+
+    const playedSteps = [];
+    const originalPlayPadSound = audioEngine.playPadSound;
+    audioEngine.playPadSound = (_padIndex, stepIndex) => {
+        playedSteps.push(stepIndex);
+        return 1.0;
+    };
+
+    try {
+        triggerPad(2);
+        releasePad(2);
+        triggerPad(2);
+        releasePad(2);
+        triggerPad(2);
+        releasePad(2);
+
+        // Sequential order proves the counter is not advanced twice.
+        assert.deepEqual(playedSteps, [0, 1, 2]);
+    } finally {
+        audioEngine.playPadSound = originalPlayPadSound;
+    }
+});
+
 test('momentary animation on multi-step pad is released using the triggered step animation', () => {
     setPadSource(null);
     resetPadStepCounters();
@@ -177,7 +252,6 @@ test('momentary animation on multi-step pad is released using the triggered step
         name: 'Momentary Test',
         pages: [{ name: 'Page 1' }]
     };
-    setCurrentProject(mockProject);
     setCurrentPage(0);
     markProjectReady();
 
@@ -186,8 +260,7 @@ test('momentary animation on multi-step pad is released using the triggered step
     const lights = Array(64).fill(null).map(() => []);
     lights[1] = ['mock_momentary_1', 'mock_momentary_2'];
 
-    setProjectSounds(sounds);
-    setProjectLights(lights);
+    commitTestProject(mockProject, { sounds, lights });
 
     // Trigger pad 1 (triggers mock_momentary_1, advances counter to step 1)
     triggerPad(1);
@@ -213,7 +286,6 @@ test('single-step pads remain at step 0 across multiple presses', () => {
         name: 'Single Step Test',
         pages: [{ name: 'Page 1' }]
     };
-    setCurrentProject(mockProject);
     setCurrentPage(0);
     markProjectReady();
 
@@ -222,12 +294,11 @@ test('single-step pads remain at step 0 across multiple presses', () => {
     const lights = Array(64).fill(null).map(() => []);
     lights[5] = ['fade_red'];
 
-    setProjectSounds(sounds);
-    setProjectLights(lights);
+    commitTestProject(mockProject, { sounds, lights });
 
     const playedSteps = [];
     const orig = audioEngine.playPadSound;
-    audioEngine.playPadSound = (padIndex, stepIndex) => {
+    audioEngine.playPadSound = (_padIndex, stepIndex) => {
         playedSteps.push(stepIndex);
         return 1.0;
     };
@@ -247,8 +318,7 @@ test('single-step pads remain at step 0 across multiple presses', () => {
 });
 
 test('creator preview button triggers hold preview for momentary animation on step > 0', async () => {
-    const { initializeProjectCreator, openCreator, getDraft } = await import('../js/projectCreator.js');
-    const { assignPadStepLight } = await import('../js/projectCreatorModel.js');
+    const { initializeProjectCreator, openCreator } = await import('../js/projectCreator.js');
 
     // Register a mock momentary animation
     let holdTriggered = false;
@@ -262,24 +332,15 @@ test('creator preview button triggers hold preview for momentary animation on st
     initializeProjectCreator();
     openCreator();
 
-    const draft = getDraft();
-    const page = draft.pages[0];
-
-    // Add step 1 using the UI add-step button
+    // Add a second step (which becomes the selected one) and assign the
+    // momentary light to it through the light-preset swatch, as a user would.
     const addStepBtn = elements.get('creator-add-step');
     assert.ok(addStepBtn);
     addStepBtn.dispatch('click');
 
-    // Step 0: non-momentary
-    assignPadStepLight(page, 0, 0, 'fade_red');
-    // Step 1: momentary
-    assignPadStepLight(page, 0, 1, 'mock_momentary_step1');
-
-    // Select step 1 via step pill so inspector and preview button update
-    const stepPillsContainer = elements.get('creator-step-pills');
-    const pill1 = stepPillsContainer?.children?.[1];
-    assert.ok(pill1, 'step pill for step 1 should exist');
-    pill1.dispatch('click');
+    const swatch = findAnimationSwatch('mock_momentary_step1');
+    assert.ok(swatch, 'momentary light preset must be rendered');
+    swatch.dispatch('click');
 
     const previewBtn = elements.get('creator-preview-pad');
     assert.ok(previewBtn);

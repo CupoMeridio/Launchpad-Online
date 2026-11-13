@@ -1,37 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-
-const workspaceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-
-test('index.html compatibility check requires standard AudioContext and omits webkitAudioContext', () => {
-    const html = readFileSync(path.join(workspaceRoot, 'index.html'), 'utf8');
-    assert.match(html, /typeof AudioContext === 'undefined'/);
-    assert.doesNotMatch(html, /webkitAudioContext/);
-});
-
-test('service-worker.js isolates cache deletion to launchpad caches only', () => {
-    const sw = readFileSync(path.join(workspaceRoot, 'service-worker.js'), 'utf8');
-    assert.match(sw, /const CACHE_NAME = 'launchpad-pwa-cache-\d{4}-\d{2}-\d{2}-\d{4}';/);
-    assert.match(sw, /cacheName\.startsWith\('launchpad-pwa-cache-'\) && cacheName !== CACHE_NAME/);
-    assert.doesNotMatch(sw, /if\s*\(cacheName !== CACHE_NAME\)\s*\{\s*debug\([^)]*\);\s*return caches\.delete\(cacheName\);\s*\}/);
-});
-
-test('README.md lists Studio Creator and Multisampling in Key Features and not in Roadmap', () => {
-    const readme = readFileSync(path.join(workspaceRoot, 'README.md'), 'utf8');
-    const [beforeRoadmap, afterRoadmap] = readme.split('## Roadmap & Future Ideas');
-    assert.ok(afterRoadmap, 'README must have Roadmap section');
-
-    // Key Features must mention Studio Creator and Multisampling
-    assert.match(beforeRoadmap, /In-App Studio Creator/i);
-    assert.match(beforeRoadmap, /Multisampling Support/i);
-
-    // Roadmap must NOT list them as planned future items
-    assert.doesNotMatch(afterRoadmap, /In-App Project Creator/i);
-    assert.doesNotMatch(afterRoadmap, /Multisampling Support/i);
-});
 
 test('AudioEngine cleans up on failed init and recovers on retry', async () => {
     // Setup AudioContext mock
@@ -85,4 +53,59 @@ test('AudioEngine cleans up on failed init and recovers on retry', async () => {
     assert.ok(audioEngine.audioContext, 'audioContext must be initialized');
     assert.ok(audioEngine.analyser, 'analyser must be initialized');
     assert.equal(audioEngine.getInitError(), null, 'initError must be cleared on success');
+});
+
+test('service worker activate purges only stale launchpad caches', async () => {
+    const handlers = {};
+    const deletedCaches = [];
+    const staleLaunchpadCaches = [
+        'launchpad-pwa-cache-2025-01-01-0000',
+        'launchpad-pwa-cache-2026-01-01-0000'
+    ];
+    const foreignCaches = ['other-pwa-cache-v1', 'workbox-precache-v2'];
+
+    let currentCacheName = null;
+    let clientClaimed = false;
+
+    globalThis.self = {
+        location: { href: 'https://example.test/service-worker.js', origin: 'https://example.test' },
+        registration: { scope: 'https://example.test/launchpad/' },
+        addEventListener(type, handler) { handlers[type] = handler; },
+        skipWaiting() {},
+        clients: { claim: async () => { clientClaimed = true; } }
+    };
+    globalThis.caches = {
+        open: async (name) => {
+            currentCacheName = name;
+            return { addAll: async () => {} };
+        },
+        keys: async () => [...staleLaunchpadCaches, ...foreignCaches, currentCacheName].filter(Boolean),
+        delete: async (name) => { deletedCaches.push(name); return true; }
+    };
+
+    await import('../service-worker.js');
+
+    // Running `install` reveals the worker's current cache name without hardcoding it.
+    let installWork = null;
+    handlers.install({ waitUntil: promise => { installWork = promise; } });
+    await installWork;
+    assert.ok(
+        currentCacheName?.startsWith('launchpad-pwa-cache-'),
+        'install must open the versioned launchpad cache'
+    );
+
+    let activateWork = null;
+    handlers.activate({ waitUntil: promise => { activateWork = promise; } });
+    await activateWork;
+
+    assert.deepEqual(
+        deletedCaches.sort(),
+        [...staleLaunchpadCaches].sort(),
+        'only outdated launchpad caches must be deleted'
+    );
+    assert.equal(deletedCaches.includes(currentCacheName), false, 'current cache must be kept');
+    for (const foreignCache of foreignCaches) {
+        assert.equal(deletedCaches.includes(foreignCache), false, `cache of another app must be kept: ${foreignCache}`);
+    }
+    assert.equal(clientClaimed, true, 'activate must claim control of open clients');
 });

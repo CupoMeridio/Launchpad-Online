@@ -1,5 +1,5 @@
 import { audioEngine } from './audio.js';
-import { syncInputSlider } from './ui.js';
+import { syncInputSlider } from './formControls.js';
 import * as VisualizerManager from './visualizerManager.js';
 import { registerListener } from './eventCleanup.js';
 import { debug } from './logger.js';

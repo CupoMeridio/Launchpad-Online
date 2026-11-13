@@ -44,6 +44,7 @@
                        Modify this file to customize the Launchpad appearance (pad colors, animations, etc.).
     -->
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/sidebar.css">
   <link rel="stylesheet" href="css/launchpad.css">
 
   <!--
@@ -526,7 +527,7 @@
             <span data-i18n="creator.selectedPad">PAD SELEZIONATO</span>
             <strong id="creator-selected-pad">Pad 1</strong>
           </div>
-          <div id="creator-steps-bar" class="creator-steps-bar">
+          <div class="creator-steps-bar">
             <div class="creator-steps-header">
               <span class="creator-steps-title" data-i18n="creator.multisamplingTitle">Campionamento multiplo</span>
               <span id="creator-step-indicator" class="creator-step-indicator">Step 1 di 1</span>
@@ -536,9 +537,9 @@
                 data-i18n-aria-label="a11y.padSteps"></div>
               <div class="creator-step-actions">
                 <button type="button" class="inspector-action creator-step-btn" id="creator-add-step"
-                  data-i18n="creator.addStep" aria-label="Aggiungi step">+</button>
+                  data-i18n-aria-label="creator.addStep" aria-label="Aggiungi step">+</button>
                 <button type="button" class="inspector-action creator-step-btn" id="creator-remove-step"
-                  data-i18n="creator.removeStep" aria-label="Rimuovi step">-</button>
+                  data-i18n-aria-label="creator.removeStep" aria-label="Rimuovi step">-</button>
               </div>
             </div>
           </div>

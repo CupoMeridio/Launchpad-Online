@@ -89,8 +89,10 @@ Launchpad-Online/
 │   ├── images/             # UI images and launchpad covers
 │   └── videos/             # Background video loops
 ├── css/                    # Application styling
-│   ├── launchpad.css       # Launchpad-specific styles
-│   └── style.css           # General application styles
+│   ├── creator.css         # Studio Creator, Inspector & Multisampling styles (lazy-loaded)
+│   ├── launchpad.css       # Launchpad-specific styles & LED rendering
+│   ├── sidebar.css         # Collapsible sidebar, tabs & navigation styles
+│   └── style.css           # Core theme variables, layout & base controls
 ├── js/                     # Application logic
 │   ├── midi-profiles/      # Hardware drivers (Legacy, RGB, Registry)
 │   ├── vendor/             # Third-party utilities (JSZip)
@@ -98,19 +100,27 @@ Launchpad-Online/
 │   ├── animationData.js    # Animation data and structures
 │   ├── animationEngine.js  # Core animation rendering engine
 │   ├── animationLibrary.js # Registry of available animations
-│   ├── app.js              # Main application entry point
+│   ├── app.js              # Entry point / composition root (no state, no exports)
 │   ├── audio.js            # Web Audio API engine
 │   ├── constants.js        # Global constants and grid definitions
+│   ├── creatorLoader.js    # Lazy loader for the Studio Creator module and styles
+│   ├── i18n.js             # Locale loading and translation lookup
 │   ├── interaction.js      # User interaction handling
 │   ├── lights.js           # Light animation engine and presets
 │   ├── midi.js             # Native Web MIDI hardware integration
+│   ├── notifications.js    # On-screen toast notifications
 │   ├── physicalInterface.js # Physical Launchpad mapping & batching
 │   ├── project.js          # Project and page management
+│   ├── projectModel.js     # Pure project normalization and path resolution
+│   ├── projectState.js     # Runtime state: active project (atomic commit), page, mode
 │   ├── projectCreator.js   # Studio Creator workspace
 │   ├── projectCreatorModel.js # Creator data model & validation
+│   ├── projectCreatorState.js # Creator session state & business logic
 │   ├── projectZip.js       # Standalone project .zip import/export
 │   ├── static-data.json    # Static configuration data
 │   ├── background.js       # Background media controller (videos & images)
+│   ├── settings.js         # Centralized application settings & safe persistence
+│   ├── staticCatalog.js    # Built-in catalog (projects, videos, skins) loader
 │   ├── ui.js               # UI components and DOM management
 │   ├── visualizer-controls.js # Visualizer UI controls
 │   ├── visualizer.js       # Audio visualizer logic

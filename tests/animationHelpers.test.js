@@ -7,6 +7,18 @@ import {
     buildReverseCrossEvents,
     buildWaveEvents
 } from '../js/animationClasses.js';
+import {
+    buildRainEvents,
+    buildScanlineEvents
+} from '../js/animations/directional.js';
+import {
+    buildSquareExpansionEvents,
+    buildSpiralEvents
+} from '../js/animations/geometric.js';
+import {
+    buildSnakeEvents,
+    buildWarpSpeedEvents
+} from '../js/animations/special.js';
 
 test('maxCornerDistance accurately calculates greatest Euclidean corner distance with 4-way symmetry', () => {
     const cornerExpected = Math.sqrt(7 * 7 + 7 * 7); // ~9.8995
@@ -105,3 +117,76 @@ test('buildWaveEvents produces exactly 64 events and respects forward, reverse, 
     assert.equal(pad33.time, pad34.time);
     assert.equal(pad33.time, pad44.time);
 });
+
+test('buildRainEvents accurately generates 1D directional sweep stopping at boundaries', () => {
+    const downEvents = buildRainEvents(2, 5, 0, 1, 80, 160);
+    // From y=5 down to 7: 3 events (y=5, 6, 7)
+    assert.equal(downEvents.length, 3);
+    assert.deepEqual(downEvents[0], { p: [2, 5], time: 0, dur: 160 });
+    assert.deepEqual(downEvents[1], { p: [2, 6], time: 80, dur: 160 });
+    assert.deepEqual(downEvents[2], { p: [2, 7], time: 160, dur: 160 });
+
+    const upEvents = buildRainEvents(2, 5, 0, -1, 80, 160);
+    // From y=5 up to 0: 6 events (y=5, 4, 3, 2, 1, 0)
+    assert.equal(upEvents.length, 6);
+    assert.deepEqual(upEvents[upEvents.length - 1], { p: [2, 0], time: 5 * 80, dur: 160 });
+});
+
+test('buildScanlineEvents accurately generates vertical, horizontal and bounce sweeps', () => {
+    // Vertical forward: 8 columns x 8 rows = 64 events
+    const vEvents = buildScanlineEvents('v', '', 800);
+    assert.equal(vEvents.length, 64);
+    assert.deepEqual(vEvents[0].p, [0, 0]);
+    assert.deepEqual(vEvents[63].p, [7, 7]);
+
+    // Horizontal reverse: 8 rows x 8 cols = 64 events, starting at row 7
+    const hRevEvents = buildScanlineEvents('h', '_reverse', 800);
+    assert.equal(hRevEvents.length, 64);
+    assert.deepEqual(hRevEvents[0].p, [0, 7]);
+    assert.deepEqual(hRevEvents[63].p, [7, 0]);
+
+    // Bounce: 15 steps (8 forward + 7 reverse) x 8 pads = 120 events
+    const vBounceEvents = buildScanlineEvents('v', '_bounce', 800);
+    assert.equal(vBounceEvents.length, 120);
+});
+
+test('buildSquareExpansionEvents generates concentric squares expanding or contracting', () => {
+    const explodeEvents = buildSquareExpansionEvents(3, 3, 70, 140, false);
+    // Center point at t=0
+    assert.deepEqual(explodeEvents[0], { p: [3, 3], time: 0, dur: 140 });
+    // All events within grid bounds
+    for (const ev of explodeEvents) {
+        assert.ok(ev.p[0] >= 0 && ev.p[0] < 8);
+        assert.ok(ev.p[1] >= 0 && ev.p[1] < 8);
+    }
+
+    const implodeEvents = buildSquareExpansionEvents(3, 3, 70, 140, true);
+    // Contracting finishes at (3, 3) at the final step
+    const lastEvent = implodeEvents[implodeEvents.length - 1];
+    assert.deepEqual(lastEvent, { p: [3, 3], time: 7 * 70, dur: 140 });
+});
+
+test('buildSpiralEvents touches all 64 pads in spiral sequence without duplicates', () => {
+    const spiralEvents = buildSpiralEvents(1280);
+    assert.equal(spiralEvents.length, 64);
+    const seen = new Set(spiralEvents.map(e => `${e.p[0]},${e.p[1]}`));
+    assert.equal(seen.size, 64);
+});
+
+test('buildSnakeEvents and buildWarpSpeedEvents generate bounded event sequences', () => {
+    const snakeEvents = buildSnakeEvents(1000);
+    assert.ok(snakeEvents.length > 20);
+    for (const ev of snakeEvents) {
+        assert.ok(ev.p[0] >= 0 && ev.p[0] < 8);
+        assert.ok(ev.p[1] >= 0 && ev.p[1] < 8);
+    }
+
+    const warpEvents = buildWarpSpeedEvents(500);
+    // 4 centers x 4 steps = 16 events
+    assert.equal(warpEvents.length, 16);
+    for (const ev of warpEvents) {
+        assert.ok(ev.p[0] >= 0 && ev.p[0] < 8);
+        assert.ok(ev.p[1] >= 0 && ev.p[1] < 8);
+    }
+});
+

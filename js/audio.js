@@ -12,12 +12,12 @@
 
 import { 
     categorizeDecodeError, 
-    getErrorMessage, 
     validateAudioBuffer,
     audioLoadingTracker,
     AUDIO_ERROR_TYPES
 } from './audioErrorHandler.js';
-import { showNotification } from './ui.js';
+import { showNotification } from './notifications.js';
+import { getTranslation } from './i18n.js';
 import { onVisibilityChange } from './visibilityManager.js';
 import { debug } from './logger.js';
 
@@ -42,7 +42,8 @@ class AudioEngine {
         this.initError = null;
 
         // 2. SOUND BUFFERS
-        // Decoded audio data (`AudioBuffer`) ready for playback.
+        // Decoded audio data of the active project, indexed [padSlot][stepIndex].
+        // Replaced as a whole by `setSoundBuffers` once a project is fully loaded.
         this.soundBuffers = [];
 
         // 3. ACTIVE SOURCES
@@ -135,23 +136,16 @@ class AudioEngine {
     }
 
     /**
-     * Loads a single audio file from the specified URL.
+     * Fetches and decodes a single audio file. Never touches the active buffers.
      * @param {string|null} url - The URL of the audio file to load.
-     * @param {number} [index] - The index to store the audio buffer in the `soundBuffers` array.
-     * @param {boolean} notifyUser - Whether to show error notification to user (default: false for batch operations)
      * @returns {Promise<AudioBuffer|null>} The decoded buffer or null on failure
      */
-    async loadSound(url, index, notifyUser = false) {
-        // If URL is null or undefined (for empty pads), store `null` and exit.
-        if (!url) {
-            if (index !== undefined) this.soundBuffers[index] = null;
-            return null;
-        }
+    async loadSound(url) {
+        if (!url) return null;
 
         // Ensure audioContext is available
         if (!this.audioContext) {
             console.warn(`[AUDIO] Cannot load sound: AudioContext not initialized.`);
-            if (index !== undefined) this.soundBuffers[index] = null;
             audioLoadingTracker.markFailure(url, AUDIO_ERROR_TYPES.CONTEXT_ERROR, new Error('AudioContext not initialized'));
             return null;
         }
@@ -159,15 +153,8 @@ class AudioEngine {
         audioLoadingTracker.markPending(url);
 
         const handleLoadError = (errorType, errorObj) => {
-            const errorInfo = getErrorMessage(errorType, url);
             console.error(`[AUDIO] Error (${errorType}) loading sound ${url}:`, errorObj);
             audioLoadingTracker.markFailure(url, errorType, errorObj);
-            if (notifyUser) {
-                showNotification(`${errorInfo.title}: ${errorInfo.message}`, 'error');
-            }
-            if (index !== undefined && !Array.isArray(this.soundBuffers[index])) {
-                this.soundBuffers[index] = null;
-            }
             return null;
         };
 
@@ -207,10 +194,6 @@ class AudioEngine {
                 return handleLoadError(AUDIO_ERROR_TYPES.CORRUPTED_FILE, new Error(validation.error));
             }
 
-            // Store the decoded buffer in the array if index provided
-            if (index !== undefined) {
-                this.soundBuffers[index] = audioBuffer;
-            }
             audioLoadingTracker.markSuccess(url);
             debug(`[AUDIO] Sound loaded successfully: ${url}`);
             return audioBuffer;
@@ -223,19 +206,25 @@ class AudioEngine {
     /**
      * Loads an entire array of sound URL entries in batches to avoid saturating connections.
      * Each entry can be an array of step URLs (`string[]`) or a single URL string.
+     *
+     * The decoded buffers are RETURNED, not installed: the currently playable
+     * buffers stay untouched until the caller commits the new set with
+     * `setSoundBuffers`, so a failed or superseded load never leaves the
+     * active project half-replaced.
+     *
      * @param {Array<string[]|string|null>} soundEntries - An array of sound entries to load.
      * @param {function} onProgress - Optional callback for loading progress (loadedCount, totalCount).
-     * @returns {Promise<object>} Loading summary with success/failure stats
+     * @returns {Promise<{buffers: Array<Array<AudioBuffer|null>>, total: number, successful: number, failed: number, failureDetails: object}>}
      */
     async loadSounds(soundEntries, onProgress = null) {
-        this.soundBuffers = []; // Clear previous project buffers.
         audioLoadingTracker.reset(); // Reset loading tracker for new project
 
+        const buffers = [];
         const tasks = [];
         for (let i = 0; i < soundEntries.length; i++) {
             const rawEntry = soundEntries[i];
             const stepUrls = Array.isArray(rawEntry) ? rawEntry : (rawEntry ? [rawEntry] : []);
-            this.soundBuffers[i] = new Array(stepUrls.length).fill(null);
+            buffers[i] = new Array(stepUrls.length).fill(null);
             for (let s = 0; s < stepUrls.length; s++) {
                 const url = stepUrls[s];
                 if (url) {
@@ -247,7 +236,7 @@ class AudioEngine {
         const total = tasks.length;
         if (total === 0) {
             if (onProgress) onProgress(0, 0);
-            return { total: 0, successful: 0, failed: 0, failureDetails: [] };
+            return { buffers, total: 0, successful: 0, failed: 0, failureDetails: {} };
         }
 
         const BATCH_SIZE = 10; // Load 10 sounds at a time
@@ -258,9 +247,9 @@ class AudioEngine {
                 const batch = tasks.slice(i, i + BATCH_SIZE);
                 const batchPromises = batch.map(async task => {
                     try {
-                        const buffer = await this.loadSound(task.url, undefined, false);
+                        const buffer = await this.loadSound(task.url);
                         if (buffer) {
-                            this.soundBuffers[task.padIndex][task.stepIndex] = buffer;
+                            buffers[task.padIndex][task.stepIndex] = buffer;
                         }
                     } catch (error) {
                         console.error(`[AUDIO] Batch load error for pad ${task.padIndex}, step ${task.stepIndex}:`, error);
@@ -281,12 +270,13 @@ class AudioEngine {
 
             // Notify user if there were failures
             if (stats.failed > 0) {
-                const failureMessage = `${stats.failed} audio file(s) failed to load. They will be silent.`;
+                const failureMessage = getTranslation('audio.loadFailures').replace('{count}', stats.failed);
                 showNotification(failureMessage, 'warning');
                 console.warn(`[AUDIO] Failed files:`, stats.failureDetails);
             }
 
             return {
+                buffers,
                 total,
                 successful: stats.successful,
                 failed: stats.failed,
@@ -297,6 +287,14 @@ class AudioEngine {
             console.error('[AUDIO] Critical error during batch loading:', error);
             throw error;
         }
+    }
+
+    /**
+     * Installs the decoded buffers of the active project (see `loadSounds`).
+     * @param {Array<Array<AudioBuffer|null>>} buffers - Indexed [padSlot][stepIndex].
+     */
+    setSoundBuffers(buffers) {
+        this.soundBuffers = Array.isArray(buffers) ? buffers : [];
     }
 
     /**
@@ -334,7 +332,7 @@ class AudioEngine {
                 try {
                     const oldSource = this.activeSources.get(key);
                     oldSource.stop();
-                } catch (e) {
+                } catch (_e) {
                     // Ignore errors if the source has already finished or hasn't started
                 }
                 this.activeSources.delete(key);
@@ -373,7 +371,7 @@ class AudioEngine {
                 this.activeSources.delete(key);
                 try {
                     source.disconnect();
-                } catch (e) {}
+                } catch (_e) {}
                 return 0;
             }
 
@@ -391,7 +389,7 @@ class AudioEngine {
         if (this.activeSources.has(key)) {
             try {
                 this.activeSources.get(key).stop();
-            } catch (e) {}
+            } catch (_e) {}
             this.activeSources.delete(key);
         }
     }
@@ -459,24 +457,6 @@ class AudioEngine {
         return this.analyser;
     }
 
-    /**
-     * Gets loading statistics for debugging and monitoring
-     * @returns {object} Stats including successes, failures, and detailed failure info
-     */
-    getLoadingStats() {
-        return audioLoadingTracker.getFailureStats();
-    }
-
-    /**
-     * Attempts to reload a previously failed audio file
-     * @param {string} url - The URL of the file to retry
-     * @param {number} index - The pad index where it should be stored
-     * @returns {Promise<AudioBuffer|null>} The loaded buffer or null on failure
-     */
-    async retryFailedSound(url, index) {
-        debug(`[AUDIO] Retrying failed sound: ${url}`);
-        return await this.loadSound(url, index, true); // Notify user on retry
-    }
 }
 
 // SINGLETON EXPORT

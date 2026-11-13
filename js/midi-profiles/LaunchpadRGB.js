@@ -14,7 +14,7 @@
  */
 
 import { DeviceProfile } from './DeviceProfile.js';
-import { detectModel } from './ProfileRegistry.js';
+import { detectModel } from './modelDetection.js';
 import { debug } from '../logger.js';
 
 export class LaunchpadRGB extends DeviceProfile {

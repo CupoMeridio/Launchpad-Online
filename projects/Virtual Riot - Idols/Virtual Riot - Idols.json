@@ -3,7 +3,7 @@
   "name": "Virtual Riot - Idols",
   "coverImage": "",
   "iconImage": "icon.png",
-  "backgroundVideo": "assets/videos/Neon Tunnel.webm",
+  "backgroundMedia": "assets/videos/Neon Tunnel.webm",
   "pages": [
     {
       "name": "Page 1",

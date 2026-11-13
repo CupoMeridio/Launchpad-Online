@@ -1,10 +1,289 @@
-import { activeAnimations } from '../animationEngine.js';
+/**
+ * SPECIAL ANIMATIONS (js/animations/special.js)
+ * 
+ * Provides complex, audio-reactive, algorithmic, and shape-based light effects:
+ * EQ spectrums, matrix rain, strobe bursts, snakes, fireworks, and momentary holds.
+ */
+
+import { fader, activeAnimations } from '../animationEngine.js';
 import { PrecomputedAnimation, RealEQAnimation, MatrixRainAnimation, StrobeBurstAnimation } from '../animationClasses.js';
+
+const MATRIX_RAIN_DIRECTIONS = [
+    ['matrix_rain', 'down'],
+    ['matrix_rain_up', 'up'],
+    ['matrix_rain_left', 'left'],
+    ['matrix_rain_right', 'right']
+];
+
+export function buildSnakeEvents(dur) {
+    const stepDelay = dur ? dur / 66 : 30;
+    const fadeDuration = dur ? stepDelay * 2 : 140;
+    const events = [];
+    let tx = 3, ty = 3;
+    let delay = 0;
+
+    events.push({ p: [tx, ty], time: delay, dur: fadeDuration });
+
+    const move = (dx, dy, steps) => {
+        for (let i = 0; i < steps; i++) {
+            tx += dx;
+            ty += dy;
+            if (tx >= 0 && tx < 8 && ty >= 0 && ty < 8) {
+                delay += stepDelay;
+                events.push({ p: [tx, ty], time: delay, dur: fadeDuration });
+            }
+        }
+    };
+
+    for (let s = 1; s < 8; s++) {
+        move(1, 0, s);
+        move(0, 1, s);
+        s++;
+        move(-1, 0, s);
+        move(0, -1, s);
+    }
+    return events;
+}
+
+export function buildWarpSpeedEvents(dur) {
+    const stepDelay = dur ? dur / 6 : 80;
+    const fadeDuration = dur ? stepDelay * 2 : 140;
+    const events = [];
+    const centers = [[3, 3], [3, 4], [4, 3], [4, 4]];
+    const directions = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+    centers.forEach((c, i) => {
+        const [dx, dy] = directions[i];
+        for (let step = 0; step < 4; step++) {
+            const tx = c[0] + dx * step;
+            const ty = c[1] + dy * step;
+            events.push({ p: [tx, ty], time: step * stepDelay, dur: fadeDuration });
+        }
+    });
+    return events;
+}
+
+export function buildSnakeCollisionEvents(dur) {
+    const stepDelay = dur ? dur / 10 : 100;
+    const fadeDuration = dur ? stepDelay * 2 : 140;
+    const events = [];
+    const path1 = [[0, 0], [1, 0], [2, 0], [3, 0], [3, 1], [3, 2], [3, 3]];
+    const path2 = [[7, 7], [6, 7], [5, 7], [4, 7], [4, 6], [4, 5], [4, 4]];
+
+    path1.forEach((p, i) => {
+        events.push({ p, time: i * stepDelay, dur: fadeDuration });
+    });
+    path2.forEach((p, i) => {
+        events.push({ p, time: i * stepDelay, dur: fadeDuration });
+    });
+
+    const explosionDelay = path1.length * stepDelay;
+    const flash = [[3, 3], [3, 4], [4, 3], [4, 4]];
+    flash.forEach(p => {
+        events.push({ p, time: explosionDelay, dur: fadeDuration });
+    });
+
+    return events;
+}
+
+export function buildEqSpectrumEvents(dur) {
+    const stepDelay = dur ? dur / 9 : 40;
+    const fadeDuration = dur ? stepDelay * 2 : 140;
+    const events = [];
+    for (let tx = 0; tx < 8; tx++) {
+        const height = Math.floor(Math.random() * 7) + 1;
+        for (let ty = 7; ty >= 8 - height; ty--) {
+            events.push({ p: [tx, ty], time: (7 - ty) * stepDelay, dur: fadeDuration });
+        }
+    }
+    return events;
+}
+
+export function buildEqBounceEvents(dur) {
+    const baseSteps = 16;
+    const speed = dur ? dur / baseSteps : 40;
+    const hold = speed * 2;
+    const events = [];
+
+    for (let tx = 0; tx < 8; tx++) {
+        const height = Math.floor(Math.random() * 7) + 1;
+        const peakRow = 8 - height;
+
+        for (let ty = 7; ty >= peakRow; ty--) {
+            const turnOnTime = (7 - ty) * speed;
+            const turnOffTime = (7 - peakRow) * speed + hold + (ty - peakRow) * speed;
+            const activeDur = turnOffTime - turnOnTime;
+
+            events.push({ p: [tx, ty], time: turnOnTime, dur: activeDur, mode: 'instant' });
+        }
+    }
+    return events;
+}
+
+export function buildEqPeakHoldEvents(dur) {
+    const baseSteps = 20;
+    const speed = dur ? dur / baseSteps : 30;
+    const peakHold = dur ? dur * 0.5 : 400;
+    const events = [];
+
+    for (let tx = 0; tx < 8; tx++) {
+        const height = Math.floor(Math.random() * 7) + 1;
+        const peakRow = 8 - height;
+
+        for (let ty = 7; ty >= peakRow; ty--) {
+            const turnOnTime = (7 - ty) * speed;
+            const turnOffTime = (ty === peakRow)
+                ? (7 - peakRow) * speed + peakHold
+                : (7 - peakRow) * speed + (ty - peakRow) * speed;
+
+            const activeDur = turnOffTime - turnOnTime;
+            if (activeDur > 0) {
+                events.push({ p: [tx, ty], time: turnOnTime, dur: activeDur, mode: 'instant' });
+            }
+        }
+    }
+    return events;
+}
+
+export function buildCheckerboardEvents(dur) {
+    const holdTime = dur || 500;
+    const events = [];
+    for (let ty = 0; ty < 8; ty++) {
+        for (let tx = 0; tx < 8; tx++) {
+            if ((tx + ty) % 2 === 0) {
+                events.push({ p: [tx, ty], time: 0, dur: holdTime });
+            }
+        }
+    }
+    return events;
+}
+
+export function buildAtomicBounceEvents(startX, startY, dur) {
+    const totalSteps = 15;
+    const stepDelay = dur ? dur / totalSteps : 60;
+    const fadeDuration = stepDelay * 2;
+    const events = [];
+    
+    let currX = startX;
+    let currY = startY;
+    let dx = Math.random() > 0.5 ? 1 : -1;
+    let dy = Math.random() > 0.5 ? 1 : -1;
+
+    for (let i = 0; i < totalSteps; i++) {
+        events.push({ p: [Math.round(currX), Math.round(currY)], time: i * stepDelay, dur: fadeDuration });
+        currX += dx;
+        currY += dy;
+
+        if (currX <= 0 || currX >= 7) {
+            dx *= -1;
+            currX = Math.max(0, Math.min(7, currX));
+        }
+        if (currY <= 0 || currY >= 7) {
+            dy *= -1;
+            currY = Math.max(0, Math.min(7, currY));
+        }
+    }
+    return events;
+}
+
+export function buildDnaSpiralEvents(_startX, startY, dur) {
+    const totalSteps = 16;
+    const stepDelay = dur ? dur / totalSteps : 50;
+    const fadeDuration = stepDelay * 3;
+    const events = [];
+
+    for (let i = 0; i < totalSteps; i++) {
+        const tx = i % 8;
+        const offset = Math.sin(i * 0.8) * 2;
+        const ty1 = Math.max(0, Math.min(7, Math.round(startY + offset)));
+        const ty2 = Math.max(0, Math.min(7, Math.round(startY - offset)));
+
+        events.push({ p: [tx, ty1], time: i * stepDelay, dur: fadeDuration });
+        events.push({ p: [tx, ty2], time: i * stepDelay, dur: fadeDuration });
+    }
+    return events;
+}
+
+export function buildRandomFillEvents(dur) {
+    const stepDelay = dur ? dur / 64 : 15;
+    const fadeDuration = dur ? stepDelay * 10 : 300;
+    const events = [];
+    const points = [];
+    for (let ty = 0; ty < 8; ty++) {
+        for (let tx = 0; tx < 8; tx++) points.push([tx, ty]);
+    }
+    for (let i = points.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [points[i], points[j]] = [points[j], points[i]];
+    }
+    points.forEach((p, i) => {
+        events.push({ p, time: i * stepDelay, dur: fadeDuration });
+    });
+    return events;
+}
+
+const STATIC_HOLD_SHAPES = {
+    grid_hold: (() => {
+        const pts = [];
+        for (let ty = 0; ty < 8; ty++) for (let tx = 0; tx < 8; tx++) pts.push([tx, ty]);
+        return pts;
+    })(),
+    border_hold: (() => {
+        const pts = [];
+        for (let i = 0; i < 8; i++) pts.push([i, 0], [i, 7], [0, i], [7, i]);
+        return pts;
+    })(),
+    checkerboard_hold: (() => {
+        const pts = [];
+        for (let ty = 0; ty < 8; ty++) for (let tx = 0; tx < 8; tx++) if ((tx + ty) % 2 === 0) pts.push([tx, ty]);
+        return pts;
+    })(),
+    inv_checkerboard_hold: (() => {
+        const pts = [];
+        for (let ty = 0; ty < 8; ty++) for (let tx = 0; tx < 8; tx++) if ((tx + ty) % 2 !== 0) pts.push([tx, ty]);
+        return pts;
+    })(),
+    half_up_hold: (() => {
+        const pts = [];
+        for (let ty = 0; ty < 4; ty++) for (let tx = 0; tx < 8; tx++) pts.push([tx, ty]);
+        return pts;
+    })(),
+    half_down_hold: (() => {
+        const pts = [];
+        for (let ty = 4; ty < 8; ty++) for (let tx = 0; tx < 8; tx++) pts.push([tx, ty]);
+        return pts;
+    })(),
+    half_left_hold: (() => {
+        const pts = [];
+        for (let ty = 0; ty < 8; ty++) for (let tx = 0; tx < 4; tx++) pts.push([tx, ty]);
+        return pts;
+    })(),
+    half_right_hold: (() => {
+        const pts = [];
+        for (let ty = 0; ty < 8; ty++) for (let tx = 4; tx < 8; tx++) pts.push([tx, ty]);
+        return pts;
+    })(),
+    stripes_v_hold: (() => {
+        const pts = [];
+        for (let ty = 0; ty < 8; ty++) for (let tx = 0; tx < 8; tx += 2) pts.push([tx, ty]);
+        return pts;
+    })(),
+    stripes_h_hold: (() => {
+        const pts = [];
+        for (let ty = 0; ty < 8; ty += 2) for (let tx = 0; tx < 8; tx++) pts.push([tx, ty]);
+        return pts;
+    })()
+};
+
+const HEART_POINTS = [
+    [1, 0], [2, 0], [5, 0], [6, 0], [0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1], [7, 1],
+    [0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [7, 2], [0, 3], [1, 3], [2, 3], [3, 3], [4, 3], [5, 3], [6, 3], [7, 3],
+    [0, 4], [1, 4], [2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [7, 4], [1, 5], [2, 5], [3, 5], [4, 5], [5, 5], [6, 5], [2, 6], [3, 6], [4, 6], [5, 6], [3, 7], [4, 7]
+];
 
 export function register(animations, colors) {
     // EQ_REAL: Multi-color realistic EQ (Green -> Amber -> Red)
     animations['eq_real'] = {
-        on: (x, y, duration) => {
+        on: (_x, _y, duration) => {
             activeAnimations.add(new RealEQAnimation(duration));
         },
         type: 'fixed',
@@ -12,489 +291,70 @@ export function register(animations, colors) {
     };
 
     colors.forEach(colorName => {
-        // MATRIX RAIN
-        animations[`matrix_rain_${colorName}`] = {
-            on: (x, y, duration) => {
-                activeAnimations.add(new MatrixRainAnimation(colorName, duration, 'down'));
-            },
-            type: 'fixed'
-        };
-
-        animations[`matrix_rain_up_${colorName}`] = {
-            on: (x, y, duration) => {
-                activeAnimations.add(new MatrixRainAnimation(colorName, duration, 'up'));
-            },
-            type: 'fixed'
-        };
-
-        animations[`matrix_rain_left_${colorName}`] = {
-            on: (x, y, duration) => {
-                activeAnimations.add(new MatrixRainAnimation(colorName, duration, 'left'));
-            },
-            type: 'fixed'
-        };
-
-        animations[`matrix_rain_right_${colorName}`] = {
-            on: (x, y, duration) => {
-                activeAnimations.add(new MatrixRainAnimation(colorName, duration, 'right'));
-            },
-            type: 'fixed'
-        };
+        // MATRIX RAIN (4 directions)
+        for (const [prefix, dir] of MATRIX_RAIN_DIRECTIONS) {
+            animations[`${prefix}_${colorName}`] = {
+                on: (_x, _y, duration) => {
+                    activeAnimations.add(new MatrixRainAnimation(colorName, duration, dir));
+                },
+                type: 'fixed'
+            };
+        }
 
         // STROBE_BURST
         animations[`strobe_burst_${colorName}`] = {
-            on: (x, y, duration) => {
+            on: (_x, _y, duration) => {
                 activeAnimations.add(new StrobeBurstAnimation(colorName, duration));
             },
             type: 'fixed'
         };
 
-        // SNAKE: Spiral pattern covering the grid
-        animations[`snake_${colorName}`] = {
-            on: (x, y, duration) => {
-                activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
-                    const stepDelay = dur ? dur / 66 : 30;
-                    const fadeDuration = dur ? stepDelay * 2 : 140;
-                    const events = [];
-                    let tx = 3, ty = 3;
-                    let delay = 0;
+        // Algorithmic pattern animations
+        const patternBuilders = {
+            snake: (_x, _y, dur) => buildSnakeEvents(dur),
+            warp_speed: (_x, _y, dur) => buildWarpSpeedEvents(dur),
+            snake_collision: (_x, _y, dur) => buildSnakeCollisionEvents(dur),
+            eq_spectrum: (_x, _y, dur) => buildEqSpectrumEvents(dur),
+            eq_bounce: (_x, _y, dur) => buildEqBounceEvents(dur),
+            eq_peak_hold: (_x, _y, dur) => buildEqPeakHoldEvents(dur),
+            checkerboard: (_x, _y, dur) => buildCheckerboardEvents(dur),
+            atomic_bounce: (x, y, dur) => buildAtomicBounceEvents(x, y, dur),
+            dna_spiral: (x, y, dur) => buildDnaSpiralEvents(x, y, dur),
+            random_fill: (_x, _y, dur) => buildRandomFillEvents(dur)
+        };
 
-                    // Starting point
-                    events.push({ p: [tx, ty], time: delay, dur: fadeDuration });
+        Object.entries(patternBuilders).forEach(([name, builder]) => {
+            animations[`${name}_${colorName}`] = {
+                on: (x, y, duration) => {
+                    activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
+                        return builder(x, y, dur);
+                    }));
+                },
+                type: 'fixed'
+            };
+        });
 
-                    const move = (dx, dy, steps) => {
-                        for (let i = 0; i < steps; i++) {
-                            tx += dx;
-                            ty += dy;
-                            if (tx >= 0 && tx < 8 && ty >= 0 && ty < 8) {
-                                delay += stepDelay;
-                                events.push({ p: [tx, ty], time: delay, dur: fadeDuration });
-                            }
-                        }
-                    };
-
-                    for (let s = 1; s < 8; s++) {
-                        move(1, 0, s);
-                        move(0, 1, s);
-                        s++;
-                        move(-1, 0, s);
-                        move(0, -1, s);
+        // Static shape momentary hold animations
+        Object.entries(STATIC_HOLD_SHAPES).forEach(([name, points]) => {
+            animations[`${name}_${colorName}`] = {
+                on: () => {
+                    for (let i = 0; i < points.length; i++) {
+                        fader.add(points[i], colorName, 999999, 'instant');
                     }
-                    return events;
-                }));
-            },
-            type: 'fixed'
-        };
-
-        // WARP_SPEED
-        animations[`warp_speed_${colorName}`] = {
-            on: (x, y, duration) => {
-                activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
-                    const stepDelay = dur ? dur / 6 : 80;
-                    const fadeDuration = dur ? stepDelay * 2 : 140;
-                    const events = [];
-                    const centers = [[3, 3], [3, 4], [4, 3], [4, 4]];
-                    const directions = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
-                    centers.forEach((c, i) => {
-                        const [dx, dy] = directions[i];
-                        for (let step = 0; step < 4; step++) {
-                            const tx = c[0] + dx * step;
-                            const ty = c[1] + dy * step;
-                            events.push({ p: [tx, ty], time: step * stepDelay, dur: fadeDuration });
-                        }
-                    });
-                    return events;
-                }));
-            },
-            type: 'fixed'
-        };
-
-        // SNAKE_COLLISION
-        animations[`snake_collision_${colorName}`] = {
-            on: (x, y, duration) => {
-                activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
-                    const stepDelay = dur ? dur / 10 : 100;
-                    const fadeDuration = dur ? stepDelay * 2 : 140;
-                    const events = [];
-                    const path1 = [[0, 0], [1, 0], [2, 0], [3, 0], [3, 1], [3, 2], [3, 3]];
-                    const path2 = [[7, 7], [6, 7], [5, 7], [4, 7], [4, 6], [4, 5], [4, 4]];
-
-                    path1.forEach((p, i) => {
-                        events.push({ p, time: i * stepDelay, dur: fadeDuration });
-                    });
-                    path2.forEach((p, i) => {
-                        events.push({ p, time: i * stepDelay, dur: fadeDuration });
-                    });
-
-                    // Explosion
-                    const explosionDelay = path1.length * stepDelay;
-                    const flash = [[3, 3], [3, 4], [4, 3], [4, 4]];
-                    flash.forEach(p => {
-                        events.push({ p, time: explosionDelay, dur: fadeDuration });
-                    });
-
-                    return events;
-                }));
-            },
-            type: 'fixed'
-        };
-
-        // EQ_SPECTRUM
-        animations[`eq_spectrum_${colorName}`] = {
-            on: (x, y, duration) => {
-                activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
-                    const stepDelay = dur ? dur / 9 : 40;
-                    const fadeDuration = dur ? stepDelay * 2 : 140;
-                    const events = [];
-                    for (let tx = 0; tx < 8; tx++) {
-                        const height = Math.floor(Math.random() * 7) + 1;
-                        for (let ty = 7; ty >= 8 - height; ty--) {
-                            events.push({ p: [tx, ty], time: (7 - ty) * stepDelay, dur: fadeDuration });
-                        }
+                },
+                off: () => {
+                    for (let i = 0; i < points.length; i++) {
+                        fader.add(points[i], 'off', 0, 'instant');
                     }
-                    return events;
-                }));
-            },
-            type: 'fixed'
-        };
-
-        // EQ_BOUNCE
-        animations[`eq_bounce_${colorName}`] = {
-            on: (x, y, duration) => {
-                activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
-                    const baseSteps = 16;
-                    const speed = dur ? dur / baseSteps : 40;
-                    const hold = speed * 2;
-                    const events = [];
-
-                    for (let tx = 0; tx < 8; tx++) {
-                        const height = Math.floor(Math.random() * 7) + 1;
-                        const peakRow = 8 - height;
-
-                        // Rise
-                        for (let ty = 7; ty >= peakRow; ty--) {
-                            const turnOnTime = (7 - ty) * speed;
-                            const turnOffTime = (7 - peakRow) * speed + hold + (ty - peakRow) * speed;
-                            const activeDur = turnOffTime - turnOnTime;
-
-                            events.push({ p: [tx, ty], time: turnOnTime, dur: activeDur, mode: 'instant' });
-                        }
-                    }
-                    return events;
-                }));
-            },
-            type: 'fixed'
-        };
-
-        // EQ_PEAK_HOLD
-        animations[`eq_peak_hold_${colorName}`] = {
-            on: (x, y, duration) => {
-                activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
-                    const baseSteps = 20;
-                    const speed = dur ? dur / baseSteps : 30;
-                    const peakHold = dur ? dur * 0.5 : 400;
-                    const events = [];
-
-                    for (let tx = 0; tx < 8; tx++) {
-                        const height = Math.floor(Math.random() * 7) + 1;
-                        const peakRow = 8 - height;
-
-                        // Rise
-                        for (let ty = 7; ty >= peakRow; ty--) {
-                            const turnOnTime = (7 - ty) * speed;
-                            let turnOffTime;
-                            if (ty === peakRow) {
-                                turnOffTime = (7 - peakRow) * speed + peakHold;
-                            } else {
-                                turnOffTime = (7 - peakRow) * speed + (ty - peakRow) * speed;
-                            }
-
-                            const activeDur = turnOffTime - turnOnTime;
-                            if (activeDur > 0) {
-                                events.push({ p: [tx, ty], time: turnOnTime, dur: activeDur, mode: 'instant' });
-                            }
-                        }
-                    }
-                    return events;
-                }));
-            },
-            type: 'fixed'
-        };
-
-        // CHECKERBOARD
-        animations[`checkerboard_${colorName}`] = {
-            on: (x, y, duration) => {
-                activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
-                    const holdTime = dur || 500;
-                    const events = [];
-                    for (let ty = 0; ty < 8; ty++) {
-                        for (let tx = 0; tx < 8; tx++) {
-                            if ((tx + ty) % 2 === 0) {
-                                events.push({ p: [tx, ty], time: 0, dur: holdTime });
-                            }
-                        }
-                    }
-                    return events;
-                }));
-            },
-            type: 'fixed'
-        };
-
-        // ATOMIC_BOUNCE: A particle that bounces off the grid edges
-        animations[`atomic_bounce_${colorName}`] = {
-            on: (startX, startY, duration) => {
-                activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
-                    const totalSteps = 15;
-                    const stepDelay = dur ? dur / totalSteps : 60;
-                    const fadeDuration = stepDelay * 2;
-                    const events = [];
-                    
-                    let currX = startX;
-                    let currY = startY;
-                    
-                    // Random initial direction (-1 or 1)
-                    let dx = Math.random() > 0.5 ? 1 : -1;
-                    let dy = Math.random() > 0.5 ? 1 : -1;
-
-                    for (let i = 0; i < totalSteps; i++) {
-                        events.push({ p: [Math.round(currX), Math.round(currY)], time: i * stepDelay, dur: fadeDuration });
-                        
-                        currX += dx;
-                        currY += dy;
-
-                        // Bounce logic
-                        if (currX <= 0 || currX >= 7) {
-                            dx *= -1;
-                            currX = Math.max(0, Math.min(7, currX));
-                        }
-                        if (currY <= 0 || currY >= 7) {
-                            dy *= -1;
-                            currY = Math.max(0, Math.min(7, currY));
-                        }
-                    }
-                    return events;
-                }));
-            },
-            type: 'fixed'
-        };
-
-        // DNA_SPIRAL: Two intertwined spirals along the row of the pressed key
-        animations[`dna_spiral_${colorName}`] = {
-            on: (startX, startY, duration) => {
-                activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
-                    const totalSteps = 16;
-                    const stepDelay = dur ? dur / totalSteps : 50;
-                    const fadeDuration = stepDelay * 3;
-                    const events = [];
-
-                    for (let i = 0; i < totalSteps; i++) {
-                        const tx = i % 8;
-                        // Sine waves for the "spiral" effect on Y axis
-                        const offset = Math.sin(i * 0.8) * 2;
-                        const ty1 = Math.max(0, Math.min(7, Math.round(startY + offset)));
-                        const ty2 = Math.max(0, Math.min(7, Math.round(startY - offset)));
-
-                        events.push({ p: [tx, ty1], time: i * stepDelay, dur: fadeDuration });
-                        events.push({ p: [tx, ty2], time: i * stepDelay, dur: fadeDuration });
-                    }
-                    return events;
-                }));
-            },
-            type: 'fixed'
-        };
-
-        // RANDOM_FILL
-        animations[`random_fill_${colorName}`] = {
-            on: (x, y, duration) => {
-                activeAnimations.add(new PrecomputedAnimation(colorName, duration, (dur) => {
-                    const stepDelay = dur ? dur / 64 : 15;
-                    const fadeDuration = dur ? stepDelay * 10 : 300;
-                    const events = [];
-                    const points = [];
-                    for (let ty = 0; ty < 8; ty++) {
-                        for (let tx = 0; tx < 8; tx++) points.push([tx, ty]);
-                    }
-                    for (let i = points.length - 1; i > 0; i--) {
-                        const j = Math.floor(Math.random() * (i + 1));
-                        [points[i], points[j]] = [points[j], points[i]];
-                    }
-                    points.forEach((p, i) => {
-                        events.push({ p, time: i * stepDelay, dur: fadeDuration });
-                    });
-                    return events;
-                }));
-            },
-            type: 'fixed'
-        };
-
-        // GRID_HOLD: All 64 LEDs while held
-        animations[`grid_hold_${colorName}`] = {
-            on: () => {
-                for (let ty = 0; ty < 8; ty++) {
-                    for (let tx = 0; tx < 8; tx++) fader.add([tx, ty], colorName, 999999, 'instant');
-                }
-            },
-            off: () => {
-                for (let ty = 0; ty < 8; ty++) {
-                    for (let tx = 0; tx < 8; tx++) fader.add([tx, ty], 'off', 0, 'instant');
-                }
-            },
-            type: 'momentary'
-        };
-
-        // BORDER_HOLD: Outer frame while held
-        animations[`border_hold_${colorName}`] = {
-            on: () => {
-                for (let i = 0; i < 8; i++) {
-                    fader.add([i, 0], colorName, 999999, 'instant');
-                    fader.add([i, 7], colorName, 999999, 'instant');
-                    fader.add([0, i], colorName, 999999, 'instant');
-                    fader.add([7, i], colorName, 999999, 'instant');
-                }
-            },
-            off: () => {
-                for (let i = 0; i < 8; i++) {
-                    fader.add([i, 0], 'off', 0, 'instant');
-                    fader.add([i, 7], 'off', 0, 'instant');
-                    fader.add([0, i], 'off', 0, 'instant');
-                    fader.add([7, i], 'off', 0, 'instant');
-                }
-            },
-            type: 'momentary'
-        };
-
-        // CHECKERBOARD_HOLD: Checkerboard pattern while held
-        animations[`checkerboard_hold_${colorName}`] = {
-            on: () => {
-                for (let ty = 0; ty < 8; ty++) {
-                    for (let tx = 0; tx < 8; tx++) {
-                        if ((tx + ty) % 2 === 0) fader.add([tx, ty], colorName, 999999, 'instant');
-                    }
-                }
-            },
-            off: () => {
-                for (let ty = 0; ty < 8; ty++) {
-                    for (let tx = 0; tx < 8; tx++) {
-                        if ((tx + ty) % 2 === 0) fader.add([tx, ty], 'off', 0, 'instant');
-                    }
-                }
-            },
-            type: 'momentary'
-        };
-
-        // INV_CHECKERBOARD_HOLD: Inverse checkerboard while held
-        animations[`inv_checkerboard_hold_${colorName}`] = {
-            on: () => {
-                for (let ty = 0; ty < 8; ty++) {
-                    for (let tx = 0; tx < 8; tx++) {
-                        if ((tx + ty) % 2 !== 0) fader.add([tx, ty], colorName, 999999, 'instant');
-                    }
-                }
-            },
-            off: () => {
-                for (let ty = 0; ty < 8; ty++) {
-                    for (let tx = 0; tx < 8; tx++) {
-                        if ((tx + ty) % 2 !== 0) fader.add([tx, ty], 'off', 0, 'instant');
-                    }
-                }
-            },
-            type: 'momentary'
-        };
-
-        // HALF_UP_HOLD: Top half while held
-        animations[`half_up_hold_${colorName}`] = {
-            on: () => {
-                for (let ty = 0; ty < 4; ty++) {
-                    for (let tx = 0; tx < 8; tx++) fader.add([tx, ty], colorName, 999999, 'instant');
-                }
-            },
-            off: () => {
-                for (let ty = 0; ty < 4; ty++) {
-                    for (let tx = 0; tx < 8; tx++) fader.add([tx, ty], 'off', 0, 'instant');
-                }
-            },
-            type: 'momentary'
-        };
-
-        // HALF_DOWN_HOLD: Bottom half while held
-        animations[`half_down_hold_${colorName}`] = {
-            on: () => {
-                for (let ty = 4; ty < 8; ty++) {
-                    for (let tx = 0; tx < 8; tx++) fader.add([tx, ty], colorName, 999999, 'instant');
-                }
-            },
-            off: () => {
-                for (let ty = 4; ty < 8; ty++) {
-                    for (let tx = 0; tx < 8; tx++) fader.add([tx, ty], 'off', 0, 'instant');
-                }
-            },
-            type: 'momentary'
-        };
-
-        // HALF_LEFT_HOLD: Left half while held
-        animations[`half_left_hold_${colorName}`] = {
-            on: () => {
-                for (let ty = 0; ty < 8; ty++) {
-                    for (let tx = 0; tx < 4; tx++) fader.add([tx, ty], colorName, 999999, 'instant');
-                }
-            },
-            off: () => {
-                for (let ty = 0; ty < 8; ty++) {
-                    for (let tx = 0; tx < 4; tx++) fader.add([tx, ty], 'off', 0, 'instant');
-                }
-            },
-            type: 'momentary'
-        };
-
-        // HALF_RIGHT_HOLD: Right half while held
-        animations[`half_right_hold_${colorName}`] = {
-            on: () => {
-                for (let ty = 0; ty < 8; ty++) {
-                    for (let tx = 4; tx < 8; tx++) fader.add([tx, ty], colorName, 999999, 'instant');
-                }
-            },
-            off: () => {
-                for (let ty = 0; ty < 8; ty++) {
-                    for (let tx = 4; tx < 8; tx++) fader.add([tx, ty], 'off', 0, 'instant');
-                }
-            },
-            type: 'momentary'
-        };
-
-        // STRIPES_V_HOLD: Vertical stripes while held
-        animations[`stripes_v_hold_${colorName}`] = {
-            on: () => {
-                for (let ty = 0; ty < 8; ty++) {
-                    for (let tx = 0; tx < 8; tx += 2) fader.add([tx, ty], colorName, 999999, 'instant');
-                }
-            },
-            off: () => {
-                for (let ty = 0; ty < 8; ty++) {
-                    for (let tx = 0; tx < 8; tx += 2) fader.add([tx, ty], 'off', 0, 'instant');
-                }
-            },
-            type: 'momentary'
-        };
-
-        // STRIPES_H_HOLD: Horizontal stripes while held
-        animations[`stripes_h_hold_${colorName}`] = {
-            on: () => {
-                for (let ty = 0; ty < 8; ty += 2) {
-                    for (let tx = 0; tx < 8; tx++) fader.add([tx, ty], colorName, 999999, 'instant');
-                }
-            },
-            off: () => {
-                for (let ty = 0; ty < 8; ty += 2) {
-                    for (let tx = 0; tx < 8; tx++) fader.add([tx, ty], 'off', 0, 'instant');
-                }
-            },
-            type: 'momentary'
-        };
+                },
+                type: 'momentary'
+            };
+        });
     });
 
     // FIREWORK
     animations['firework'] = {
-        on: (x, y, duration) => {
+        on: (_x, _y, duration) => {
             activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
                 const colorsArr = ['red', 'green', 'amber'];
                 const colorName = colorsArr[Math.floor(Math.random() * colorsArr.length)];
@@ -526,21 +386,14 @@ export function register(animations, colors) {
         swatchColors: ['red', 'amber', 'green']
     };
 
-    const getHeartPoints = () => [
-        [1, 0], [2, 0], [5, 0], [6, 0], [0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1], [7, 1],
-        [0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [7, 2], [0, 3], [1, 3], [2, 3], [3, 3], [4, 3], [5, 3], [6, 3], [7, 3],
-        [0, 4], [1, 4], [2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [7, 4], [1, 5], [2, 5], [3, 5], [4, 5], [5, 5], [6, 5], [2, 6], [3, 6], [4, 6], [5, 6], [3, 7], [4, 7]
-    ];
-
-        // HEART_FILL
+    // HEART_FILL
     animations['heart_fill'] = {
-        on: (x, y, duration) => {
+        on: (_x, _y, duration) => {
             activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
-                const heartPoints = getHeartPoints();
                 const factor = dur ? dur / 1350 : 1;
                 const holdTime = 1000 * factor;
                 const events = [];
-                heartPoints.forEach(([tx, ty]) => {
+                HEART_POINTS.forEach(([tx, ty]) => {
                     events.push({ p: [tx, ty], time: (ty * 40 + (tx * 10)) * factor, dur: holdTime, color: 'red', mode: 'instant' });
                 });
                 return events;
@@ -552,12 +405,11 @@ export function register(animations, colors) {
 
     // HEART_SIMPLE
     animations['heart_simple'] = {
-        on: (x, y, duration) => {
+        on: (_x, _y, duration) => {
             activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
-                const heartPoints = getHeartPoints();
                 const holdTime = dur || 1000;
                 const events = [];
-                heartPoints.forEach(([tx, ty]) => {
+                HEART_POINTS.forEach(([tx, ty]) => {
                     events.push({ p: [tx, ty], time: 0, dur: holdTime, color: 'red', mode: 'instant' });
                 });
                 return events;
@@ -569,13 +421,12 @@ export function register(animations, colors) {
 
     // HEART_WAVE
     animations['heart_wave'] = {
-        on: (x, y, duration) => {
+        on: (_x, _y, duration) => {
             activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
-                const heartPoints = getHeartPoints();
                 const centerX = 3.5, centerY = 3.5;
                 const factor = dur ? dur / 1400 : 1;
                 const events = [];
-                heartPoints.forEach(([tx, ty]) => {
+                HEART_POINTS.forEach(([tx, ty]) => {
                     const dist = Math.sqrt(Math.pow(tx - centerX, 2) + Math.pow(ty - centerY, 2));
                     const appearDelay = (dist * 80) * factor;
                     const disappearDelay = (1000 + ((5 - dist) * 80)) * factor;

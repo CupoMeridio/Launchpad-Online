@@ -113,30 +113,13 @@ export function validateProject(project) {
     const optionalStringFields = [
         'coverImage', 
         'iconImage', 
-        'backgroundVideo', 
-        'backgroundImage',
-        'backgroundMedia',
-        'visualizerMode', 
-        'visualizerColor1', 
-        'visualizerColor2', 
-        'visualizerGradientDirection'
+        'backgroundMedia'
     ];
     optionalStringFields.forEach(field => {
         if (project[field] !== undefined && project[field] !== null && typeof project[field] !== 'string') {
             errors.push(`Project field "${field}" must be a string or null if provided`);
         }
     });
-
-    if (project.visualizerGradient !== undefined && project.visualizerGradient !== null && typeof project.visualizerGradient !== 'boolean') {
-        errors.push('Project field "visualizerGradient" must be a boolean or null if provided');
-    }
-
-    validateVisualizerValues({
-        mode: project.visualizerMode,
-        color1: project.visualizerColor1,
-        color2: project.visualizerColor2,
-        gradientDirection: project.visualizerGradientDirection
-    }, 'Project', errors);
 
     if (project.visualizer !== undefined && project.visualizer !== null) {
         if (typeof project.visualizer !== 'object' || Array.isArray(project.visualizer)) {
@@ -181,6 +164,51 @@ export function validateProject(project) {
 }
 
 /**
+ * Validates a per-pad field whose value is an array of step arrays
+ * (`sounds`, `lights`, `lightSyncToSound`, `lightDurations`).
+ * @param {*} entries - The field value (array of per-pad step arrays).
+ * @param {object} options
+ * @param {number} options.pageNum - 1-based page number for error messages.
+ * @param {string} options.fieldName - Field name (e.g. "lights").
+ * @param {string} options.entryLabel - Singular label for a pad entry (e.g. "Light").
+ * @param {function(*, number, number): (string|null)} options.stepError - Returns the step error message, or null when the step is valid.
+ * @param {string[]} options.errors - Accumulator for error messages.
+ * @param {boolean} [options.required=false] - When true, a missing/malformed field aborts page validation.
+ * @returns {boolean} False when a required field is missing, true otherwise.
+ */
+function validateStepArrayField(entries, { pageNum, fieldName, entryLabel, stepError, errors, required = false }) {
+    if (entries === undefined || entries === null) {
+        if (required) {
+            errors.push(`Page ${pageNum}: must have a "${fieldName}" array`);
+            return false;
+        }
+        return true;
+    }
+
+    if (!Array.isArray(entries) || entries.length !== LAUNCHPAD_PADS) {
+        const found = Array.isArray(entries) ? entries.length : 0;
+        errors.push(`Page ${pageNum}: ${fieldName} array must have exactly ${LAUNCHPAD_PADS} elements, found ${found}`);
+        return true;
+    }
+
+    entries.forEach((stepEntry, padIndex) => {
+        if (!Array.isArray(stepEntry)) {
+            errors.push(`Page ${pageNum}, ${entryLabel} ${padIndex}: must be an array of steps`);
+            return;
+        }
+        if (stepEntry.length > MAX_PAD_STEPS) {
+            errors.push(`Page ${pageNum}, ${entryLabel} ${padIndex}: step count exceeds maximum of ${MAX_PAD_STEPS}`);
+        }
+        stepEntry.forEach((step, stepIndex) => {
+            const message = stepError(step, padIndex, stepIndex);
+            if (message) errors.push(message);
+        });
+    });
+
+    return true;
+}
+
+/**
  * Validates a page object within a project.
  * @param {object} page - The page to validate
  * @param {number} pageIndex - The index of this page (for error messages)
@@ -201,93 +229,56 @@ function validatePage(page, pageIndex) {
         errors.push(`Page ${pageNum}: must have a valid "name" field (string)`);
     }
 
-    // Check sounds array
-    if (!Array.isArray(page.sounds)) {
-        errors.push(`Page ${pageNum}: must have a "sounds" array`);
+    const stringStepError = (label) => (step, padIndex, stepIndex) => (
+        step !== null && step !== undefined && step !== '' && typeof step !== 'string'
+            ? `Page ${pageNum}, ${label} ${padIndex}, Step ${stepIndex}: must be a string or empty, got ${typeof step}`
+            : null
+    );
+
+    // Check sounds array (required)
+    if (!validateStepArrayField(page.sounds, {
+        pageNum,
+        fieldName: 'sounds',
+        entryLabel: 'Sound',
+        stepError: stringStepError('Sound'),
+        errors,
+        required: true
+    })) {
         return errors;
     }
 
-    // Validate sounds array length (must be exactly LAUNCHPAD_PADS for a page)
-    if (page.sounds.length !== LAUNCHPAD_PADS) {
-        errors.push(`Page ${pageNum}: sounds array must have exactly ${LAUNCHPAD_PADS} elements, found ${page.sounds.length}`);
-    }
-
-    // Validate each sound entry
-    page.sounds.forEach((soundEntry, soundIndex) => {
-        if (!Array.isArray(soundEntry)) {
-            errors.push(`Page ${pageNum}, Sound ${soundIndex}: must be an array of steps`);
-            return;
-        }
-        if (soundEntry.length > MAX_PAD_STEPS) {
-            errors.push(`Page ${pageNum}, Sound ${soundIndex}: step count exceeds maximum of ${MAX_PAD_STEPS}`);
-        }
-        soundEntry.forEach((stepSound, stepIndex) => {
-            if (stepSound !== null && stepSound !== undefined && stepSound !== '' && typeof stepSound !== 'string') {
-                errors.push(`Page ${pageNum}, Sound ${soundIndex}, Step ${stepIndex}: must be a string or empty, got ${typeof stepSound}`);
-            }
-        });
+    // Check lights array if it exists
+    validateStepArrayField(page.lights, {
+        pageNum,
+        fieldName: 'lights',
+        entryLabel: 'Light',
+        stepError: stringStepError('Light'),
+        errors
     });
 
-    // Check lights array if it exists
-    if (page.lights !== undefined && page.lights !== null) {
-        if (!Array.isArray(page.lights)) {
-            errors.push(`Page ${pageNum}: "lights" must be an array if provided`);
-        } else if (page.lights.length !== LAUNCHPAD_PADS) {
-            errors.push(`Page ${pageNum}: lights array must have exactly ${LAUNCHPAD_PADS} elements, found ${page.lights.length}`);
-        } else {
-            // Validate each light entry
-            page.lights.forEach((lightEntry, lightIndex) => {
-                if (!Array.isArray(lightEntry)) {
-                    errors.push(`Page ${pageNum}, Light ${lightIndex}: must be an array of steps`);
-                    return;
-                }
-                if (lightEntry.length > MAX_PAD_STEPS) {
-                    errors.push(`Page ${pageNum}, Light ${lightIndex}: step count exceeds maximum of ${MAX_PAD_STEPS}`);
-                }
-                lightEntry.forEach((stepLight, stepIndex) => {
-                    if (stepLight !== null && stepLight !== undefined && stepLight !== '' && typeof stepLight !== 'string') {
-                        errors.push(`Page ${pageNum}, Light ${lightIndex}, Step ${stepIndex}: must be a string or empty, got ${typeof stepLight}`);
-                    }
-                });
-            });
-        }
-    }
+    validateStepArrayField(page.lightSyncToSound, {
+        pageNum,
+        fieldName: 'lightSyncToSound',
+        entryLabel: 'Light sync',
+        stepError: (step, padIndex, stepIndex) => (
+            typeof step !== 'boolean'
+                ? `Page ${pageNum}, Light sync ${padIndex}, Step ${stepIndex}: must be a boolean`
+                : null
+        ),
+        errors
+    });
 
-    if (page.lightSyncToSound !== undefined && page.lightSyncToSound !== null) {
-        if (!Array.isArray(page.lightSyncToSound) || page.lightSyncToSound.length !== LAUNCHPAD_PADS) {
-            errors.push(`Page ${pageNum}: "lightSyncToSound" must be an array with exactly ${LAUNCHPAD_PADS} elements`);
-        } else {
-            page.lightSyncToSound.forEach((syncEntry, padIndex) => {
-                if (!Array.isArray(syncEntry)) {
-                    errors.push(`Page ${pageNum}, Light sync ${padIndex}: must be an array of steps`);
-                    return;
-                }
-                syncEntry.forEach((enabled, stepIndex) => {
-                    if (typeof enabled !== 'boolean') {
-                        errors.push(`Page ${pageNum}, Light sync ${padIndex}, Step ${stepIndex}: must be a boolean`);
-                    }
-                });
-            });
-        }
-    }
-
-    if (page.lightDurations !== undefined && page.lightDurations !== null) {
-        if (!Array.isArray(page.lightDurations) || page.lightDurations.length !== LAUNCHPAD_PADS) {
-            errors.push(`Page ${pageNum}: "lightDurations" must be an array with exactly ${LAUNCHPAD_PADS} elements`);
-        } else {
-            page.lightDurations.forEach((durationEntry, padIndex) => {
-                if (!Array.isArray(durationEntry)) {
-                    errors.push(`Page ${pageNum}, Light duration ${padIndex}: must be an array of steps`);
-                    return;
-                }
-                durationEntry.forEach((duration, stepIndex) => {
-                    if (typeof duration !== 'number' || !Number.isFinite(duration) || duration < MIN_LIGHT_DURATION_SEC || duration > MAX_LIGHT_DURATION_SEC) {
-                        errors.push(`Page ${pageNum}, Light duration ${padIndex}, Step ${stepIndex}: must be between ${MIN_LIGHT_DURATION_SEC} and ${MAX_LIGHT_DURATION_SEC} seconds`);
-                    }
-                });
-            });
-        }
-    }
+    validateStepArrayField(page.lightDurations, {
+        pageNum,
+        fieldName: 'lightDurations',
+        entryLabel: 'Light duration',
+        stepError: (step, padIndex, stepIndex) => (
+            typeof step !== 'number' || !Number.isFinite(step) || step < MIN_LIGHT_DURATION_SEC || step > MAX_LIGHT_DURATION_SEC
+                ? `Page ${pageNum}, Light duration ${padIndex}, Step ${stepIndex}: must be between ${MIN_LIGHT_DURATION_SEC} and ${MAX_LIGHT_DURATION_SEC} seconds`
+                : null
+        ),
+        errors
+    });
 
     return errors;
 }

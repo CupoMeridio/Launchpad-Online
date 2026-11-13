@@ -112,7 +112,7 @@ class BaseMatrixRainAnimation {
         }
     }
 
-    _triggerCell(x, y, fadeDuration) {
+    _triggerCell(_x, _y, _fadeDuration) {
         // Implemented by subclasses
     }
 
@@ -191,7 +191,7 @@ class BaseStrobeBurstAnimation {
         this.state = 'waiting'; // waiting, on, off
     }
 
-    _triggerFlashForIndex(flashIndex) {
+    _triggerFlashForIndex(_flashIndex) {
         // Implemented by subclasses
     }
 

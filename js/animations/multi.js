@@ -1,7 +1,7 @@
 import { fader, activeAnimations } from '../animationEngine.js';
 import { PrecomputedAnimation, StrobeBurstMultiAnimation, MatrixRainMultiAnimation, maxCornerDistance, buildCrossEvents, buildReverseCrossEvents, buildWaveEvents } from '../animationClasses.js';
 
-export function register(animations, colors) {
+export function register(animations, _colors) {
     const multiColorConfigs = [
         {
             name: 'red_to_green',
@@ -76,7 +76,7 @@ export function register(animations, colors) {
         };
 
         animations[`wave_center_multi_${config.name}`] = {
-            on: (x, y, duration) => {
+            on: (_x, _y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
                     const stepDelay = dur ? dur / 7.5 : 60;
                     const fadeDuration = dur ? stepDelay * 4.5 : 450;
@@ -87,7 +87,7 @@ export function register(animations, colors) {
         };
 
         animations[`wave_center_multi_reverse_${config.name}`] = {
-            on: (x, y, duration) => {
+            on: (_x, _y, duration) => {
                 activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
                     const stepDelay = dur ? dur / 7.5 : 60;
                     const fadeDuration = dur ? stepDelay * 4.5 : 450;
@@ -106,7 +106,7 @@ export function register(animations, colors) {
 
         Object.entries(corners).forEach(([cornerName, distFn]) => {
             animations[`diagonal_multi_${cornerName}_${config.name}`] = {
-                on: (x, y, duration) => {
+                on: (_x, _y, duration) => {
                     activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
                         const stepDelay = dur ? dur / 14.5 : 70;
                         const fadeDuration = dur ? stepDelay * 4.5 : 450;
@@ -125,7 +125,7 @@ export function register(animations, colors) {
 
         // STROBE_MULTI
         animations[`strobe_multi_${config.name}`] = {
-            on: (x, y, duration) => {
+            on: (_x, _y, duration) => {
                 activeAnimations.add(new StrobeBurstMultiAnimation(config, duration));
             },
             type: 'fixed'
@@ -133,28 +133,28 @@ export function register(animations, colors) {
 
         // MATRIX_RAIN_MULTI
         animations[`matrix_rain_multi_${config.name}`] = {
-            on: (x, y, duration) => {
+            on: (_x, _y, duration) => {
                 activeAnimations.add(new MatrixRainMultiAnimation(config, duration, 'down'));
             },
             type: 'fixed'
         };
 
         animations[`matrix_rain_multi_up_${config.name}`] = {
-            on: (x, y, duration) => {
+            on: (_x, _y, duration) => {
                 activeAnimations.add(new MatrixRainMultiAnimation(config, duration, 'up'));
             },
             type: 'fixed'
         };
 
         animations[`matrix_rain_multi_left_${config.name}`] = {
-            on: (x, y, duration) => {
+            on: (_x, _y, duration) => {
                 activeAnimations.add(new MatrixRainMultiAnimation(config, duration, 'left'));
             },
             type: 'fixed'
         };
 
         animations[`matrix_rain_multi_right_${config.name}`] = {
-            on: (x, y, duration) => {
+            on: (_x, _y, duration) => {
                 activeAnimations.add(new MatrixRainMultiAnimation(config, duration, 'right'));
             },
             type: 'fixed'

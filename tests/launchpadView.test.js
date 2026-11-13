@@ -7,7 +7,7 @@ globalThis.window = {
     dispatchEvent() {}
 };
 globalThis.document = {
-    getElementById(id) {
+    getElementById(_id) {
         return null;
     },
     querySelectorAll() {

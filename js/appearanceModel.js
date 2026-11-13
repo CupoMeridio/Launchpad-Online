@@ -45,33 +45,31 @@ function resolveAsset(customFile, pathRef, resolvePath) {
 
 /**
  * Background media declared by a project/draft, taking uploaded files into
- * account. Handles the legacy `backgroundVideo`/`backgroundImage` aliases and
- * `backgroundMedia`.
+ * account.
  * @param {object} source
  * @param {(path: string) => (string|File|Blob)} [resolvePath]
  * @returns {File|Blob|string|null}
  */
 export function getBackgroundMedia(source = {}, resolvePath = identity) {
     if (source.customBackgroundFile) return source.customBackgroundFile;
-    const pathRef = firstString(source.backgroundMedia, source.backgroundVideo, source.backgroundImage);
+    const pathRef = firstString(source.backgroundMedia);
     return pathRef ? resolvePath(pathRef) : null;
 }
 
 /**
- * Normalizes the visualizer settings, accepting both the flat legacy fields and
- * the nested `visualizer` object.
+ * Normalizes the visualizer settings from the canonical nested `visualizer`
+ * object.
  * @param {object} source
  * @returns {{mode: string, color1: string, color2: string, gradient: boolean, gradientDirection: string}}
  */
 export function normalizeVisualizer(source = {}) {
     const nested = (source.visualizer && typeof source.visualizer === 'object') ? source.visualizer : {};
     return {
-        mode: firstString(nested.mode, source.visualizerMode) || DEFAULT_VISUALIZER_MODE,
-        color1: firstString(nested.color1, source.visualizerColor1) || DEFAULT_VISUALIZER_COLOR,
-        color2: firstString(nested.color2, source.visualizerColor2) || DEFAULT_VISUALIZER_COLOR,
-        gradient: firstBoolean(nested.gradient, source.visualizerGradient) ?? DEFAULT_VISUALIZER_GRADIENT,
-        gradientDirection: firstString(nested.gradientDirection, source.visualizerGradientDirection)
-            || DEFAULT_VISUALIZER_GRADIENT_DIRECTION
+        mode: firstString(nested.mode) || DEFAULT_VISUALIZER_MODE,
+        color1: firstString(nested.color1) || DEFAULT_VISUALIZER_COLOR,
+        color2: firstString(nested.color2) || DEFAULT_VISUALIZER_COLOR,
+        gradient: firstBoolean(nested.gradient) ?? DEFAULT_VISUALIZER_GRADIENT,
+        gradientDirection: firstString(nested.gradientDirection) || DEFAULT_VISUALIZER_GRADIENT_DIRECTION
     };
 }
 

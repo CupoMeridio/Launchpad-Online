@@ -7,16 +7,12 @@
  * Warnings and errors keep using console.warn / console.error directly.
  */
 
+import { isDebugSettingEnabled } from './settings.js';
+
 let debugEnabled = false;
 
 if (typeof window !== 'undefined') {
-    try {
-        debugEnabled =
-            new URLSearchParams(window.location.search).has('debug') ||
-            window.localStorage.getItem('launchpad.debug') === '1';
-    } catch {
-        debugEnabled = false;
-    }
+    debugEnabled = isDebugSettingEnabled();
 }
 
 /**
