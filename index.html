@@ -4,7 +4,7 @@
   necessary JavaScript files, and sets up user interface elements.
 -->
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 
 <head>
   <!--
@@ -105,7 +105,7 @@
     -->
     <div class="media-overlay"></div>
     <div id="audio-unlock-overlay" class="launchpad-overlay">
-      <p data-i18n="overlay.clickToStart">Clicca per avviare</p>
+      <p data-i18n="overlay.clickToStart">Click to start</p>
     </div>
     <canvas id="visualizer-canvas-top" class="visualizer-canvas"></canvas>
     <canvas id="visualizer-canvas-bottom" class="visualizer-canvas"></canvas>
@@ -123,10 +123,10 @@
       <div class="sidebar-content">
         <div class="menu-item">
           <button class="menu-toggle" data-menu="language-menu"
-            data-i18n="menu.language.toggle">Lingua</button>
+            data-i18n="menu.language.toggle">Interface Language</button>
           <div class="menu-dropdown" id="language-menu">
             <div class="control-group" style="padding: 15px 15px 5px 15px;">
-              <label for="language-select" data-i18n="menu.language.label">Seleziona lingua</label>
+              <label for="language-select" data-i18n="menu.language.label">Select language</label>
               <div class="input-group">
                 <select id="language-select">
                   <option value="it">Italiano</option>
@@ -145,15 +145,13 @@
             using static data loaded in JavaScript.
         -->
         <div class="menu-item">
-          <button class="menu-toggle" data-menu="project-menu" data-i18n="menu.project.toggle">Seleziona
-            progetto</button>
+          <button class="menu-toggle" data-menu="project-menu" data-i18n="menu.project.toggle">Select Project</button>
           <div class="menu-dropdown" id="project-menu">
             <!-- Project items will be populated dynamically -->
           </div>
         </div>
         <div class="menu-item">
-          <button class="menu-toggle" data-menu="mode-menu" data-i18n="menu.mode.toggle">Seleziona
-            modalità</button>
+          <button class="menu-toggle" data-menu="mode-menu" data-i18n="menu.mode.toggle">Select mode</button>
           <div class="menu-dropdown" id="mode-menu">
             <!-- Mode items will be populated dynamically -->
           </div>
@@ -171,40 +169,40 @@
         -->
         <div class="menu-item">
           <button class="menu-toggle" data-menu="customization-menu"
-            data-i18n="menu.customization.toggle">Personalizzazione</button>
+            data-i18n="menu.customization.toggle">Customization</button>
           <div class="menu-dropdown" id="customization-menu">
             <!-- Reset Project Appearance Action (top of the menu) -->
             <div class="customization-header">
               <button type="button" class="customization-reset-btn" id="reset-project-appearance"
-                data-i18n="menu.resetAppearance">Ripristina aspetto progetto</button>
+                data-i18n="menu.resetAppearance">Reset project appearance</button>
             </div>
             <!-- Tabs Bar -->
-            <div class="customization-tabs" role="tablist" aria-label="Personalizzazione"
+            <div class="customization-tabs" role="tablist" aria-label="Customization"
               data-i18n-aria-label="a11y.customizationTabs">
               <button type="button" class="customization-tab selected" data-tab="launchpad" role="tab" aria-selected="true"
                 data-i18n="menu.launchpad.tab">Launchpad</button>
               <button type="button" class="customization-tab" data-tab="background" role="tab" aria-selected="false"
-                data-i18n="menu.background.tab">Sfondo</button>
+                data-i18n="menu.background.tab">Background</button>
               <button type="button" class="customization-tab" data-tab="visualizer" role="tab" aria-selected="false"
-                data-i18n="menu.visualizer.tab">Visualizzatore</button>
+                data-i18n="menu.visualizer.tab">Visualizer</button>
             </div>
 
             <!-- Tab Panel: Launchpad -->
             <div class="customization-tab-panel active" id="customization-panel-launchpad" role="tabpanel">
               <div id="personalize-launchpad-menu">
                 <div class="control-group">
-                  <label for="ui-accent-color-picker" data-i18n="customization.accentColor">Colore interfaccia</label>
+                  <label for="ui-accent-color-picker" data-i18n="customization.accentColor">Interface color</label>
                   <div class="accent-picker-row">
                     <input type="color" id="ui-accent-color-picker" value="#00aaff" class="accent-color-input"
-                      aria-label="Colore interfaccia" data-i18n-aria-label="a11y.accentColor">
-                    <button type="button" class="menu-option accent-reset-btn" id="ui-accent-reset-btn" data-i18n="customization.resetAccent">Predefinito</button>
+                      aria-label="Interface color" data-i18n-aria-label="a11y.accentColor">
+                    <button type="button" class="menu-option accent-reset-btn" id="ui-accent-reset-btn" data-i18n="customization.resetAccent">Default</button>
                   </div>
                 </div>
                 <div class="control-group">
-                  <label for="launchpad-model-select" data-i18n="launchpad.model.label">Modello Launchpad</label>
+                  <label for="launchpad-model-select" data-i18n="launchpad.model.label">Launchpad Model</label>
                   <div class="input-group">
                     <select id="launchpad-model-select">
-                      <option value="auto" data-i18n="launchpad.model.auto">Automatico (da MIDI)</option>
+                      <option value="auto" data-i18n="launchpad.model.auto">Automatic (from MIDI)</option>
                       <option value="classic" data-i18n="launchpad.model.classic">Launchpad Classic / MK2</option>
                       <option value="mk3" data-i18n="launchpad.model.mk3">Launchpad MK3 / X</option>
                       <option value="pro" data-i18n="launchpad.model.pro">Launchpad Pro (2015)</option>
@@ -215,11 +213,11 @@
                 <div class="control-group">
                   <label for="toggle-stickers">
                     <input type="checkbox" id="toggle-stickers">
-                    <span data-i18n="launchpad.stickers.show">Mostra Adesivi</span>
+                    <span data-i18n="launchpad.stickers.show">Show stickers on Launchpad</span>
                   </label>
                 </div>
                 <div class="control-group">
-                  <label for="rotation-slider" data-i18n="launchpad.rotation">Rotazione Launchpad</label>
+                  <label for="rotation-slider" data-i18n="launchpad.rotation">Launchpad rotation</label>
                   <div class="input-group">
                     <input type="range" id="rotation-slider" min="0" max="360" step="1" value="0">
                     <div class="input-with-unit">
@@ -229,7 +227,7 @@
                   </div>
                 </div>
                 <div class="control-group">
-                  <label for="size-slider" data-i18n="launchpad.size">Dimensione Launchpad</label>
+                  <label for="size-slider" data-i18n="launchpad.size">Launchpad size</label>
                   <div class="input-group">
                     <input type="range" id="size-slider" min="50" max="140" step="1" value="100">
                     <div class="input-with-unit">
@@ -239,15 +237,14 @@
                   </div>
                 </div>
                 <div class="control-group">
-                  <label for="logo-file-input" data-i18n="launchpad.icon.label">Icona in alto a destra</label>
+                  <label for="logo-file-input" data-i18n="launchpad.icon.label">Top-right icon</label>
                   <input type="file" id="logo-file-input" class="file-input-hidden">
-                  <button type="button" class="menu-option" id="logo-file-trigger" data-i18n="launchpad.icon.upload">Carica
-                    icona/video</button>
+                  <button type="button" class="menu-option" id="logo-file-trigger" data-i18n="launchpad.icon.upload">Upload icon/video</button>
                   <button type="button" class="menu-option" data-action="resetTopRightIcon"
-                    data-i18n="launchpad.icon.reset">Ripristina icona</button>
+                    data-i18n="launchpad.icon.reset">Reset icon</button>
                 </div>
                 <div class="control-group">
-                  <span class="section-title" data-i18n="launchpad.skins.title">Sfondi Launchpad</span>
+                  <span class="section-title" data-i18n="launchpad.skins.title">Launchpad Backgrounds</span>
                 </div>
                 <button class="menu-option selected" data-skin="none"
                   data-i18n="launchpad.default">Default</button>
@@ -258,13 +255,13 @@
             <div class="customization-tab-panel" id="customization-panel-background" role="tabpanel">
               <div id="background-menu">
                 <button class="menu-option selected" data-background="none"
-                  data-i18n="background.none">Nessuno sfondo</button>
+                  data-i18n="background.none">No Background</button>
                 <div class="control-group" style="padding: 15px 15px 5px 15px;">
-                  <label for="background-file-input" data-i18n="background.upload">Carica file</label>
+                  <label for="background-file-input" data-i18n="background.upload">Upload file</label>
                   <div class="input-group">
                     <input type="file" id="background-file-input" class="file-input-hidden">
                     <button type="button" class="menu-option" id="background-file-trigger"
-                      data-i18n="background.upload">Carica file</button>
+                      data-i18n="background.upload">Upload file</button>
                   </div>
                 </div>
                 <!--
@@ -276,7 +273,7 @@
                 -->
                 <div class="media-controls">
                   <div class="control-group">
-                    <label for="opacity-slider" data-i18n="background.opacity">Opacità</label>
+                    <label for="opacity-slider" data-i18n="background.opacity">Opacity</label>
                     <div class="input-group">
                       <input type="range" id="opacity-slider" min="0" max="100" step="1" value="0">
                       <div class="input-with-unit">
@@ -286,7 +283,7 @@
                     </div>
                   </div>
                   <div class="control-group">
-                    <label for="blur-slider" data-i18n="background.blur">Sfocatura</label>
+                    <label for="blur-slider" data-i18n="background.blur">Blur</label>
                     <div class="input-group">
                       <input type="range" id="blur-slider" min="0" max="100" step="1" value="0">
                       <div class="input-with-unit">
@@ -296,7 +293,7 @@
                     </div>
                   </div>
                   <div class="control-group">
-                    <label for="brightness-slider" data-i18n="background.brightness">Luminosità</label>
+                    <label for="brightness-slider" data-i18n="background.brightness">Brightness</label>
                     <div class="input-group">
                       <input type="range" id="brightness-slider" min="0" max="200" step="1" value="100">
                       <div class="input-with-unit">
@@ -314,37 +311,37 @@
             <div class="customization-tab-panel" id="customization-panel-visualizer" role="tabpanel">
               <div id="visualizer-menu">
                 <button class="menu-option selected" data-mode="both"
-                  data-i18n="visualizer.mode.both">Entrambi</button>
+                  data-i18n="visualizer.mode.both">Both Panels</button>
                 <button class="menu-option" data-mode="both-mirror"
-                  data-i18n="visualizer.mode.both-mirror">Entrambi (specchiato)</button>
+                  data-i18n="visualizer.mode.both-mirror">Both (mirrored)</button>
                 <button class="menu-option" data-mode="top"
-                  data-i18n="visualizer.mode.top">Superiore</button>
+                  data-i18n="visualizer.mode.top">Top Only</button>
                 <button class="menu-option" data-mode="top-mirror"
-                  data-i18n="visualizer.mode.top-mirror">Superiore (specchiato)</button>
+                  data-i18n="visualizer.mode.top-mirror">Top (mirrored)</button>
                 <button class="menu-option" data-mode="bottom"
-                  data-i18n="visualizer.mode.bottom">Inferiore</button>
+                  data-i18n="visualizer.mode.bottom">Bottom Only</button>
                 <button class="menu-option" data-mode="bottom-mirror"
-                  data-i18n="visualizer.mode.bottom-mirror">Inferiore (specchiato)</button>
+                  data-i18n="visualizer.mode.bottom-mirror">Bottom (mirrored)</button>
                 <button class="menu-option" data-mode="off"
-                  data-i18n="visualizer.mode.off">Spento</button>
+                  data-i18n="visualizer.mode.off">Off</button>
 
                 <div class="control-group" id="symmetric-group">
                   <label for="symmetric-checkbox">
                     <input type="checkbox" id="symmetric-checkbox">
-                    <span data-i18n="visualizer.symmetric">Simmetrico</span>
+                    <span data-i18n="visualizer.symmetric">Symmetric</span>
                   </label>
                   <div class="input-group" id="symmetric-mode" style="display: none; margin-top: 8px;">
-                    <label for="symmetric-mode-select" data-i18n="visualizer.symmetricMode">Modalità</label>
+                    <label for="symmetric-mode-select" data-i18n="visualizer.symmetricMode">Mode</label>
                     <select id="symmetric-mode-select">
-                      <option value="normal" data-i18n="visualizer.symmetric.normal">Normale</option>
-                      <option value="reverse" data-i18n="visualizer.symmetric.reverse">Inversa</option>
+                      <option value="normal" data-i18n="visualizer.symmetric.normal">Normal</option>
+                      <option value="reverse" data-i18n="visualizer.symmetric.reverse">Reverse</option>
                     </select>
                   </div>
                 </div>
 
                 <!-- Visualizer smoothness control -->
                 <div class="control-group" id="smoothing-group">
-                  <label for="smoothing-slider" data-i18n="visualizer.smoothing">Fluidità</label>
+                  <label for="smoothing-slider" data-i18n="visualizer.smoothing">Animation smoothness</label>
                   <div class="input-group">
                     <input type="range" id="smoothing-slider" min="0" max="0.95" step="0.05" value="0.8">
                     <div class="input-with-unit">
@@ -356,7 +353,7 @@
 
                 <!-- Color and transparency controls -->
                 <div class="control-group" id="color1-group">
-                  <label for="color1-picker" data-i18n="visualizer.color1">Colore 1</label>
+                  <label for="color1-picker" data-i18n="visualizer.color1">Start color</label>
                   <div class="input-group">
                     <input type="color" id="color1-picker">
                   </div>
@@ -364,30 +361,28 @@
                 <div class="control-group" id="enable-gradient-group">
                   <label for="enable-color2-checkbox">
                     <input type="checkbox" id="enable-color2-checkbox">
-                    <span data-i18n="visualizer.gradient.enable">Abilita Gradiente</span>
+                    <span data-i18n="visualizer.gradient.enable">Enable color gradient</span>
                   </label>
                 </div>
                 <div id="gradient-controls" style="display: none;">
                   <div class="control-group">
-                    <label for="color2-picker" data-i18n="visualizer.color2">Colore 2</label>
+                    <label for="color2-picker" data-i18n="visualizer.color2">End color</label>
                     <div class="input-group">
                       <input type="color" id="color2-picker">
                     </div>
                   </div>
                   <div class="control-group">
-                    <label for="gradient-direction" data-i18n="visualizer.gradient.direction">Direzione Gradiente</label>
+                    <label for="gradient-direction" data-i18n="visualizer.gradient.direction">Gradient direction</label>
                     <select id="gradient-direction">
-                      <option value="vertical" data-i18n="visualizer.gradient.vertical">Verticale</option>
-                      <option value="horizontal" data-i18n="visualizer.gradient.horizontal">Orizzontale</option>
-                      <option value="vertical-reverse" data-i18n="visualizer.gradient.verticalReverse">Verticale (inverso)
-                      </option>
-                      <option value="horizontal-reverse" data-i18n="visualizer.gradient.horizontalReverse">Orizzontale
-                        (inverso)</option>
+                      <option value="vertical" data-i18n="visualizer.gradient.vertical">Vertical</option>
+                      <option value="horizontal" data-i18n="visualizer.gradient.horizontal">Horizontal</option>
+                      <option value="vertical-reverse" data-i18n="visualizer.gradient.verticalReverse">Vertical (reverse)</option>
+                      <option value="horizontal-reverse" data-i18n="visualizer.gradient.horizontalReverse">Horizontal (reverse)</option>
                     </select>
                   </div>
                 </div>
                 <div class="control-group" id="alpha-group">
-                  <label for="alpha-slider" data-i18n="visualizer.alpha">Trasparenza</label>
+                  <label for="alpha-slider" data-i18n="visualizer.alpha">Transparency</label>
                   <div class="input-group">
                     <input type="range" id="alpha-slider" min="0" max="1" step="0.05" value="0.6">
                     <div class="input-with-unit">
@@ -400,10 +395,10 @@
                 <div class="control-group" id="bass-pulse-group">
                   <label for="bass-pulse-toggle">
                     <input type="checkbox" id="bass-pulse-toggle">
-                    <span data-i18n="visualizer.bassPulse.enable">Effetto Pulsante Bassi</span>
+                    <span data-i18n="visualizer.bassPulse.enable">Bass Pulse Effect</span>
                   </label>
                   <div id="bass-threshold-controls" style="display: none; margin-top: 8px;">
-                    <label for="bass-threshold-slider" data-i18n="visualizer.bassPulse.threshold">Soglia Bassi</label>
+                    <label for="bass-threshold-slider" data-i18n="visualizer.bassPulse.threshold">Bass Threshold</label>
                     <div class="input-group">
                       <input type="range" id="bass-threshold-slider" min="0" max="255" step="1" value="150">
                       <div class="input-with-unit">
@@ -421,7 +416,7 @@
       <!-- Fixed MIDI Status at the bottom of the sidebar -->
       <div class="midi-status-fixed">
         <span id="midi-status-dot" class="midi-status-dot disconnected"></span>
-        <span id="midi-status-text" data-i18n="midi.status.disconnected">Launchpad scollegato</span>
+        <span id="midi-status-text" data-i18n="midi.status.disconnected">Launchpad Disconnected</span>
       </div>
       <div id="sidebar-resizer" class="sidebar-resizer" role="separator" aria-orientation="vertical"
         aria-label="Resize sidebar" aria-valuenow="260" aria-valuemin="200" aria-valuemax="520" data-i18n-aria-label="a11y.resizeSidebar" tabindex="0"></div>
@@ -435,12 +430,12 @@
       <div id="studio-live-toolbar" class="studio-live-toolbar" hidden>
         <div class="studio-live-toolbar-content">
           <div class="studio-live-info">
-            <span class="studio-live-badge" data-i18n="creator.liveTestBadge">PROVA LIVE</span>
+            <span class="studio-live-badge" data-i18n="creator.liveTestBadge">LIVE TEST</span>
             <strong id="studio-live-project-name" class="studio-live-title"></strong>
             <span id="studio-live-page-indicator" class="studio-live-page-badge"></span>
           </div>
           <button type="button" id="studio-exit-live" class="studio-exit-live-btn">
-            <span data-i18n="creator.backToEdit">Torna alla modifica</span>
+            <span data-i18n="creator.backToEdit">Back to editing</span>
           </button>
         </div>
       </div>
@@ -467,92 +462,92 @@
       data-i18n-aria-label="a11y.projectInspector">
       <header class="inspector-header">
         <div>
-          <span class="inspector-eyebrow" data-i18n="creator.mode">MODALITÀ EDITOR</span>
-          <h2 data-i18n="creator.inspector">Ispettore progetto</h2>
+          <span class="inspector-eyebrow" data-i18n="creator.mode">EDITOR MODE</span>
+          <h2 data-i18n="creator.inspector">Project inspector</h2>
         </div>
         <button type="button" class="inspector-close" id="creator-close" aria-label="Close editor"
           data-i18n-aria-label="a11y.closeEditor">×</button>
       </header>
       <div class="studio-submode-bar">
-        <div class="studio-submode-toggle" role="tablist" aria-label="Modalità Studio"
+        <div class="studio-submode-toggle" role="tablist" aria-label="Studio mode"
           data-i18n-aria-label="a11y.studioMode">
           <button type="button" id="studio-mode-edit" class="studio-submode-btn selected" role="tab" aria-selected="true">
-            <span data-i18n="creator.studioMode.edit">Modifica pad</span>
+            <span data-i18n="creator.studioMode.edit">Edit pads</span>
           </button>
           <button type="button" id="studio-mode-live" class="studio-submode-btn" role="tab" aria-selected="false">
-            <span data-i18n="creator.studioMode.live">Prova live</span>
+            <span data-i18n="creator.studioMode.live">Live test</span>
           </button>
         </div>
-        <p id="studio-live-banner" class="studio-live-banner" hidden data-i18n="creator.studioMode.liveHint">Suona i pad della tua bozza in tempo reale</p>
+        <p id="studio-live-banner" class="studio-live-banner" hidden data-i18n="creator.studioMode.liveHint">Play your draft pads in real time</p>
       </div>
       <section class="inspector-section">
-        <label for="project-creator-name" data-i18n="creator.projectName">Nome progetto</label>
+        <label for="project-creator-name" data-i18n="creator.projectName">Project name</label>
         <input type="text" id="project-creator-name" maxlength="60" autocomplete="off">
-        <label for="creator-target-device" data-i18n="creator.targetDevice">Dispositivo di riferimento</label>
+        <label for="creator-target-device" data-i18n="creator.targetDevice">Target device</label>
         <select id="creator-target-device">
-          <option value="universal" data-i18n="creator.targetDevice.universal">Universale (tutti i modelli)</option>
+          <option value="universal" data-i18n="creator.targetDevice.universal">Universal (all models)</option>
           <option value="legacy" data-i18n="creator.targetDevice.legacy">Legacy (Classic / S / Mini)</option>
           <option value="rgb" data-i18n="creator.targetDevice.rgb">RGB (Mk2 / Pro / X / Mini Mk3)</option>
         </select>
         <p id="creator-target-warning" class="creator-target-warning" hidden></p>
         <div class="inspector-actions">
-          <button type="button" class="inspector-action" id="creator-import-project" data-i18n="creator.import">Importa progetto</button>
+          <button type="button" class="inspector-action" id="creator-import-project" data-i18n="creator.import">Import project</button>
         </div>
         <input type="file" id="creator-project-zip-input" class="file-input-hidden" accept=".zip,application/zip,application/x-zip-compressed">
       </section>
       <div class="creator-view-tab-bar" role="tablist" aria-label="Editor sections"
         data-i18n-aria-label="a11y.editorSections">
         <button type="button" id="creator-tab-pads" class="creator-view-tab selected" role="tab" aria-selected="true" aria-controls="creator-pads-view">
-          <span data-i18n="creator.tabs.pads">Suoni e Luci</span>
+          <span data-i18n="creator.tabs.pads">Sounds &amp; Lights</span>
         </button>
         <button type="button" id="creator-tab-theme" class="creator-view-tab" role="tab" aria-selected="false" aria-controls="creator-theme-view">
-          <span data-i18n="creator.tabs.theme">Aspetto e Tema</span>
+          <span data-i18n="creator.tabs.theme">Appearance &amp; Theme</span>
         </button>
       </div>
       <div id="creator-pads-view" class="creator-view-panel">
         <section class="inspector-section">
           <div class="inspector-page-heading">
-            <span data-i18n="creator.pages">Pagine progetto</span>
+            <span data-i18n="creator.pages">Project pages</span>
             <span id="creator-page-count"></span>
           </div>
           <div id="creator-page-tabs" class="creator-page-tabs" role="tablist" aria-label="Project pages"
             data-i18n-aria-label="a11y.projectPages"></div>
           <div class="inspector-actions">
-            <button type="button" class="inspector-action" id="creator-add-page" data-i18n="creator.addPage">Aggiungi pagina</button>
-            <button type="button" class="inspector-action" id="creator-remove-page" data-i18n="creator.removePage">Rimuovi pagina</button>
+            <button type="button" class="inspector-action" id="creator-add-page" data-i18n="creator.addPage">Add page</button>
+            <button type="button" class="inspector-action" id="creator-remove-page" data-i18n="creator.removePage">Remove page</button>
           </div>
         </section>
         <section id="creator-pad-inspector" class="inspector-section">
           <div class="inspector-page-heading">
-            <span data-i18n="creator.selectedPad">PAD SELEZIONATO</span>
+            <span data-i18n="creator.selectedPad">SELECTED PAD</span>
             <strong id="creator-selected-pad">Pad 1</strong>
           </div>
           <div class="creator-steps-bar">
             <div class="creator-steps-header">
-              <span class="creator-steps-title" data-i18n="creator.multisamplingTitle">Campionamento multiplo</span>
+              <span class="creator-steps-title" data-i18n="creator.multisamplingTitle">Multisampling</span>
               <span id="creator-step-indicator" class="creator-step-indicator">Step 1 di 1</span>
             </div>
             <div class="creator-steps-controls">
-              <div id="creator-step-pills" class="creator-step-pills" role="tablist" aria-label="Step del pad"
+              <div id="creator-step-pills" class="creator-step-pills" role="tablist" aria-label="Pad steps"
                 data-i18n-aria-label="a11y.padSteps"></div>
               <div class="creator-step-actions">
                 <button type="button" class="inspector-action creator-step-btn" id="creator-add-step"
-                  data-i18n-aria-label="creator.addStep" aria-label="Aggiungi step">+</button>
+                  data-i18n-aria-label="creator.addStep" aria-label="Add step">+</button>
                 <button type="button" class="inspector-action creator-step-btn" id="creator-remove-step"
-                  data-i18n-aria-label="creator.removeStep" aria-label="Rimuovi step">-</button>
+                  data-i18n-aria-label="creator.removeStep" aria-label="Remove step">-</button>
               </div>
             </div>
           </div>
           <p id="creator-sample-name" class="creator-sample-name"></p>
           <div class="inspector-actions">
-            <button type="button" class="inspector-action" id="creator-import-sound" data-i18n="creator.importSound">Carica file</button>
+            <button type="button" class="inspector-action" id="creator-import-sound" data-i18n="creator.importSound">Choose audio file</button>
             <button type="button" class="inspector-action" id="creator-preview-pad" data-i18n="creator.playPad">Play</button>
-            <button type="button" class="inspector-action" id="creator-remove-sample" data-i18n="creator.removeSample">Rimuovi</button>
+            <button type="button" class="inspector-action" id="creator-remove-sample" data-i18n="creator.removeSample">Remove</button>
           </div>
-          <p id="creator-hold-hint" class="creator-duration-note" hidden data-i18n="creator.playPadHoldHint">Effetto continuo: tieni premuto per la durata desiderata</p>
+          <p id="creator-hold-hint" class="creator-duration-note" hidden data-i18n="creator.playPadHoldHint">Continuous effect: hold for desired duration</p>
           <input type="file" id="creator-sample-file" class="file-input-hidden">
           <div class="inspector-page-heading">
-            <span data-i18n="creator.lightCatalog">LUCE / ANIMAZIONE</span>
+            <span data-i18n="creator.lightCatalog">LIGHT / ANIMATION</span>
           </div>
           <div id="creator-assigned-light" class="creator-assigned-light" hidden>
             <div class="creator-assigned-light-row">
@@ -561,112 +556,112 @@
                 <strong id="creator-assigned-name"></strong>
               </div>
               <button type="button" class="inspector-action creator-action-sm" id="creator-remove-light"
-                data-i18n="creator.removeLight">Rimuovi luce</button>
+                data-i18n="creator.removeLight">Remove light</button>
             </div>
             <section id="creator-light-timing" class="creator-light-timing" hidden>
               <label class="creator-sync-toggle">
                 <input type="checkbox" id="creator-light-sync" checked>
-                <span data-i18n="creator.syncLight">Sincronizza alla durata del suono</span>
+                <span data-i18n="creator.syncLight">Sync to sound duration</span>
               </label>
               <div id="creator-manual-light-duration" class="creator-manual-light-duration" hidden>
-                <label for="creator-light-duration" data-i18n="creator.lightDuration">Durata luce (secondi)</label>
+                <label for="creator-light-duration" data-i18n="creator.lightDuration">Light duration (seconds)</label>
                 <input type="number" id="creator-light-duration" min="0.1" max="60" step="0.1" value="2.5">
               </div>
             </section>
           </div>
-          <label for="creator-light-search" data-i18n="creator.searchAnimations">Cerca animazione</label>
+          <label for="creator-light-search" data-i18n="creator.searchAnimations">Search animations</label>
           <input type="search" id="creator-light-search" autocomplete="off">
           <nav id="creator-light-categories" class="creator-light-categories" aria-label="Animation categories"
             data-i18n-aria-label="a11y.animationCategories"></nav>
           <div id="creator-light-presets" class="creator-light-presets"></div>
           <section id="creator-text-animation" class="creator-text-animation" hidden>
-            <label for="creator-animation-text" data-i18n="creator.animationText">Testo animazione</label>
+            <label for="creator-animation-text" data-i18n="creator.animationText">Animation text</label>
             <input type="text" id="creator-animation-text" maxlength="16" autocomplete="off">
             <button type="button" class="inspector-action" id="creator-assign-text-animation"
-              data-i18n="creator.assignAnimation">Assegna animazione</button>
+              data-i18n="creator.assignAnimation">Assign animation</button>
           </section>
         </section>
       </div>
       <div id="creator-theme-view" class="creator-view-panel" hidden>
         <section class="inspector-section">
           <div class="inspector-page-heading">
-            <span data-i18n="creator.theme.background">SFONDO PROGETTO</span>
+            <span data-i18n="creator.theme.background">Project Background</span>
           </div>
-          <label for="creator-bg-select" data-i18n="creator.theme.selectBackground">Seleziona sfondo predefinito</label>
+          <label for="creator-bg-select" data-i18n="creator.theme.selectBackground">Select default background</label>
           <select id="creator-bg-select" class="creator-select">
-            <option value="" data-i18n="creator.theme.none">Nessuno sfondo</option>
+            <option value="" data-i18n="creator.theme.none">None</option>
           </select>
           <div class="inspector-actions">
-            <button type="button" class="inspector-action" id="creator-upload-bg-trigger" data-i18n="creator.theme.uploadCustom">Carica video/immagine</button>
+            <button type="button" class="inspector-action" id="creator-upload-bg-trigger" data-i18n="creator.theme.uploadCustom">Upload file</button>
           </div>
           <input type="file" id="creator-bg-file" class="file-input-hidden">
           <p id="creator-bg-custom-name" class="creator-duration-note" hidden></p>
         </section>
         <section class="inspector-section">
           <div class="inspector-page-heading">
-            <span data-i18n="creator.theme.skin">SKIN LAUNCHPAD</span>
+            <span data-i18n="creator.theme.skin">Launchpad Skin</span>
           </div>
-          <label for="creator-skin-select" data-i18n="creator.theme.selectSkin">Seleziona skin predefinita</label>
+          <label for="creator-skin-select" data-i18n="creator.theme.selectSkin">Select default skin</label>
           <select id="creator-skin-select" class="creator-select">
-            <option value="" data-i18n="creator.theme.default">Predefinita</option>
+            <option value="" data-i18n="creator.theme.default">Default</option>
           </select>
           <div class="inspector-actions">
-            <button type="button" class="inspector-action" id="creator-upload-skin-trigger" data-i18n="creator.theme.uploadCustom">Carica skin personalizzata</button>
+            <button type="button" class="inspector-action" id="creator-upload-skin-trigger" data-i18n="creator.theme.uploadCustom">Upload file</button>
           </div>
           <input type="file" id="creator-skin-file" class="file-input-hidden">
           <p id="creator-skin-custom-name" class="creator-duration-note" hidden></p>
         </section>
         <section class="inspector-section">
           <div class="inspector-page-heading">
-            <span data-i18n="creator.theme.icon">ICONA IN ALTO A DESTRA</span>
+            <span data-i18n="creator.theme.icon">Top-right Icon</span>
           </div>
           <div class="inspector-actions">
-            <button type="button" class="inspector-action" id="creator-upload-icon-trigger" data-i18n="creator.theme.uploadCustom">Carica icona</button>
-            <button type="button" class="inspector-action" id="creator-reset-icon-trigger" data-i18n="creator.theme.resetIcon">Ripristina icona</button>
+            <button type="button" class="inspector-action" id="creator-upload-icon-trigger" data-i18n="creator.theme.uploadCustom">Upload file</button>
+            <button type="button" class="inspector-action" id="creator-reset-icon-trigger" data-i18n="creator.theme.resetIcon">Reset icon</button>
           </div>
           <input type="file" id="creator-icon-file" class="file-input-hidden">
           <p id="creator-icon-custom-name" class="creator-duration-note" hidden></p>
         </section>
         <section class="inspector-section">
           <div class="inspector-page-heading">
-            <span data-i18n="creator.theme.visualizer">VISUALIZZATORE AUDIO</span>
+            <span data-i18n="creator.theme.visualizer">Audio Visualizer</span>
           </div>
-          <label for="creator-viz-mode" data-i18n="creator.theme.visualizerMode">Modalita predefinita</label>
+          <label for="creator-viz-mode" data-i18n="creator.theme.visualizerMode">Default visualizer mode</label>
           <select id="creator-viz-mode" class="creator-select">
-            <option value="off" data-i18n="visualizer.mode.off">Disattivato</option>
-            <option value="both" data-i18n="visualizer.mode.both">Entrambi i pannelli</option>
-            <option value="both-mirror" data-i18n="visualizer.mode.both-mirror">Entrambi (specchiato)</option>
-            <option value="top" data-i18n="visualizer.mode.top">Solo superiore</option>
-            <option value="top-mirror" data-i18n="visualizer.mode.top-mirror">Superiore (specchiato)</option>
-            <option value="bottom" data-i18n="visualizer.mode.bottom">Solo inferiore</option>
-            <option value="bottom-mirror" data-i18n="visualizer.mode.bottom-mirror">Inferiore (specchiato)</option>
+            <option value="off" data-i18n="visualizer.mode.off">Off</option>
+            <option value="both" data-i18n="visualizer.mode.both">Both Panels</option>
+            <option value="both-mirror" data-i18n="visualizer.mode.both-mirror">Both (mirrored)</option>
+            <option value="top" data-i18n="visualizer.mode.top">Top Only</option>
+            <option value="top-mirror" data-i18n="visualizer.mode.top-mirror">Top (mirrored)</option>
+            <option value="bottom" data-i18n="visualizer.mode.bottom">Bottom Only</option>
+            <option value="bottom-mirror" data-i18n="visualizer.mode.bottom-mirror">Bottom (mirrored)</option>
           </select>
           <div id="creator-viz-colors" style="margin-top: 10px;">
-            <label for="creator-viz-color1" data-i18n="visualizer.color1">Colore iniziale</label>
+            <label for="creator-viz-color1" data-i18n="visualizer.color1">Start color</label>
             <input type="color" id="creator-viz-color1" style="width: 100%; height: 36px; padding: 2px; border-radius: 4px; border: 1px solid #444; background: #222; cursor: pointer;">
             <label style="margin-top: 10px; display: flex; align-items: center; gap: 8px; cursor: pointer;">
               <input type="checkbox" id="creator-viz-gradient">
-              <span data-i18n="visualizer.gradient.enable">Abilita gradiente di colore</span>
+              <span data-i18n="visualizer.gradient.enable">Enable color gradient</span>
             </label>
             <div id="creator-viz-gradient-settings" hidden style="margin-top: 8px;">
-              <label for="creator-viz-color2" data-i18n="visualizer.color2">Colore finale</label>
+              <label for="creator-viz-color2" data-i18n="visualizer.color2">End color</label>
               <input type="color" id="creator-viz-color2" style="width: 100%; height: 36px; padding: 2px; border-radius: 4px; border: 1px solid #444; background: #222; cursor: pointer;">
-              <label for="creator-viz-direction" style="margin-top: 8px; display: block;" data-i18n="visualizer.gradient.direction">Direzione del gradiente</label>
+              <label for="creator-viz-direction" style="margin-top: 8px; display: block;" data-i18n="visualizer.gradient.direction">Gradient direction</label>
               <select id="creator-viz-direction" class="creator-select">
-                <option value="vertical" data-i18n="visualizer.gradient.vertical">Verticale</option>
-                <option value="horizontal" data-i18n="visualizer.gradient.horizontal">Orizzontale</option>
-                <option value="vertical-reverse" data-i18n="visualizer.gradient.verticalReverse">Verticale (inverso)</option>
-                <option value="horizontal-reverse" data-i18n="visualizer.gradient.horizontalReverse">Orizzontale (inverso)</option>
+                <option value="vertical" data-i18n="visualizer.gradient.vertical">Vertical</option>
+                <option value="horizontal" data-i18n="visualizer.gradient.horizontal">Horizontal</option>
+                <option value="vertical-reverse" data-i18n="visualizer.gradient.verticalReverse">Vertical (reverse)</option>
+                <option value="horizontal-reverse" data-i18n="visualizer.gradient.horizontalReverse">Horizontal (reverse)</option>
               </select>
             </div>
           </div>
         </section>
         <section class="inspector-section">
           <div class="inspector-page-heading">
-            <span data-i18n="creator.theme.layout">LAYOUT LAUNCHPAD</span>
+            <span data-i18n="creator.theme.layout">Launchpad Layout</span>
           </div>
           <div class="control-group">
-            <label for="creator-rotation-slider" data-i18n="launchpad.rotation">Rotazione Launchpad</label>
+            <label for="creator-rotation-slider" data-i18n="launchpad.rotation">Launchpad rotation</label>
             <div class="input-group">
               <input type="range" id="creator-rotation-slider" min="0" max="360" step="1" value="0">
               <div class="input-with-unit">
@@ -676,7 +671,7 @@
             </div>
           </div>
           <div class="control-group" style="margin-top: 10px;">
-            <label for="creator-size-slider" data-i18n="launchpad.size">Dimensione Launchpad</label>
+            <label for="creator-size-slider" data-i18n="launchpad.size">Launchpad size</label>
             <div class="input-group">
               <input type="range" id="creator-size-slider" min="50" max="140" step="1" value="100">
               <div class="input-with-unit">
@@ -689,18 +684,18 @@
       </div>
       <footer class="inspector-footer">
         <span id="creator-sample-count" aria-live="polite"></span>
-        <button type="button" class="inspector-export" id="creator-export" data-i18n="creator.export">Esporta progetto</button>
+        <button type="button" class="inspector-export" id="creator-export" data-i18n="creator.export">Export project</button>
       </footer>
     </aside>
   </div>
   <dialog id="creator-unsaved-dialog" class="creator-dialog">
     <div class="creator-dialog-content">
-      <h3 data-i18n="creator.unsavedTitle">Modifiche non salvate</h3>
-      <p data-i18n="creator.unsavedMessage">Tornando alla modalità Performance perderai tutte le modifiche non salvate della sessione Studio. Vuoi salvare ed esportare il progetto prima di uscire?</p>
+      <h3 data-i18n="creator.unsavedTitle">Unsaved changes</h3>
+      <p data-i18n="creator.unsavedMessage">Returning to Performance mode will discard all unsaved changes from the Studio session. Do you want to save and export the project before leaving?</p>
       <div class="creator-dialog-actions">
-        <button type="button" id="creator-unsaved-save" class="inspector-action primary" data-i18n="creator.saveAndExit">Salva ed esci</button>
-        <button type="button" id="creator-unsaved-discard" class="inspector-action danger" data-i18n="creator.discardAndExit">Esci senza salvare</button>
-        <button type="button" id="creator-unsaved-cancel" class="inspector-action" data-i18n="creator.cancel">Annulla</button>
+        <button type="button" id="creator-unsaved-save" class="inspector-action primary" data-i18n="creator.saveAndExit">Save and exit</button>
+        <button type="button" id="creator-unsaved-discard" class="inspector-action danger" data-i18n="creator.discardAndExit">Exit without saving</button>
+        <button type="button" id="creator-unsaved-cancel" class="inspector-action" data-i18n="creator.cancel">Cancel</button>
       </div>
     </div>
   </dialog>

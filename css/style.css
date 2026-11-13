@@ -647,3 +647,9 @@ main {
 .notification.info {
     background-color: var(--info-color);
 }
+
+/* Dark text: white on the warning amber is unreadable (contrast ~1.9:1). */
+.notification.warning {
+    background-color: var(--warning-color);
+    color: var(--bg-dark);
+}

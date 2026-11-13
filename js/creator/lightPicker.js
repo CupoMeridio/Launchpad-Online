@@ -44,6 +44,9 @@ const DYNAMIC_TEXT_PRESETS = [
     { id: 'scroll_bottom', template: 'scroll_bottom', labelKey: 'creator.light.scrollBottom' }
 ];
 
+// Animation groups (static catalog + dynamic text presets), built once.
+let allAnimationGroups = null;
+
 // Swatch rendering caches to avoid recreating ~2900 DOM nodes on non-structural updates
 let lastRenderedCategory = null;
 let lastRenderedSearch = null;
@@ -339,9 +342,6 @@ function assignLightAnimation(animationName) {
     });
     if (animationName) previewAnimation(animationName, padIndex, stepIndex);
 }
-
-// Animation groups (static catalog + dynamic text presets), built once.
-let allAnimationGroups = null;
 
 /**
  * Forces the next renderLightPresets() to rebuild the swatches (e.g. when the

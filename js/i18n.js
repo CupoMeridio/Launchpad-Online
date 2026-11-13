@@ -7,10 +7,11 @@
  * pulling in the rest of the UI.
  */
 
-import { getLanguageSetting, setLanguageSetting } from './settings.js';
+import { DEFAULT_LANGUAGE, getLanguageSetting, setLanguageSetting } from './settings.js';
 import { logger } from './logger.js';
 
-const FALLBACK_LANGUAGE = 'it';
+/** Languages with a locale file in locales/ (and an entry in the language menu). */
+export const SUPPORTED_LANGUAGES = Object.freeze(['en', 'it', 'es', 'de', 'fr']);
 
 let translations = {};
 
@@ -19,12 +20,13 @@ async function loadTranslations(lang) {
         const response = await fetch(`locales/${lang}.json`);
         if (!response.ok) throw new Error(`Could not load translations for ${lang}`);
         translations = await response.json();
+        document.documentElement.lang = lang;
         applyTranslations();
     } catch (error) {
         logger.error("Translation error:", error);
-        // Fallback to Italian if not already Italian
-        if (lang !== FALLBACK_LANGUAGE) {
-            await loadTranslations(FALLBACK_LANGUAGE);
+        // Fall back to the default language (English) unless it is the one failing.
+        if (lang !== DEFAULT_LANGUAGE) {
+            await loadTranslations(DEFAULT_LANGUAGE);
         }
     }
 }
@@ -57,10 +59,33 @@ export function getTranslation(key) {
     return translations[key] || key;
 }
 
+/**
+ * The first of the browser's preferred languages the app supports, matched on
+ * the primary subtag ('it-CH' -> 'it'), or the default language.
+ * @param {readonly string[]} [preferred] - Defaults to the browser's preferences.
+ * @returns {string}
+ */
+export function detectBrowserLanguage(preferred = browserLanguages()) {
+    for (const tag of preferred) {
+        const code = typeof tag === 'string' ? tag.toLowerCase().split('-')[0] : '';
+        if (SUPPORTED_LANGUAGES.includes(code)) return code;
+    }
+    return DEFAULT_LANGUAGE;
+}
+
+function browserLanguages() {
+    const nav = globalThis.navigator;
+    if (nav?.languages?.length) return nav.languages;
+    return nav?.language ? [nav.language] : [];
+}
+
+/**
+ * Loads the user's language: the one they picked (remembered), otherwise the
+ * browser's (not saved, so it follows browser changes until the user picks).
+ */
 export async function initializeLanguageControls() {
     const select = document.getElementById('language-select');
-    const saved = getLanguageSetting();
-    const initialLang = saved || FALLBACK_LANGUAGE;
+    const initialLang = getLanguageSetting(null) || detectBrowserLanguage();
 
     if (select) {
         select.value = initialLang;

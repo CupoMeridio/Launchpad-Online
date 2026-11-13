@@ -388,7 +388,7 @@ export function setTopRightIconFile(fileOrUrl, isExplicitVideo = null) {
             };
         } else {
             el = document.createElement('img');
-            el.alt = 'immagine';
+            el.alt = 'Project icon';
             el.onload = () => resolve();
             el.onerror = () => {
                 logger.error(`Error loading icon image: ${url}`);
@@ -421,7 +421,7 @@ export function resetTopRightIcon() {
     return new Promise((resolve) => {
         const img = document.createElement('img');
         img.src = 'assets/icons/Logo.png';
-        img.alt = 'immagine';
+        img.alt = 'Logo';
         img.className = 'square-image';
         img.onload = () => resolve();
         img.onerror = () => {

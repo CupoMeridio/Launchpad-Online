@@ -116,7 +116,7 @@ export function buildClassicHtml() {
       <div class="testo_su_launchpad">User 1</div>
       <div class="testo_su_launchpad">User 2</div>
       <div class="testo_su_launchpad">Mixer</div>
-      <div id="image-container"><img src="assets/icons/Logo.png" alt="immagine" class="square-image"></div>
+      <div id="image-container"><img src="assets/icons/Logo.png" alt="Logo" class="square-image"></div>
 
       <div id="a1" class="grid-item-menu"></div>
       <div id="a2" class="grid-item-menu"></div>

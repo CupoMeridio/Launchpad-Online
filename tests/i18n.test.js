@@ -45,39 +45,57 @@ globalThis.fetch = async (url) => {
         : { ok: false, status: 404, json: async () => ({}) };
 };
 
+// Browser preferences: an unsupported language first, then Italian.
+Object.defineProperty(globalThis, 'navigator', {
+    configurable: true,
+    value: { language: 'ja-JP', languages: ['ja-JP', 'it-IT', 'en-US'] }
+});
+
 const { setLogSink } = await import('../js/logger.js');
 const logSink = createRecordingSink();
 setLogSink(logSink);
-const { initializeLanguageControls, getTranslation, translate } = await import('../js/i18n.js');
-const { SETTINGS_KEYS } = await import('../js/settings.js');
+const { initializeLanguageControls, getTranslation, translate, detectBrowserLanguage } = await import('../js/i18n.js');
+const { SETTINGS_KEYS, getLanguageSetting } = await import('../js/settings.js');
 
 const select = elements.get('language-select') || createElement('select', { id: 'language-select' });
 elements.set('language-select', select);
 
 const settle = () => new Promise(resolve => setImmediate(resolve));
 
-test('the saved language is loaded and applied to text and attributes', async () => {
-    storage.set(SETTINGS_KEYS.LANGUAGE, 'en');
-    await initializeLanguageControls();
-
-    assert.equal(select.value, 'en');
-    assert.equal(title.textContent, 'Hello');
-    assert.equal(resizer.getAttribute('aria-label'), 'Resize');
-    assert.equal(resizer.getAttribute('title'), 'Drag');
-    assert.equal(untranslated.textContent, 'original', 'elements without a translation keep their text');
+test('browser language detection picks the first supported preference', () => {
+    assert.equal(detectBrowserLanguage(['ja-JP', 'it-IT', 'en-US']), 'it');
+    assert.equal(detectBrowserLanguage(['de-AT']), 'de', 'regional variants match their language');
+    assert.equal(detectBrowserLanguage(['FR-ca']), 'fr', 'case does not matter');
+    assert.equal(detectBrowserLanguage(['ja-JP', 'pt-BR']), 'en', 'English when nothing is supported');
+    assert.equal(detectBrowserLanguage([]), 'en');
 });
 
-test('choosing another language saves it and re-translates the page', async () => {
-    select.value = 'it';
+test('on first run the app uses the browser language, without saving it', async () => {
+    storage.clear();
+    await initializeLanguageControls();
+
+    assert.equal(select.value, 'it');
+    assert.equal(globalThis.document.documentElement.lang, 'it');
+    assert.equal(title.textContent, 'Ciao');
+    assert.equal(resizer.getAttribute('aria-label'), 'Ridimensiona');
+    assert.equal(resizer.getAttribute('title'), 'Trascina');
+    assert.equal(untranslated.textContent, 'original', 'elements without a translation keep their text');
+    assert.equal(storage.has(SETTINGS_KEYS.LANGUAGE), false, 'a detected language is not a user choice');
+});
+
+test('the language the user picks is applied and remembered', async () => {
+    select.value = 'en';
     select.dispatch('change');
     await settle();
 
-    assert.equal(storage.get(SETTINGS_KEYS.LANGUAGE), 'it');
-    assert.equal(title.textContent, 'Ciao');
-    assert.equal(resizer.getAttribute('aria-label'), 'Ridimensiona');
+    assert.equal(title.textContent, 'Hello');
+    assert.equal(resizer.getAttribute('aria-label'), 'Resize');
+    assert.equal(globalThis.document.documentElement.lang, 'en');
+    assert.equal(storage.get(SETTINGS_KEYS.LANGUAGE), 'en');
+    assert.equal(getLanguageSetting(), 'en', 'the next start uses the saved language');
 });
 
-test('a language without a locale file falls back to Italian', async () => {
+test('a language without a locale file falls back to English', async () => {
     requested.length = 0;
     logSink.entries.length = 0;
     select.value = 'xx';
@@ -85,27 +103,29 @@ test('a language without a locale file falls back to Italian', async () => {
     await settle();
     await settle();
 
-    assert.deepEqual(requested, ['locales/xx.json', 'locales/it.json']);
-    assert.equal(title.textContent, 'Ciao');
+    assert.deepEqual(requested, ['locales/xx.json', 'locales/en.json']);
+    assert.equal(title.textContent, 'Hello');
+    assert.equal(globalThis.document.documentElement.lang, 'en');
     assert.ok(logSink.entries.some(([level]) => level === 'error'), 'the failure is logged');
 });
 
-test('if Italian itself fails there is no retry loop', async () => {
-    const original = LOCALES.it;
-    delete LOCALES.it;
+test('if English itself fails there is no retry loop', async () => {
+    const original = LOCALES.en;
+    delete LOCALES.en;
     try {
         requested.length = 0;
-        select.value = 'it';
+        select.value = 'en';
         select.dispatch('change');
         await settle();
-        assert.deepEqual(requested, ['locales/it.json']);
+        assert.deepEqual(requested, ['locales/en.json']);
     } finally {
-        LOCALES.it = original;
+        LOCALES.en = original;
     }
 });
 
 test('runtime lookups: missing keys fall back to the key, placeholders are filled', () => {
     assert.equal(getTranslation('nope.missing'), 'nope.missing');
-    assert.equal(translate('greeting', { name: 'Vittorio', count: 64 }), 'Ciao Vittorio, hai 64 pad');
-    assert.equal(translate('greeting'), 'Ciao {name}, hai {count} pad', 'unfilled placeholders are left visible');
+    // The last loaded locale is English (the failed reload keeps it).
+    assert.equal(translate('greeting', { name: 'Vittorio', count: 64 }), 'Hi Vittorio, 64 pads');
+    assert.equal(translate('greeting'), 'Hi {name}, {count} pads', 'unfilled placeholders are left visible');
 });

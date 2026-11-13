@@ -79,13 +79,13 @@ test('settings: language getters and setters', async (t) => {
         globalThis.localStorage = originalStorage;
     });
 
+    assert.equal(getLanguageSetting(), 'en', 'English until the user picks a language');
+    assert.equal(setLanguageSetting('it'), true);
     assert.equal(getLanguageSetting(), 'it');
-    assert.equal(setLanguageSetting('en'), true);
-    assert.equal(getLanguageSetting(), 'en');
     // Rejects invalid strings
     assert.equal(setLanguageSetting(''), false);
     assert.equal(setLanguageSetting(123), false);
-    assert.equal(getLanguageSetting(), 'en');
+    assert.equal(getLanguageSetting(), 'it');
 });
 
 test('settings: accent color getters, setters, and validation', async (t) => {

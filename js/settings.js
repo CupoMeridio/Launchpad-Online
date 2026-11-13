@@ -26,8 +26,14 @@ export const SETTINGS_KEYS = {
 
 export const DEFAULT_UI_ACCENT = '#00aaff';
 
+/**
+ * Language used until the user picks one (then their choice is remembered),
+ * and the fallback when a locale file cannot be loaded.
+ */
+export const DEFAULT_LANGUAGE = 'en';
+
 const SETTINGS_DEFAULTS = {
-    [SETTINGS_KEYS.LANGUAGE]: 'it',
+    [SETTINGS_KEYS.LANGUAGE]: DEFAULT_LANGUAGE,
     [SETTINGS_KEYS.ACCENT_COLOR]: DEFAULT_UI_ACCENT,
     [SETTINGS_KEYS.ROTATION]: 0,
     [SETTINGS_KEYS.SCALE]: 1,

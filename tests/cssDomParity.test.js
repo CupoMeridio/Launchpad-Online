@@ -128,3 +128,20 @@ test('CSS selectors dynamically match DOM and JS identifiers bidirectionally', (
         assert.equal(cssClasses.has(phantom), false, `CSS must NOT declare phantom class .${phantom}`);
     }
 });
+
+test('every notification type has its own style rule', async () => {
+    // Types are applied through a template literal (`notification ${type}`), which
+    // the static class scan above cannot see: check them from their declaration.
+    const { NOTIFICATION_TYPES } = await import('../js/notifications.js');
+    const ast = csstree.parse(readFileSync(path.join(workspaceRoot, 'css', 'style.css'), 'utf8'));
+    const selectors = new Set();
+    csstree.walk(ast, {
+        visit: 'Selector',
+        enter(node) {
+            selectors.add(csstree.generate(node));
+        }
+    });
+
+    const unstyled = NOTIFICATION_TYPES.filter(type => !selectors.has(`.notification.${type}`));
+    assert.deepEqual(unstyled, [], `Notification types without a .notification.<type> rule: ${unstyled.join(', ')}`);
+});

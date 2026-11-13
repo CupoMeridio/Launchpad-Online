@@ -53,6 +53,12 @@ export function createElement(tagName = 'div', { id = '', className = '', datase
             element.children.push(child);
             return child;
         },
+        remove() {
+            const parent = element.parentElement;
+            if (!parent) return;
+            parent.children = parent.children.filter(child => child !== element);
+            element.parentElement = null;
+        },
         replaceChildren(...children) {
             element.children = [];
             children.forEach(child => element.appendChild(child));
@@ -99,6 +105,15 @@ export function createElement(tagName = 'div', { id = '', className = '', datase
             listeners.get(type)?.forEach(handler => handler.call(element, event));
         }
     };
+
+    // Like the DOM, `className` and `classList` are two views of the same classes.
+    Object.defineProperty(element, 'className', {
+        get: () => [...classes].join(' '),
+        set(value) {
+            classes.clear();
+            String(value).split(/\s+/).filter(Boolean).forEach(name => classes.add(name));
+        }
+    });
 
     // Media elements "load" asynchronously once a source is set, like a
     // successfully fetched image/video would.
@@ -169,6 +184,7 @@ export function installBrowserStubs() {
     globalThis.document = {
         visibilityState: 'visible',
         readyState: 'complete',
+        documentElement: createElement('html'),
         head: createElement('head'),
         body: createElement('body'),
         addEventListener() {},
