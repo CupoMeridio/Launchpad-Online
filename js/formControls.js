@@ -5,7 +5,19 @@
  * slider + number input pairs.
  */
 
-export function syncInputSlider(sliderId, inputId, callback, min, max, isFloat = false) {
+/**
+ * Keeps a range slider and its number input in sync and reports valid values.
+ * The slider always reports (clamped); the input reports only in-range values
+ * while typing and is clamped when it loses focus.
+ * @param {object} options
+ * @param {string} options.sliderId
+ * @param {string} options.inputId
+ * @param {number} options.min
+ * @param {number} options.max
+ * @param {boolean} [options.isFloat=false] - Parse values as floats instead of integers.
+ * @param {function(number): void} options.onChange - Called with each accepted value.
+ */
+export function syncInputSlider({ sliderId, inputId, min, max, isFloat = false, onChange }) {
     const slider = document.getElementById(sliderId);
     const input = document.getElementById(inputId);
 
@@ -20,11 +32,11 @@ export function syncInputSlider(sliderId, inputId, callback, min, max, isFloat =
 
         if (source === 'slider') {
             input.value = String(clampedValue);
-            callback(clampedValue);
+            onChange(clampedValue);
         } else if (source === 'input') {
             if (value >= min && value <= max) {
                 slider.value = String(value);
-                callback(value);
+                onChange(value);
             }
         }
     };
@@ -43,6 +55,6 @@ export function syncInputSlider(sliderId, inputId, callback, min, max, isFloat =
         const clampedValue = Math.max(min, Math.min(max, value));
         this.value = String(clampedValue);
         slider.value = String(clampedValue);
-        callback(clampedValue);
+        onChange(clampedValue);
     });
 }

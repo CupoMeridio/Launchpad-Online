@@ -80,6 +80,7 @@ export function buildReverseCrossEvents(x, y, stepDelay, fadeDuration) {
  * @param {number} [maxDistance=0] - Distance offset for reverse waves.
  * @returns {Array<{ p: [number, number], time: number, dur: number }>}
  */
+// eslint-disable-next-line max-params -- Known debt (max-params 6): refactor, then remove this waiver.
 export function buildWaveEvents(originX, originY, stepDelay, fadeDuration, reverse = false, maxDistance = 0) {
     const events = [];
     for (let targetY = 0; targetY < 8; targetY++) {
@@ -135,6 +136,7 @@ class BaseMatrixRainAnimation {
                         const fadeDuration = line.speed * 4;
                         let x, y;
 
+                        // eslint-disable-next-line max-depth -- Known debt (max-depth 5): refactor, then remove this waiver.
                         if (this.direction === 'down') {
                             x = i; y = currentIdx;
                         } else if (this.direction === 'up') {

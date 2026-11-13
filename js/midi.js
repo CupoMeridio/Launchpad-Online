@@ -19,7 +19,7 @@ import { onVisibilityChange } from './visibilityManager.js';
 import { isProjectReady, waitForProjectReady } from './projectLoadingState.js';
 import { SCENE_BUTTONS_X, AUTOMAP_BUTTONS_Y, LAUNCHPAD_COLS, LAUNCHPAD_ROWS } from './constants.js';
 import { setDetectedHardwareModel } from './launchpadView.js';
-import { debug } from './logger.js';
+import { debug, logger } from './logger.js';
 
 // Active DeviceProfile and MIDI Access instances
 let activeProfile = null;
@@ -56,7 +56,7 @@ function setMidiState(newState) {
     }[midiState] || [];
 
     if (!isValidTransition.includes(newState)) {
-        console.warn(`[MIDI] Invalid state transition: ${midiState} -> ${newState}`);
+        logger.warn(`[MIDI] Invalid state transition: ${midiState} -> ${newState}`);
         return false;
     }
 
@@ -75,7 +75,7 @@ function updateMidiStatus(isConnected) {
     let statusDot = document.getElementById('midi-status-dot');
 
     if (!statusText || !statusDot) {
-        console.error('MIDI status elements not found in DOM.');
+        logger.error('MIDI status elements not found in DOM.');
         return;
     }
 
@@ -140,7 +140,7 @@ function handleHardwareLayoutChange(event) {
             activeProfile.setLayout(modeIndex);
             debug(`[MIDI] Hardware layout switched for mode ${modeIndex}`);
         } catch (e) {
-            console.warn("[MIDI] Failed to change hardware layout:", e);
+            logger.warn("[MIDI] Failed to change hardware layout:", e);
         }
     }
 }
@@ -224,7 +224,7 @@ async function connectToLaunchpad() {
             debug("[MIDI] Project not yet ready, waiting up to 3 seconds...");
             const isReady = await waitForProjectReady(3000);
             if (!isReady) {
-                console.warn("[MIDI] Proceeding without project - lights will sync when project loads");
+                logger.warn("[MIDI] Proceeding without project - lights will sync when project loads");
             }
         }
         
@@ -236,7 +236,7 @@ async function connectToLaunchpad() {
         }
 
     } catch (error) {
-        console.error("[MIDI] Connection error:", error);
+        logger.error("[MIDI] Connection error:", error);
         updateMidiStatus(false);
         setMidiState(MIDI_STATE.INITIALIZED);
     }
@@ -328,13 +328,13 @@ export async function initMidi() {
                         reinitTimer = null;
                         if (document.visibilityState !== 'visible') return;
                         debug("[MIDI] Attempting full MIDI reinitialization...");
-                        initMidi().catch(error => console.error("[MIDI] Reinitialization error:", error));
+                        initMidi().catch(error => logger.error("[MIDI] Reinitialization error:", error));
                     }, 500);
                 }
             });
 
         } catch (error) {
-            console.error("[MIDI] Web MIDI API not supported or access denied.", error);
+            logger.error("[MIDI] Web MIDI API not supported or access denied.", error);
             updateMidiStatus(false);
             showNotification(getTranslation('midi.notSupported'), 'error');
             throw error;
@@ -380,7 +380,7 @@ async function disposeMidi({ releaseAccess = false } = {}) {
             setMidiState(MIDI_STATE.INITIALIZED);
         }
     } catch (e) {
-        console.error("[MIDI] Error during disposal:", e);
+        logger.error("[MIDI] Error during disposal:", e);
     }
 }
 

@@ -6,7 +6,7 @@
  * and allows multiple subsystems to subscribe to visibility events.
  */
 
-import { debug } from './logger.js';
+import { debug, logger } from './logger.js';
 
 let listeners = new Map();
 let visibilityListenerAdded = false;
@@ -18,7 +18,7 @@ function handleVisibilityChange() {
         try {
             callback(isVisible);
         } catch (e) {
-            console.error('[VisibilityManager] Listener error:', e);
+            logger.error('[VisibilityManager] Listener error:', e);
         }
     }
 }

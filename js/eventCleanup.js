@@ -9,7 +9,7 @@
  * - Use removeListener() to remove a specific tracked listener
  */
 
-import { debug } from './logger.js';
+import { debug, logger } from './logger.js';
 
 /**
  * Stores registered listener info for tracking and cleanup.
@@ -52,7 +52,7 @@ export function registerListener(target, eventType, listener, options = false) {
     for (const entry of eventListeners) {
         if (entry.listener === listener && 
             JSON.stringify(entry.options) === JSON.stringify(options)) {
-            console.warn(`[EventCleanup] Duplicate listener prevented for ${eventType}`);
+            logger.warn(`[EventCleanup] Duplicate listener prevented for ${eventType}`);
             return listener;
         }
     }

@@ -242,6 +242,7 @@ export class Visualizer {
     /**
      * Main drawing loop (animation).
      */
+    // eslint-disable-next-line complexity -- Known debt (complexity 28): refactor, then remove this waiver.
     draw() {
         if (this.mode === 'off') {
             this.animationId = null;

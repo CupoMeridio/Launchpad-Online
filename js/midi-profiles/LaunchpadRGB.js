@@ -15,7 +15,7 @@
 
 import { DeviceProfile } from './DeviceProfile.js';
 import { detectModel } from './modelDetection.js';
-import { debug } from '../logger.js';
+import { debug, logger } from '../logger.js';
 
 export class LaunchpadRGB extends DeviceProfile {
     /**
@@ -75,7 +75,7 @@ export class LaunchpadRGB extends DeviceProfile {
                     this.midiOut.send([0xF0, 0x00, 0x20, 0x29, 0x02, 0x18, 0x22, 0x00, 0xF7]);
                 }
             } catch (err) {
-                console.warn(`[MIDI Profile] SysEx initialization failed for ${this.name}:`, err);
+                logger.warn(`[MIDI Profile] SysEx initialization failed for ${this.name}:`, err);
             }
         }
         this.clear();
@@ -130,6 +130,7 @@ export class LaunchpadRGB extends DeviceProfile {
      * @param {Uint8Array|number[]} msg
      * @returns {{ x: number, y: number, pressed: boolean }|null}
      */
+    // eslint-disable-next-line complexity -- Known debt (complexity 19): refactor, then remove this waiver.
     parseMessage(msg) {
         const header = DeviceProfile.readStatusBytes(msg);
         if (!header) return null;

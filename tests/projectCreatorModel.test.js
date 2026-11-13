@@ -397,3 +397,19 @@ test('catalog assets are exported as canonical app paths and survive a zip round
     assert.equal(imported.appearance.background, 'assets/videos/Neon Tunnel.webm');
     assert.equal(imported.appearance.skin, 'assets/images/launchpad covers/black_bg_blue_squares_tl.png');
 });
+
+test('draft device check counts RGB-only lights on legacy targets, like the exported project', async () => {
+    const { checkDraftDeviceConsistency } = await import('../js/projectCreatorModel.js');
+    const { checkProjectDeviceConsistency } = await import('../js/projectValidator.js');
+
+    const draft = createDraft('Legacy Target', null, { targetDevice: 'legacy' });
+    getPadSteps(draft.pages[0], 0)[0].light = 'fade_white';   // RGB-only colour
+    getPadSteps(draft.pages[0], 1)[0].light = 'fade_red';     // available on legacy
+    getPadSteps(draft.pages[0], 2).push(createDraftStep({ light: 'fade_white' }));
+
+    assert.deepEqual(checkDraftDeviceConsistency(draft), { rgbLightCount: 2 });
+    assert.deepEqual(checkProjectDeviceConsistency(buildProjectExport(draft).project), { rgbLightCount: 2 });
+
+    draft.targetDevice = 'rgb';
+    assert.deepEqual(checkDraftDeviceConsistency(draft), { rgbLightCount: 0 });
+});

@@ -1,110 +1,62 @@
 /**
- * PROJECT LOADING STATE MANAGER (projectLoadingState.js)
- * 
- * Manages the lifecycle of project loading to prevent race conditions.
- * Ensures that operations dependent on project state (audio, lights, MIDI sync)
- * don't proceed until all project assets are ready.
- * 
- * States:
- * - IDLE: No project loading
- * - LOADING: Project assets being fetched/processed
- * - READY: Project fully loaded and safe to access
- * - ERROR: Project loading failed
+ * PROJECT LOADING STATE (projectLoadingState.js)
+ *
+ * Tracks whether the active project can be played with its lights:
+ *
+ *   IDLE ──begin──> LOADING ──ready──> READY
+ *                      │
+ *                      └──error──> ERROR (or READY again when the previously
+ *                                  loaded project is still the active one)
+ *
+ * Serializing loads and timing them out is the job of the loader (project.js);
+ * this module only records the outcome and lets callers wait for it.
  */
 
-import { PROJECT_LOADING_TIMEOUT_MS } from './constants.js';
-import { debug } from './logger.js';
+import { debug, logger } from './logger.js';
 
-const LOADING_STATES = {
+const LOADING_STATES = Object.freeze({
     IDLE: 'IDLE',
     LOADING: 'LOADING',
     READY: 'READY',
     ERROR: 'ERROR'
-};
+});
 
 let currentLoadingState = LOADING_STATES.IDLE;
-let loadingPromise = Promise.resolve(); // Track current load operation
-let resolveLoadingPromise = null;
-let loadingTimeoutId = null; // Safety timeout to prevent infinite loading state
+
+/** Pending waitForProjectReady() calls, settled on the next outcome. */
+const waiters = new Set();
+
+function settleWaiters(isReady) {
+    waiters.forEach(settle => settle(isReady));
+    waiters.clear();
+}
 
 /**
- * Returns true if a project is fully loaded and ready
+ * @returns {boolean} True if a project is fully loaded and ready.
  */
 export function isProjectReady() {
     return currentLoadingState === LOADING_STATES.READY;
 }
 
 /**
- * Marks project as loading. Returns a promise that resolves when loading complete.
- * This is called at the start of loadProject().
- * 
- * SAFETY: A timeout is automatically started. If the loading operation does not
- * call markProjectReady() or markProjectLoadError() within PROJECT_LOADING_TIMEOUT_MS,
- * the system will automatically transition to ERROR state to prevent deadlocks.
- * 
- * @returns {Promise} Waits for current load to complete before allowing next load
+ * Marks the start of a project load.
  */
-export async function beginLoadingProject() {
-    debug("[ProjectLoading] Project loading started");
-    
-    // Wait for any previous loading to complete to prevent concurrent loads
-    await loadingPromise;
-    
-    // Clear any existing timeout from previous load
-    if (loadingTimeoutId !== null) {
-        clearTimeout(loadingTimeoutId);
-        loadingTimeoutId = null;
-    }
-    
+export function beginLoadingProject() {
+    debug('[ProjectLoading] Project loading started');
     currentLoadingState = LOADING_STATES.LOADING;
-    
-    // Create a new promise for the current loading operation
-    loadingPromise = new Promise(resolve => {
-        resolveLoadingPromise = resolve;
-    });
-    
-    // SAFETY TIMEOUT: Force ERROR state if loading doesn't complete
-    // This prevents the app from getting stuck if project.js crashes mid-load
-    loadingTimeoutId = setTimeout(() => {
-        if (currentLoadingState === LOADING_STATES.LOADING) {
-            console.error("[ProjectLoading] TIMEOUT: Loading did not complete in 60 seconds");
-            // Force error state to unblock the queue
-            markProjectLoadError(new Error("Project loading timeout - operation took too long"));
-        }
-        loadingTimeoutId = null;
-    }, PROJECT_LOADING_TIMEOUT_MS);
-    
-    return Promise.resolve();
 }
 
 /**
- * Marks project as successfully loaded and ready for use
- * Automatically cancels the safety timeout since load completed normally
+ * Marks the project as successfully loaded and ready for use.
  */
 export function markProjectReady() {
-    // Cancel the safety timeout since loading completed successfully
-    if (loadingTimeoutId !== null) {
-        clearTimeout(loadingTimeoutId);
-        loadingTimeoutId = null;
-    }
-    
     currentLoadingState = LOADING_STATES.READY;
-    debug("[ProjectLoading] Project ready");
-    
-    if (resolveLoadingPromise) {
-        resolveLoadingPromise();
-        resolveLoadingPromise = null;
-    }
-    
-    // Dispatch event for other modules to know when project is ready
-    window.dispatchEvent(new CustomEvent('project:ready', {
-        detail: { timestamp: Date.now() }
-    }));
+    debug('[ProjectLoading] Project ready');
+    settleWaiters(true);
 }
 
 /**
- * Marks project loading as failed
- * Automatically cancels the safety timeout since load completed (with error)
+ * Marks project loading as failed.
  *
  * When the previously loaded project is still the active one (loads commit
  * atomically, so a failure never replaces it), pass `previousProjectActive`
@@ -115,53 +67,31 @@ export function markProjectReady() {
  * @param {boolean} [options.previousProjectActive=false] - A previous project is still loaded and usable.
  */
 export function markProjectLoadError(error, { previousProjectActive = false } = {}) {
-    // Cancel the safety timeout since loading completed (even if with error)
-    if (loadingTimeoutId !== null) {
-        clearTimeout(loadingTimeoutId);
-        loadingTimeoutId = null;
-    }
-    
     currentLoadingState = previousProjectActive ? LOADING_STATES.READY : LOADING_STATES.ERROR;
-    console.error("[ProjectLoading] Project loading failed:", error);
-    
-    if (resolveLoadingPromise) {
-        resolveLoadingPromise();
-        resolveLoadingPromise = null;
-    }
-    
-    // Dispatch event for error handling
-    window.dispatchEvent(new CustomEvent('project:error', {
-        detail: { error: error.message, timestamp: Date.now() }
-    }));
+    logger.error('[ProjectLoading] Project loading failed:', error);
+    settleWaiters(previousProjectActive);
 }
 
 /**
- * Waits until the project is ready before proceeding
- * Useful for operations that depend on project data.
- * 
- * Example:
- *   const ready = await waitForProjectReady(timeout);
- *   if (ready) { proceed with using project data }
- * 
- * @param {number} timeout - Maximum time to wait in ms (default: 30s)
- * @returns {Promise<boolean>} True if ready before timeout, false if timeout
+ * Resolves once a project is ready, or with false if loading fails or
+ * `timeout` elapses first. Resolves immediately when already decided.
+ * @param {number} [timeout=30000] - Maximum wait in ms.
+ * @returns {Promise<boolean>} True if a project is ready.
  */
-export async function waitForProjectReady(timeout = 30000) {
-    const startTime = Date.now();
-    
-    while (Date.now() - startTime < timeout) {
-        if (isProjectReady()) {
-            return true;
-        }
-        if (currentLoadingState === LOADING_STATES.ERROR) {
-            console.warn("[ProjectLoading] Project loading error, giving up");
-            return false;
-        }
-        
-        // Wait a bit before checking again
-        await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    
-    console.warn(`[ProjectLoading] Timeout waiting for project after ${timeout}ms`);
-    return false;
+export function waitForProjectReady(timeout = 30000) {
+    if (currentLoadingState === LOADING_STATES.READY) return Promise.resolve(true);
+    if (currentLoadingState === LOADING_STATES.ERROR) return Promise.resolve(false);
+
+    return new Promise(resolve => {
+        const settle = (isReady) => {
+            clearTimeout(timer);
+            waiters.delete(settle);
+            resolve(isReady);
+        };
+        const timer = setTimeout(() => {
+            logger.warn(`[ProjectLoading] Timeout waiting for project after ${timeout}ms`);
+            settle(false);
+        }, timeout);
+        waiters.add(settle);
+    });
 }

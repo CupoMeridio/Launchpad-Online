@@ -21,7 +21,7 @@ import { translate } from './i18n.js';
 import { AUDIO_LOAD_CONCURRENCY } from './constants.js';
 import { mapWithConcurrency } from './concurrency.js';
 import { onVisibilityChange } from './visibilityManager.js';
-import { debug } from './logger.js';
+import { debug, logger } from './logger.js';
 
 /**
  * Checks if the Web Audio API is supported in the current browser.
@@ -72,7 +72,7 @@ class AudioEngine {
         if (!isWebAudioSupported()) {
             const errorMsg = "Web Audio API is not supported in this browser. Please use Chrome, Firefox, Edge, or Safari.";
             this.initError = errorMsg;
-            console.error("[AUDIO]", errorMsg);
+            logger.error("[AUDIO]", errorMsg);
             throw new Error(errorMsg);
         }
 
@@ -103,7 +103,7 @@ class AudioEngine {
         } catch (error) {
             const errorMsg = `[AUDIO] Failed to initialize AudioContext: ${error.message}`;
             this.initError = errorMsg;
-            console.error(errorMsg);
+            logger.error(errorMsg);
             if (this.audioContext) {
                 try {
                     if (typeof this.audioContext.close === 'function') {
@@ -143,7 +143,7 @@ class AudioEngine {
 
         // Ensure audioContext is available
         if (!this.audioContext) {
-            console.warn(`[AUDIO] Cannot load sound: AudioContext not initialized.`);
+            logger.warn(`[AUDIO] Cannot load sound: AudioContext not initialized.`);
             audioLoadingTracker.markFailure(url, AUDIO_ERROR_TYPES.CONTEXT_ERROR, new Error('AudioContext not initialized'));
             return null;
         }
@@ -151,7 +151,7 @@ class AudioEngine {
         audioLoadingTracker.markPending(url);
 
         const handleLoadError = (errorType, errorObj) => {
-            console.error(`[AUDIO] Error (${errorType}) loading sound ${url}:`, errorObj);
+            logger.error(`[AUDIO] Error (${errorType}) loading sound ${url}:`, errorObj);
             audioLoadingTracker.markFailure(url, errorType, errorObj);
             return null;
         };
@@ -232,7 +232,7 @@ class AudioEngine {
 
         if (stats.failed > 0) {
             showNotification(translate('audio.loadFailures', { count: stats.failed }), 'warning');
-            console.warn('[AUDIO] Failed files:', stats.failureDetails);
+            logger.warn('[AUDIO] Failed files:', stats.failureDetails);
         }
 
         return {
@@ -257,21 +257,21 @@ class AudioEngine {
 
             // Ensure AudioContext exists
             if (!this.audioContext) {
-                console.warn(`[AUDIO] Cannot play sound: AudioContext not initialized.`);
+                logger.warn(`[AUDIO] Cannot play sound: AudioContext not initialized.`);
                 return 0;
             }
 
             // Ensure AudioContext is running (browsers suspend it if no user gesture)
             if (this.audioContext.state === 'suspended') {
                 this.audioContext.resume().catch((error) => {
-                    console.warn('[AUDIO] Failed to resume AudioContext:', error);
+                    logger.warn('[AUDIO] Failed to resume AudioContext:', error);
                 });
             }
 
             // Validate the buffer before attempting playback
             const validation = validateAudioBuffer(buffer);
             if (!validation.isValid) {
-                console.warn(`[AUDIO] Invalid audio buffer for key ${key}: ${validation.error}`);
+                logger.warn(`[AUDIO] Invalid audio buffer for key ${key}: ${validation.error}`);
                 return 0;
             }
 
@@ -291,7 +291,7 @@ class AudioEngine {
             try {
                 source = this.audioContext.createBufferSource();
             } catch (error) {
-                console.error('[AUDIO] Failed to create buffer source:', error);
+                logger.error('[AUDIO] Failed to create buffer source:', error);
                 return 0;
             }
 
@@ -307,7 +307,7 @@ class AudioEngine {
                 };
 
                 source.onerror = (error) => {
-                    console.error(`[AUDIO] Playback error for key ${key}:`, error);
+                    logger.error(`[AUDIO] Playback error for key ${key}:`, error);
                     this.activeSources.delete(key);
                 };
 
@@ -315,7 +315,7 @@ class AudioEngine {
                 return source.buffer.duration;
 
             } catch (error) {
-                console.error(`[AUDIO] Error during playback setup for key ${key}:`, error);
+                logger.error(`[AUDIO] Error during playback setup for key ${key}:`, error);
                 this.activeSources.delete(key);
                 try {
                     source.disconnect();
@@ -324,7 +324,7 @@ class AudioEngine {
             }
 
         } catch (error) {
-            console.error('[AUDIO] Unexpected error in playBuffer:', error);
+            logger.error('[AUDIO] Unexpected error in playBuffer:', error);
             return 0;
         }
     }

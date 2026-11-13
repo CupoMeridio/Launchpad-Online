@@ -93,6 +93,7 @@ class FadeSystem {
         state.off = getLpColor('off');
     }
 
+    // eslint-disable-next-line complexity -- Known debt (complexity 25): refactor, then remove this waiver.
     update(now) {
         if (this.activeFades.size === 0) return;
 

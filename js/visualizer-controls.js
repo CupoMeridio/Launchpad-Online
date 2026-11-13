@@ -10,6 +10,7 @@ let visualizerControlsInitialized = false; // Prevent duplicate listener registr
  * Initializes all controls for the visualizer.
  * Only initializes once to prevent duplicate listeners.
  */
+// eslint-disable-next-line complexity -- Known debt (complexity 23): refactor, then remove this waiver.
 export function initializeVisualizerControls() {
     // Prevent multiple initializations
     if (visualizerControlsInitialized) {
@@ -24,9 +25,14 @@ export function initializeVisualizerControls() {
         const initialValue = audioEngine.getAnalyser().smoothingTimeConstant;
         smoothingSlider.value = initialValue;
         smoothingInput.value = initialValue;
-        syncInputSlider('smoothing-slider', 'smoothing-input', (value) => {
-            VisualizerManager.setSmoothing(value);
-        }, 0, 0.95, true);
+        syncInputSlider({
+            sliderId: 'smoothing-slider',
+            inputId: 'smoothing-input',
+            min: 0,
+            max: 0.95,
+            isFloat: true,
+            onChange: (value) => VisualizerManager.setSmoothing(value)
+        });
     }
 
     // Color and gradient controls
@@ -69,9 +75,14 @@ export function initializeVisualizerControls() {
     const alphaSlider = document.getElementById('alpha-slider');
     const alphaInput = document.getElementById('alpha-input');
     if (alphaSlider && alphaInput) {
-        syncInputSlider('alpha-slider', 'alpha-input', (value) => {
-            VisualizerManager.setAlpha(value);
-        }, 0, 1, true);
+        syncInputSlider({
+            sliderId: 'alpha-slider',
+            inputId: 'alpha-input',
+            min: 0,
+            max: 1,
+            isFloat: true,
+            onChange: (value) => VisualizerManager.setAlpha(value)
+        });
         // Set initial transparency
         VisualizerManager.setAlpha(alphaSlider.value);
     }
@@ -106,9 +117,13 @@ export function initializeVisualizerControls() {
 
         registerListener(bassPulseToggle, 'change', applyBassPulse);
 
-        syncInputSlider('bass-threshold-slider', 'bass-threshold-input', (value) => {
-            VisualizerManager.setBassThreshold(value);
-        }, 0, 255, false);
+        syncInputSlider({
+            sliderId: 'bass-threshold-slider',
+            inputId: 'bass-threshold-input',
+            min: 0,
+            max: 255,
+            onChange: (value) => VisualizerManager.setBassThreshold(value)
+        });
 
         // Set initial state
         applyBassPulse();

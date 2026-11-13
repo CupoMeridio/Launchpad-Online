@@ -27,6 +27,7 @@ import {
     getPanelWidthSetting,
     setPanelWidthSetting
 } from './settings.js';
+import { logger } from './logger.js';
 
 /**
  * Shows or hides the sidebar.
@@ -77,6 +78,7 @@ let currentSkinUrl = null;
  * @param {File|Blob|string|null} imageFile - The image file, path, or `null` to remove it.
  * @returns {Promise<void>} A promise that resolves when the background is loaded.
  */
+// eslint-disable-next-line complexity -- Known debt (complexity 17): refactor, then remove this waiver.
 export function setLaunchpadBackground(imageFile) {
     const launchpad = document.getElementById('Launchpad');
     const menu = document.getElementById('personalize-launchpad-menu');
@@ -126,7 +128,7 @@ export function setLaunchpadBackground(imageFile) {
             resolve();
         };
         img.onerror = () => {
-            console.error(`Error loading skin: ${fullUrl}`);
+            logger.error(`Error loading skin: ${fullUrl}`);
             if (launchpad) launchpad.style.backgroundImage = 'none';
             resolve(); // Still resolve to not block loading indefinitely
         };
@@ -177,8 +179,20 @@ export function initializePersonalizeLaunchpadMenu(imageFiles) {
         setSettingValue('scale', parseInt(sizeSlider.value, 10) / 100);
     }
     restoreLaunchpadLayout();
-    syncInputSlider('rotation-slider', 'rotation-input', setLaunchpadRotation, LAUNCHPAD_ROTATION_MIN, LAUNCHPAD_ROTATION_MAX);
-    syncInputSlider('size-slider', 'size-input', setLaunchpadSize, LAUNCHPAD_SIZE_MIN, LAUNCHPAD_SIZE_MAX);
+    syncInputSlider({
+        sliderId: 'rotation-slider',
+        inputId: 'rotation-input',
+        min: LAUNCHPAD_ROTATION_MIN,
+        max: LAUNCHPAD_ROTATION_MAX,
+        onChange: setLaunchpadRotation
+    });
+    syncInputSlider({
+        sliderId: 'size-slider',
+        inputId: 'size-input',
+        min: LAUNCHPAD_SIZE_MIN,
+        max: LAUNCHPAD_SIZE_MAX,
+        onChange: setLaunchpadSize
+    });
 
     const logoInput = document.getElementById('logo-file-input');
     const logoTrigger = document.getElementById('logo-file-trigger');
@@ -818,7 +832,7 @@ export function setTopRightIconFile(fileOrUrl, isExplicitVideo = null) {
             el.playsInline = true;
             el.oncanplay = () => resolve();
             el.onerror = () => {
-                console.error(`Error loading icon video: ${url}`);
+                logger.error(`Error loading icon video: ${url}`);
                 resolve();
             };
         } else {
@@ -826,7 +840,7 @@ export function setTopRightIconFile(fileOrUrl, isExplicitVideo = null) {
             el.alt = 'immagine';
             el.onload = () => resolve();
             el.onerror = () => {
-                console.error(`Error loading icon image: ${url}`);
+                logger.error(`Error loading icon image: ${url}`);
                 resolve();
             };
         }
@@ -860,7 +874,7 @@ export function resetTopRightIcon() {
         img.className = 'square-image';
         img.onload = () => resolve();
         img.onerror = () => {
-            console.error('Error loading default logo');
+            logger.error('Error loading default logo');
             resolve();
         };
         container.innerHTML = '';

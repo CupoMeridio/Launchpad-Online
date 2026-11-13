@@ -4,8 +4,13 @@ import test from 'node:test';
 globalThis.window = { addEventListener() {}, dispatchEvent() {} };
 globalThis.CustomEvent = class { constructor(type, options) { this.type = type; this.detail = options?.detail; } };
 
+const { setLogSink } = await import('../js/logger.js');
 const state = await import('../js/projectState.js');
 const loading = await import('../js/projectLoadingState.js');
+
+// Expected failures below would otherwise print errors.
+setLogSink({ log() {}, warn() {}, error() {} });
+test.after(() => setLogSink(null));
 
 test('projectState commits a project as a single object and resets cleanly', () => {
     state.resetProjectState();

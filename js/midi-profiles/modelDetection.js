@@ -20,6 +20,7 @@
  *   isPro: boolean
  * }}
  */
+// eslint-disable-next-line complexity -- Known debt (complexity 22): refactor, then remove this waiver.
 export function detectModel(portName) {
     const raw = (portName || '').trim();
     const lower = raw.toLowerCase();

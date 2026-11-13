@@ -6,6 +6,7 @@
 
 import { syncInputSlider } from './formControls.js';
 import { CATALOG_VIDEOS_PATH, toCatalogName } from './constants.js';
+import { logger } from './logger.js';
 
 let currentBackgroundEl = null;
 
@@ -105,7 +106,7 @@ export function setBackgroundMedia(mediaFile) {
             mediaEl = document.createElement('img');
             mediaEl.onload = () => resolve();
             mediaEl.onerror = () => {
-                console.error(`Error loading background image: ${mediaSrc}`);
+                logger.error(`Error loading background image: ${mediaSrc}`);
                 resolve();
             };
         } else {
@@ -115,7 +116,7 @@ export function setBackgroundMedia(mediaFile) {
             mediaEl.muted = true;
             mediaEl.oncanplaythrough = () => resolve();
             mediaEl.onerror = () => {
-                console.error(`Error loading background video: ${mediaSrc}`);
+                logger.error(`Error loading background video: ${mediaSrc}`);
                 resolve();
             };
         }
@@ -185,9 +186,9 @@ export function initializeBackgroundControls() {
     if (opacitySlider && blurSlider && brightnessSlider) {
         resetMediaControls();
 
-        syncInputSlider('opacity-slider', 'opacity-input', applyVideoEffects, 0, 100, false);
-        syncInputSlider('blur-slider', 'blur-input', applyVideoEffects, 0, 100, false);
-        syncInputSlider('brightness-slider', 'brightness-input', applyVideoEffects, 0, 200, false);
+        syncInputSlider({ sliderId: 'opacity-slider', inputId: 'opacity-input', min: 0, max: 100, onChange: applyVideoEffects });
+        syncInputSlider({ sliderId: 'blur-slider', inputId: 'blur-input', min: 0, max: 100, onChange: applyVideoEffects });
+        syncInputSlider({ sliderId: 'brightness-slider', inputId: 'brightness-input', min: 0, max: 200, onChange: applyVideoEffects });
     }
 
     const fileInput = document.getElementById('background-file-input');

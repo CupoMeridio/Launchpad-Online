@@ -6,7 +6,7 @@ import { setPhysicalColor, getLpColor, flushPhysicalColors } from './physicalInt
 import { getPadElement, updatePageButtonHighlight, updateModeButtonHighlight } from './webInterface.js';
 import { registerListener } from './eventCleanup.js';
 import { isProjectReady } from './projectLoadingState.js';
-import { debug } from './logger.js';
+import { debug, logger } from './logger.js';
 import { createPadStep } from './projectModel.js';
 import { 
     LAUNCHPAD_COLS, 
@@ -295,7 +295,7 @@ export function changeSoundSet(index, updateVisuals = true) {
     }
 
     if (!isProjectReady()) {
-        console.warn('[Interaction] Cannot change sound set: Project not ready');
+        logger.warn('[Interaction] Cannot change sound set: Project not ready');
         return;
     }
 
@@ -362,7 +362,7 @@ export function syncPerformanceModeButtons(modeIndex = getCurrentMode()) {
 export function changeMode(index, updateVisuals = true) {
     // Only allow official modes (4-7)
     if (index < FIRST_MODE_INDEX || index >= FIRST_MODE_INDEX + TOTAL_MODES) {
-        console.warn(`[Interaction] Mode index ${index} is not an official mode (4-7). Ignoring.`);
+        logger.warn(`[Interaction] Mode index ${index} is not an official mode (4-7). Ignoring.`);
         return;
     }
 

@@ -5,7 +5,7 @@
  * Supports batching, immediate color sends, and palette lookups across Legacy and RGB hardware.
  */
 
-import { debug } from './logger.js';
+import { debug, logger } from './logger.js';
 
 let activeProfile = null;
 const colorCache = new Map();
@@ -75,7 +75,7 @@ export function flushPhysicalColors() {
         try {
             activeProfile.midiOut.send(new Uint8Array(batch));
         } catch (e) {
-            console.warn("[PHYSICAL] Failed to send MIDI batch:", e);
+            logger.warn("[PHYSICAL] Failed to send MIDI batch:", e);
         }
 
         pendingUpdates.clear();

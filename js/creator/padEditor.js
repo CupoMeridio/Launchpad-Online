@@ -16,9 +16,8 @@ import { getTranslation, translate } from '../i18n.js';
 import { animations } from '../lights.js';
 import { showNotification } from '../notifications.js';
 import { getActiveDeviceProfile } from '../physicalInterface.js';
-import { getPadSteps } from '../projectCreatorModel.js';
+import { checkDraftDeviceConsistency, getPadSteps } from '../projectCreatorModel.js';
 import { creatorSession } from '../projectCreatorState.js';
-import { checkProjectDeviceConsistency } from '../projectValidator.js';
 import { getPadElement } from '../webInterface.js';
 import { listen } from './dom.js';
 import {
@@ -104,7 +103,7 @@ export function updateTargetDeviceWarnings() {
     const draft = creatorSession.getDraft();
     if (!warningEl || !draft) return;
     const messages = [];
-    const { rgbLightCount } = checkProjectDeviceConsistency(draft);
+    const { rgbLightCount } = checkDraftDeviceConsistency(draft);
     if (rgbLightCount > 0) {
         messages.push(translate('creator.warning.legacyWithRgb', { count: rgbLightCount }));
     }

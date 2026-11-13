@@ -87,6 +87,7 @@ createAnimationLibrary();
  * @param {number} y - The Y coordinate (0-7).
  * @param {number} duration - Total duration in seconds.
  */
+// eslint-disable-next-line complexity -- Known debt (complexity 16): refactor, then remove this waiver.
 export function triggerAnimation(name, x, y, duration) {
     // Check for dynamic scroll animations (e.g., scroll_HELLO_green or scroll_up_HELLO_green)
     if (name.startsWith('scroll_')) {

@@ -8,7 +8,7 @@ import {
     normalizeTargetDevice,
     isAppAssetPath
 } from './constants.js';
-import { validateProject } from './projectValidator.js';
+import { validateProject, countRgbOnlyLights } from './projectValidator.js';
 import { normalizeAppearance, normalizeVisualizer, createDefaultAppearance, isFileAsset } from './appearanceModel.js';
 import { createPadStep, readPagePads, writePagePads } from './projectModel.js';
 
@@ -245,6 +245,18 @@ export async function assignSampleGuarded({ targetDraft, page, padIndex, stepInd
     const result = await assignPadStepSample(page, padIndex, stepIndex, file, decoder);
     if (getActiveDraft() !== targetDraft) return 'stale';
     return result;
+}
+
+/**
+ * Counts RGB-only lights in a draft that targets legacy hardware (see
+ * checkProjectDeviceConsistency for the project-file equivalent).
+ * @param {object|null} draft
+ * @returns {{ rgbLightCount: number }}
+ */
+export function checkDraftDeviceConsistency(draft) {
+    if (!draft || normalizeTargetDevice(draft.targetDevice) !== 'legacy') return { rgbLightCount: 0 };
+    const lightNames = draft.pages.flatMap(page => (page.padSteps || []).flat().map(step => step.light));
+    return { rgbLightCount: countRgbOnlyLights(lightNames) };
 }
 
 export function createProjectId(name) {

@@ -15,6 +15,7 @@ const RAIN_VECTORS = {
     rain_right: [1, 0]
 };
 
+// eslint-disable-next-line max-params -- Known debt (max-params 6): refactor, then remove this waiver.
 export function buildRainEvents(x, y, dx, dy, stepDelay, fadeDuration) {
     const events = [];
     for (let step = 0; step < 8; step++) {

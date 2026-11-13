@@ -24,7 +24,7 @@ import { initLaunchpadView } from './launchpadView.js';
 import { loadStaticCatalog } from './staticCatalog.js';
 import { loadProjectCreator } from './creatorLoader.js';
 import { DEFAULT_MODE_INDEX } from './constants.js';
-import { debug } from './logger.js';
+import { debug, logger } from './logger.js';
 import { isDebugSettingEnabled } from './settings.js';
 
 // Initialize visibility manager early to catch all visibility changes
@@ -50,7 +50,7 @@ function initCoreUi() {
             const creator = await loadProjectCreator();
             creator.openCreator();
         } catch (error) {
-            console.error('[App] Failed to load Studio Creator module:', error);
+            logger.error('[App] Failed to load Studio Creator module:', error);
             showNotification(getTranslation('creator.loadError'), 'error');
         }
     });
@@ -75,7 +75,7 @@ async function initCatalogMenus() {
         initializeModeMenu(changeMode);
         return catalog;
     } catch (error) {
-        console.error('[App] Unable to load static data for menus:', error);
+        logger.error('[App] Unable to load static data for menus:', error);
         return null;
     }
 }
@@ -101,7 +101,7 @@ async function initAudioEngine() {
         await audioEngine.init();
         return true;
     } catch (error) {
-        console.error('[App] Audio initialization failed:', audioEngine.getInitError() || error);
+        logger.error('[App] Audio initialization failed:', audioEngine.getInitError() || error);
         showNotification(getTranslation('audio.initError'), 'error');
         return false;
     }
@@ -121,7 +121,7 @@ function initVisualizer() {
         setVisualizer(visualizer);
         initializeVisualizerControls();
     } catch (error) {
-        console.error('[App] Unable to initialize visualizer:', error);
+        logger.error('[App] Unable to initialize visualizer:', error);
     }
 }
 
@@ -130,7 +130,7 @@ function initVisualizer() {
  * @param {Promise<object|null>} catalogPromise
  */
 async function loadInitialProjectAndMidi(catalogPromise) {
-    const midiPromise = initMidi().catch(error => console.error('[App] MIDI initialization failed:', error));
+    const midiPromise = initMidi().catch(error => logger.error('[App] MIDI initialization failed:', error));
     const catalog = await catalogPromise;
     const firstProject = catalog?.projects?.[0];
 
@@ -200,7 +200,7 @@ function registerServiceWorker() {
     const register = () => {
         navigator.serviceWorker.register(swUrl)
             .then(registration => debug('Service Worker registered: ', registration))
-            .catch(error => console.error('[App] Service Worker registration failed: ', error));
+            .catch(error => logger.error('[App] Service Worker registration failed: ', error));
     };
 
     if (document.readyState === 'complete') {

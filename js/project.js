@@ -5,7 +5,7 @@
  */
 
 import { audioEngine } from './audio.js';
-import { getTranslation } from './i18n.js';
+import { getTranslation, translate } from './i18n.js';
 import { showNotification } from './notifications.js';
 import { createDefaultAppearance } from './appearanceModel.js';
 import {
@@ -26,37 +26,105 @@ import {
     markProjectLoadError
 } from './projectLoadingState.js';
 import { normalizeProjectData, collectSoundUrls, assignStepBuffers } from './projectModel.js';
-import { debug } from './logger.js';
+import { debug, logger } from './logger.js';
+import { PROJECT_LOADING_TIMEOUT_MS } from './constants.js';
 
 let activeProjectLoad = null;
 let selectedProjectButton = null;
+// Incremented by every load; a load whose id is no longer current was
+// abandoned (timed out) and must not touch the UI anymore.
+let loadSequence = 0;
+
+/**
+ * A project load failure, classified so the user gets a translated message
+ * (`project.error.<kind>`) instead of a raw technical one.
+ */
+export class ProjectLoadError extends Error {
+    /**
+     * @param {'offline'|'http'|'json'|'validation'|'timeout'|'unknown'} kind
+     * @param {string} message - Technical message (for logs).
+     * @param {object} [options]
+     * @param {string} [options.details] - User-facing details (e.g. validation summary).
+     * @param {*} [options.cause]
+     */
+    constructor(kind, message, { details = '', cause } = {}) {
+        super(message, { cause });
+        this.name = 'ProjectLoadError';
+        this.kind = kind;
+        this.details = details;
+    }
+}
+
+/**
+ * Translated, user-facing description of a load failure.
+ * @param {Error} error
+ * @returns {string}
+ */
+export function describeProjectLoadError(error) {
+    if (!(error instanceof ProjectLoadError)) {
+        return translate('project.error.unknown', { details: error?.message || '' });
+    }
+    if (error.kind === 'offline') return getTranslation('error.offline');
+    return translate(`project.error.${error.kind}`, { details: error.details });
+}
+
+/**
+ * Rejects with a 'timeout' ProjectLoadError if `promise` does not settle in time.
+ * @template T
+ * @param {Promise<T>} promise
+ * @param {number} timeoutMs
+ * @returns {Promise<T>}
+ */
+function withLoadTimeout(promise, timeoutMs) {
+    let timer;
+    const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new ProjectLoadError('timeout', `Project loading timed out after ${timeoutMs}ms`)), timeoutMs);
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+async function isOfflineResponse(response) {
+    if (response.status !== 503) return false;
+    try {
+        return (await response.json())?.error === 'offline';
+    } catch (_) {
+        return false;
+    }
+}
 
 /**
  * Fetches and validates a project JSON configuration from a remote or local URL.
  * @param {string} configPath - URL or path to the project JSON.
  * @returns {Promise<object>} Parsed and validated project object.
+ * @throws {ProjectLoadError}
  */
 async function fetchAndValidateProject(configPath) {
-    const response = await fetch(configPath);
+    let response;
+    try {
+        response = await fetch(configPath);
+    } catch (error) {
+        throw new ProjectLoadError('http', `Network error loading ${configPath}`, { cause: error });
+    }
     if (!response.ok) {
-        if (response.status === 503) {
-            let errData = null;
-            try { errData = await response.json(); } catch (_) { /* ignore */ }
-            if (errData?.error === 'offline') {
-                const offlineMessage = getTranslation('error.offline');
-                showNotification(offlineMessage, 'warning', 5000);
-                throw new Error(offlineMessage);
-            }
+        if (await isOfflineResponse(response)) {
+            throw new ProjectLoadError('offline', `Offline: ${configPath}`);
         }
-        throw new Error(`HTTP Error: ${response.status} - Failed to load project`);
+        throw new ProjectLoadError('http', `HTTP ${response.status} loading ${configPath}`);
     }
 
-    const project = await response.json();
+    let project;
+    try {
+        project = await response.json();
+    } catch (error) {
+        throw new ProjectLoadError('json', `Invalid JSON in ${configPath}`, { cause: error });
+    }
+
     const validation = validateProject(project);
     if (!validation.isValid) {
-        const errorSummary = getErrorSummary(validation.errors);
-        console.error('[Project] Validation failed:', validation.errors);
-        throw new Error(`Project validation failed:\n${errorSummary}`);
+        logger.error('[Project] Validation failed:', validation.errors);
+        throw new ProjectLoadError('validation', `Invalid project ${configPath}`, {
+            details: getErrorSummary(validation.errors)
+        });
     }
 
     project.configPath = configPath;
@@ -72,7 +140,7 @@ async function fetchAndValidateProject(configPath) {
  * @param {HTMLElement} [progressText] - Optional DOM text element for status.
  * @returns {Promise<void>}
  */
-async function loadProjectAssets(runtimeProject, onProgress = null, progressText = null) {
+async function loadProjectAssets(runtimeProject, onProgress = null, progressText = null, isCurrentLoad = () => true) {
     const { appearance } = runtimeProject;
     const soundUrls = collectSoundUrls(runtimeProject);
     let audioLoaded = 0;
@@ -90,8 +158,7 @@ async function loadProjectAssets(runtimeProject, onProgress = null, progressText
         const totalLoaded = audioLoaded + skinLoaded + iconLoaded + videoLoaded;
         const percentage = Math.min(Math.round((totalLoaded / totalAssets) * 100), 100);
         if (progressText) {
-            const loadingText = getTranslation('overlay.loading').replace('{progress}', percentage);
-            progressText.textContent = loadingText;
+            progressText.textContent = translate('overlay.loading', { progress: percentage });
         }
         if (onProgress) onProgress(percentage);
     };
@@ -105,8 +172,8 @@ async function loadProjectAssets(runtimeProject, onProgress = null, progressText
     }).then(({ buffersByUrl }) => {
         assignStepBuffers(runtimeProject, buffersByUrl);
     }).catch((error) => {
-        console.error('[Project] Audio loading error:', error);
-        showNotification('Failed to load all project audio files. Some pads may be silent.', 'warning');
+        logger.error('[Project] Audio loading error:', error);
+        showNotification(getTranslation('project.error.audio'), 'warning');
     });
     loadingPromises.push(audioPromise);
 
@@ -138,6 +205,7 @@ async function loadProjectAssets(runtimeProject, onProgress = null, progressText
     }
 
     await Promise.all(loadingPromises);
+    if (!isCurrentLoad()) return;
     updateOverallProgress();
 
     applyVisualizer(appearance.visualizer);
@@ -184,59 +252,58 @@ export function loadProject(configPath, button, onProgress = null) {
     return activeProjectLoad;
 }
 
+/**
+ * Fetches, validates, normalizes and loads the assets of a project, without
+ * making it active.
+ * @returns {Promise<import('./projectModel.js').RuntimeProject>}
+ */
+async function prepareProject(configPath, onProgress, progressText, isCurrentLoad) {
+    const project = await fetchAndValidateProject(configPath);
+    const runtimeProject = normalizeProjectData(project, configPath);
+    // The active project keeps playing while the new one loads.
+    await loadProjectAssets(runtimeProject, onProgress, progressText, isCurrentLoad);
+    return runtimeProject;
+}
+
+function showLoadingOverlay(overlay, progressText) {
+    if (!overlay) return;
+    overlay.classList.remove('hidden');
+    if (progressText) {
+        progressText.textContent = translate('overlay.loading', { progress: 0 });
+    }
+}
+
 async function loadProjectInternal(configPath, button, onProgress = null) {
-    await beginLoadingProject();
+    const loadId = ++loadSequence;
+    const isCurrentLoad = () => loadId === loadSequence;
+    beginLoadingProject();
 
     const overlay = document.getElementById('audio-unlock-overlay');
     const progressText = overlay ? overlay.querySelector('p') : null;
 
     try {
         stopAnimationLoop();
+        showLoadingOverlay(overlay, progressText);
 
-        if (overlay) {
-            overlay.classList.remove('hidden');
-            if (progressText) {
-                const loadingText = getTranslation('overlay.loading').replace('{progress}', '0');
-                progressText.textContent = loadingText;
-            }
-        }
+        const runtimeProject = await withLoadTimeout(
+            prepareProject(configPath, onProgress, progressText, isCurrentLoad),
+            PROJECT_LOADING_TIMEOUT_MS
+        );
 
-        // 1. Fetch & Validate
-        const project = await fetchAndValidateProject(configPath);
-
-        // 2. Normalize into the runtime shape
-        const runtimeProject = normalizeProjectData(project, configPath);
-
-        // 3. Load Assets into the new project (the active one keeps playing meanwhile)
-        await loadProjectAssets(runtimeProject, onProgress, progressText);
-
-        // 4. Commit: a single assignment swaps sounds, lights and timing together.
+        // Commit: a single assignment swaps sounds, lights and timing together.
         commitProject(runtimeProject);
         selectProjectButton(button);
 
-        debug(`Project "${project.name}" loaded.`);
+        debug(`Project "${runtimeProject.project.name}" loaded.`);
         markProjectReady();
         resetPadStepCounters();
         changeSoundSet(0);
     } catch (error) {
-        console.error('[Project] Failed to load project:', error);
-        // The commit never happened, so the previous project (if any) is intact:
+        // Nothing was committed, so the previous project (if any) is intact:
         // put its visuals back, since assets of the failed one may have been applied.
         const previousProjectActive = restoreProjectAppearance();
         markProjectLoadError(error, { previousProjectActive });
-
-        let userMessage;
-        if (error.message.includes('validation failed')) {
-            userMessage = `Project configuration error: ${error.message}`;
-        } else if (error.message.includes('HTTP Error')) {
-            userMessage = 'Could not load project file. Check the file path and try again.';
-        } else if (error.message.includes('JSON')) {
-            userMessage = 'Project file is not valid JSON. Check the file format.';
-        } else {
-            userMessage = `Failed to load project: ${error.message}`;
-        }
-
-        showNotification(userMessage, 'error');
+        showNotification(describeProjectLoadError(error), 'error');
     } finally {
         if (overlay) {
             overlay.classList.add('hidden');

@@ -6,7 +6,7 @@
  */
 
 import { invalidatePadCache, setWebModel } from './webInterface.js';
-import { debug } from './logger.js';
+import { debug, logger } from './logger.js';
 import { getModelPreferenceSetting, setModelPreferenceSetting } from './settings.js';
 
 export const LAUNCHPAD_MODELS = {
@@ -219,6 +219,7 @@ export function buildProHtml({ isMk3 = false } = {}) {
  * Accurately models the physical hardware.
  * @returns {string}
  */
+// eslint-disable-next-line complexity -- Known debt (complexity 16): refactor, then remove this waiver.
 export function buildProMk3Html() {
     let html = `
       <!-- Row 1: Top-left Shift corner + 8 top buttons + top-right logo -->
@@ -300,7 +301,7 @@ export function getEffectiveModel() {
  */
 export function setModelPreference(preference) {
     if (!Object.values(LAUNCHPAD_MODELS).includes(preference)) {
-        console.warn(`[LaunchpadView] Unknown model preference: ${preference}`);
+        logger.warn(`[LaunchpadView] Unknown model preference: ${preference}`);
         return;
     }
     currentPreference = preference;

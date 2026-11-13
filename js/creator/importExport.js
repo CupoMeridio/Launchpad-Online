@@ -13,6 +13,7 @@ import { assignPadStepSample, getPadSteps } from '../projectCreatorModel.js';
 import { creatorSession } from '../projectCreatorState.js';
 import { exportProjectToZip, importProjectFromZip } from '../projectZip.js';
 import { listen } from './dom.js';
+import { logger } from '../logger.js';
 
 export async function exportProject() {
     const exportButton = document.getElementById('creator-export');
@@ -46,7 +47,7 @@ export async function exportProject() {
         showNotification(getTranslation('creator.exportSuccess'), 'success', 5000);
         return true;
     } catch (error) {
-        console.error('[Creator] Export error:', error);
+        logger.error('[Creator] Export error:', error);
         showNotification(translate('creator.errorExport', { error: error.message }), 'error', 6000);
         return false;
     } finally {
@@ -110,7 +111,7 @@ async function handleProjectZipFile(file) {
         reportImportResult(draft, missingAssets);
     } catch (error) {
         if (!isCurrent()) return;
-        console.error('[Creator] Import error:', error);
+        logger.error('[Creator] Import error:', error);
         showNotification(translate('creator.errorImport', { error: error.message }), 'error', 6000);
     }
 }

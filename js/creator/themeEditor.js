@@ -243,11 +243,18 @@ export function initThemeEditorListeners() {
     bindVisualizerInput('creator-viz-color2', 'input', 'color2');
     bindVisualizerInput('creator-viz-direction', 'change', 'gradientDirection');
 
-    syncInputSlider('creator-rotation-slider', 'creator-rotation-input', (rotation) => {
-        creatorSession.setLayout({ rotation });
-    }, LAUNCHPAD_ROTATION_MIN, LAUNCHPAD_ROTATION_MAX);
-
-    syncInputSlider('creator-size-slider', 'creator-size-input', (size) => {
-        creatorSession.setLayout({ size });
-    }, LAUNCHPAD_SIZE_MIN, LAUNCHPAD_SIZE_MAX);
+    syncInputSlider({
+        sliderId: 'creator-rotation-slider',
+        inputId: 'creator-rotation-input',
+        min: LAUNCHPAD_ROTATION_MIN,
+        max: LAUNCHPAD_ROTATION_MAX,
+        onChange: (rotation) => creatorSession.setLayout({ rotation })
+    });
+    syncInputSlider({
+        sliderId: 'creator-size-slider',
+        inputId: 'creator-size-input',
+        min: LAUNCHPAD_SIZE_MIN,
+        max: LAUNCHPAD_SIZE_MAX,
+        onChange: (size) => creatorSession.setLayout({ size })
+    });
 }

@@ -8,6 +8,7 @@
  */
 
 import { getLanguageSetting, setLanguageSetting } from './settings.js';
+import { logger } from './logger.js';
 
 const FALLBACK_LANGUAGE = 'it';
 
@@ -20,7 +21,7 @@ async function loadTranslations(lang) {
         translations = await response.json();
         applyTranslations();
     } catch (error) {
-        console.error("Translation error:", error);
+        logger.error("Translation error:", error);
         // Fallback to Italian if not already Italian
         if (lang !== FALLBACK_LANGUAGE) {
             await loadTranslations(FALLBACK_LANGUAGE);

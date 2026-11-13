@@ -23,6 +23,7 @@ export function buildSquareExpansionEvents(x, y, stepDelay, fadeDuration, revers
             for (let dy = -dist; dy <= dist; dy++) {
                 if (Math.abs(dx) === dist || Math.abs(dy) === dist) {
                     const tx = x + dx, ty = y + dy;
+                    // eslint-disable-next-line max-depth -- Known debt (max-depth 5): refactor, then remove this waiver.
                     if (tx >= 0 && tx < 8 && ty >= 0 && ty < 8) {
                         events.push({ p: [tx, ty], time, dur: fadeDuration });
                     }

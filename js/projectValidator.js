@@ -1,17 +1,19 @@
 /**
  * PROJECT SCHEMA VALIDATOR (projectValidator.js)
- * 
- * Validates project JSON data against a strict schema to ensure
- * data integrity and prevent crashes from malformed project files.
- * 
- * Uses a defensive programming approach to catch and report validation errors.
+ *
+ * Validates project JSON data before it is used, so malformed files are
+ * reported instead of crashing the player or the Studio.
+ *
+ * The schema is declarative: each optional field maps to a rule, a function
+ * returning an error message (or null). Rules only run on fields that are
+ * present (not undefined/null); required fields are checked explicitly.
  */
 
-import { 
-    LAUNCHPAD_PADS, 
-    MAX_PROJECT_PAGES, 
+import {
+    LAUNCHPAD_PADS,
+    MAX_PROJECT_PAGES,
     MAX_PAD_STEPS,
-    MIN_LIGHT_DURATION_SEC, 
+    MIN_LIGHT_DURATION_SEC,
     MAX_LIGHT_DURATION_SEC,
     LAUNCHPAD_ROTATION_MIN,
     LAUNCHPAD_ROTATION_MAX,
@@ -27,259 +29,220 @@ import {
 
 const HEX_COLOR_PATTERN = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 
-/**
- * Validates a visualizer color value (hex notation).
- * @param {string} value
- * @returns {boolean}
- */
-function isValidColor(value) {
-    return HEX_COLOR_PATTERN.test(value);
-}
+// ----------------------------------------------------------------------------
+// Rules: (value) => error message | null
+// ----------------------------------------------------------------------------
+
+/** @typedef {function(*): (string|null)} Rule */
+
+const isPresent = value => value !== undefined && value !== null;
+const isPlainObject = value => typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/** @returns {Rule} */
+const ofType = (type) => value => (typeof value === type ? null : `must be a ${type} or null if provided`);
+
+/** @returns {Rule} */
+const oneOf = (allowed, suffix = '') => value => (
+    allowed.includes(value) ? null : `must be one of: ${allowed.join(', ')}${suffix}`
+);
+
+/** @type {Rule} */
+const hexColor = value => (HEX_COLOR_PATTERN.test(value) ? null : 'must be a hex color (e.g. #00aaff)');
+
+/** @returns {Rule} */
+const numberBetween = (min, max) => value => (
+    typeof value === 'number' && !Number.isNaN(value) && value >= min && value <= max
+        ? null
+        : `must be a number between ${min} and ${max} if provided`
+);
+
+/** @type {Rule} */
+const plainObject = value => (isPlainObject(value) ? null : 'must be an object if provided');
 
 /**
- * Validates the enumerable/juridical values of a visualizer configuration,
- * shared by the flat legacy fields and the nested `visualizer` object.
- * @param {object} viz - Object exposing optional mode/color1/color2/gradientDirection.
- * @param {string} label - Human-readable label for error messages.
- * @param {string[]} errors - Accumulator for error messages.
+ * Applies rules in order and reports the first failure.
+ * @param {...Rule} rules
+ * @returns {Rule}
  */
-function validateVisualizerValues(viz, label, errors) {
-    if (viz.mode !== undefined && viz.mode !== null) {
-        if (typeof viz.mode !== 'string' || !VISUALIZER_MODES.includes(viz.mode)) {
-            errors.push(`${label} field "mode" must be one of: ${VISUALIZER_MODES.join(', ')}`);
-        }
+const all = (...rules) => value => {
+    for (const rule of rules) {
+        const message = rule(value);
+        if (message) return message;
     }
+    return null;
+};
 
-    ['color1', 'color2'].forEach(field => {
-        const value = viz[field];
-        if (value !== undefined && value !== null) {
-            if (typeof value !== 'string' || !isValidColor(value)) {
-                errors.push(`${label} field "${field}" must be a hex color (e.g. #00aaff)`);
-            }
-        }
+// ----------------------------------------------------------------------------
+// Schema
+// ----------------------------------------------------------------------------
+
+const REQUIRED_STRING_FIELDS = ['name', 'id'];
+
+/** Optional top-level project fields. */
+const PROJECT_FIELDS = {
+    coverImage: ofType('string'),
+    iconImage: ofType('string'),
+    backgroundMedia: ofType('string'),
+    visualizer: plainObject,
+    launchpadRotation: numberBetween(LAUNCHPAD_ROTATION_MIN, LAUNCHPAD_ROTATION_MAX),
+    launchpadSize: numberBetween(LAUNCHPAD_SIZE_MIN, LAUNCHPAD_SIZE_MAX),
+    targetDevice: oneOf(TARGET_DEVICES, ' if provided')
+};
+
+/** Optional fields of the nested `visualizer` object. */
+const VISUALIZER_FIELDS = {
+    mode: all(ofType('string'), oneOf(VISUALIZER_MODES)),
+    color1: all(ofType('string'), hexColor),
+    color2: all(ofType('string'), hexColor),
+    gradient: ofType('boolean'),
+    gradientDirection: all(ofType('string'), oneOf(VISUALIZER_GRADIENT_DIRECTIONS))
+};
+
+/** Step rules for strings that may be empty (no sample / no light). */
+const optionalStringStep = step => (
+    step === null || step === undefined || typeof step === 'string'
+        ? null
+        : `must be a string or empty, got ${typeof step}`
+);
+
+/**
+ * Per-pad page fields: each is an array of 64 step lists.
+ * `required` fields abort page validation when missing.
+ */
+const PAGE_STEP_FIELDS = [
+    { fieldName: 'sounds', entryLabel: 'Sound', required: true, stepRule: optionalStringStep },
+    { fieldName: 'lights', entryLabel: 'Light', stepRule: optionalStringStep },
+    {
+        fieldName: 'lightSyncToSound',
+        entryLabel: 'Light sync',
+        stepRule: step => (typeof step === 'boolean' ? null : 'must be a boolean')
+    },
+    {
+        fieldName: 'lightDurations',
+        entryLabel: 'Light duration',
+        stepRule: step => (
+            typeof step === 'number' && Number.isFinite(step) && step >= MIN_LIGHT_DURATION_SEC && step <= MAX_LIGHT_DURATION_SEC
+                ? null
+                : `must be between ${MIN_LIGHT_DURATION_SEC} and ${MAX_LIGHT_DURATION_SEC} seconds`
+        )
+    }
+];
+
+// ----------------------------------------------------------------------------
+// Validation
+// ----------------------------------------------------------------------------
+
+/**
+ * Applies a field schema to the present fields of `object`.
+ * @param {object} object
+ * @param {Record<string, Rule>} schema
+ * @param {string} label - Prefix for error messages (e.g. "Project").
+ * @param {string[]} errors - Accumulator.
+ */
+function validateFields(object, schema, label, errors) {
+    Object.entries(schema).forEach(([field, rule]) => {
+        if (!isPresent(object[field])) return;
+        const message = rule(object[field]);
+        if (message) errors.push(`${label} field "${field}" ${message}`);
     });
-
-    if (viz.gradientDirection !== undefined && viz.gradientDirection !== null) {
-        if (typeof viz.gradientDirection !== 'string' || !VISUALIZER_GRADIENT_DIRECTIONS.includes(viz.gradientDirection)) {
-            errors.push(`${label} field "gradientDirection" must be one of: ${VISUALIZER_GRADIENT_DIRECTIONS.join(', ')}`);
-        }
-    }
 }
 
 /**
  * Validates a project configuration object.
  * @param {object} project - The project object to validate
- * @returns {object} { isValid: boolean, errors: string[] }
+ * @returns {{isValid: boolean, errors: string[]}}
  */
 export function validateProject(project) {
     const errors = [];
 
-    // 1. Check if project exists and is an object
-    if (!project || typeof project !== 'object') {
-        errors.push('Project must be an object');
-        return { isValid: false, errors };
+    if (!isPlainObject(project)) {
+        return { isValid: false, errors: ['Project must be an object'] };
     }
 
-    // 2. Check required fields
-    if (!project.name || typeof project.name !== 'string') {
-        errors.push('Project must have a valid "name" field (string)');
-    }
+    REQUIRED_STRING_FIELDS.forEach(field => {
+        if (!project[field] || typeof project[field] !== 'string') {
+            errors.push(`Project must have a valid "${field}" field (string)`);
+        }
+    });
 
-    if (!project.id || typeof project.id !== 'string') {
-        errors.push('Project must have a valid "id" field (string)');
-    }
-
-    // 3. Check pages array
     if (!Array.isArray(project.pages)) {
         errors.push('Project must have a "pages" array');
         return { isValid: false, errors };
     }
-
     if (project.pages.length === 0) {
         errors.push('Project must have at least one page');
     }
-
     if (project.pages.length > MAX_PROJECT_PAGES) {
         errors.push(`Project has ${project.pages.length} pages, but maximum is ${MAX_PROJECT_PAGES}`);
     }
+    project.pages.forEach((page, pageIndex) => errors.push(...validatePage(page, pageIndex)));
 
-    // 4. Validate each page
-    project.pages.forEach((page, pageIndex) => {
-        const pageErrors = validatePage(page, pageIndex);
-        errors.push(...pageErrors);
-    });
-
-    // 5. Check optional fields (must be strings, booleans, or objects as appropriate)
-    const optionalStringFields = [
-        'coverImage', 
-        'iconImage', 
-        'backgroundMedia'
-    ];
-    optionalStringFields.forEach(field => {
-        if (project[field] !== undefined && project[field] !== null && typeof project[field] !== 'string') {
-            errors.push(`Project field "${field}" must be a string or null if provided`);
-        }
-    });
-
-    if (project.visualizer !== undefined && project.visualizer !== null) {
-        if (typeof project.visualizer !== 'object' || Array.isArray(project.visualizer)) {
-            errors.push('Project field "visualizer" must be an object if provided');
-        } else {
-            const viz = project.visualizer;
-            const vizStringFields = ['mode', 'color1', 'color2', 'gradientDirection'];
-            vizStringFields.forEach(field => {
-                if (viz[field] !== undefined && viz[field] !== null && typeof viz[field] !== 'string') {
-                    errors.push(`Visualizer field "${field}" must be a string or null if provided`);
-                }
-            });
-            if (viz.gradient !== undefined && viz.gradient !== null && typeof viz.gradient !== 'boolean') {
-                errors.push('Visualizer field "gradient" must be a boolean or null if provided');
-            }
-            validateVisualizerValues(viz, 'Visualizer', errors);
-        }
+    validateFields(project, PROJECT_FIELDS, 'Project', errors);
+    if (isPlainObject(project.visualizer)) {
+        validateFields(project.visualizer, VISUALIZER_FIELDS, 'Visualizer', errors);
     }
 
-    if (project.launchpadRotation !== undefined && project.launchpadRotation !== null) {
-        if (typeof project.launchpadRotation !== 'number' || Number.isNaN(project.launchpadRotation) || 
-            project.launchpadRotation < LAUNCHPAD_ROTATION_MIN || project.launchpadRotation > LAUNCHPAD_ROTATION_MAX) {
-            errors.push(`Project field "launchpadRotation" must be a number between ${LAUNCHPAD_ROTATION_MIN} and ${LAUNCHPAD_ROTATION_MAX} if provided`);
-        }
-    }
-
-    if (project.launchpadSize !== undefined && project.launchpadSize !== null) {
-        if (typeof project.launchpadSize !== 'number' || Number.isNaN(project.launchpadSize) || 
-            project.launchpadSize < LAUNCHPAD_SIZE_MIN || project.launchpadSize > LAUNCHPAD_SIZE_MAX) {
-            errors.push(`Project field "launchpadSize" must be a number between ${LAUNCHPAD_SIZE_MIN} and ${LAUNCHPAD_SIZE_MAX} if provided`);
-        }
-    }
-
-    if (project.targetDevice !== undefined && project.targetDevice !== null) {
-        if (typeof project.targetDevice !== 'string' || !TARGET_DEVICES.includes(project.targetDevice)) {
-            errors.push(`Project field "targetDevice" must be one of: ${TARGET_DEVICES.join(', ')} if provided`);
-        }
-    }
-
-    const isValid = errors.length === 0;
-    return { isValid, errors };
+    return { isValid: errors.length === 0, errors };
 }
 
 /**
- * Validates a per-pad field whose value is an array of step arrays
- * (`sounds`, `lights`, `lightSyncToSound`, `lightDurations`).
- * @param {*} entries - The field value (array of per-pad step arrays).
- * @param {object} options
- * @param {number} options.pageNum - 1-based page number for error messages.
- * @param {string} options.fieldName - Field name (e.g. "lights").
- * @param {string} options.entryLabel - Singular label for a pad entry (e.g. "Light").
- * @param {function(*, number, number): (string|null)} options.stepError - Returns the step error message, or null when the step is valid.
- * @param {string[]} options.errors - Accumulator for error messages.
- * @param {boolean} [options.required=false] - When true, a missing/malformed field aborts page validation.
- * @returns {boolean} False when a required field is missing, true otherwise.
+ * Validates one per-pad field of a page (an array of 64 step lists).
+ * @param {*} entries - The field value.
+ * @param {number} pageNum - 1-based page number for error messages.
+ * @param {{fieldName: string, entryLabel: string, stepRule: Rule}} field
+ * @param {string[]} errors - Accumulator.
  */
-function validateStepArrayField(entries, { pageNum, fieldName, entryLabel, stepError, errors, required = false }) {
-    if (entries === undefined || entries === null) {
-        if (required) {
-            errors.push(`Page ${pageNum}: must have a "${fieldName}" array`);
-            return false;
-        }
-        return true;
-    }
-
+function validateStepArrayField(entries, pageNum, { fieldName, entryLabel, stepRule }, errors) {
     if (!Array.isArray(entries) || entries.length !== LAUNCHPAD_PADS) {
         const found = Array.isArray(entries) ? entries.length : 0;
         errors.push(`Page ${pageNum}: ${fieldName} array must have exactly ${LAUNCHPAD_PADS} elements, found ${found}`);
-        return true;
+        return;
     }
 
     entries.forEach((stepEntry, padIndex) => {
+        const entryPrefix = `Page ${pageNum}, ${entryLabel} ${padIndex}`;
         if (!Array.isArray(stepEntry)) {
-            errors.push(`Page ${pageNum}, ${entryLabel} ${padIndex}: must be an array of steps`);
+            errors.push(`${entryPrefix}: must be an array of steps`);
             return;
         }
         if (stepEntry.length > MAX_PAD_STEPS) {
-            errors.push(`Page ${pageNum}, ${entryLabel} ${padIndex}: step count exceeds maximum of ${MAX_PAD_STEPS}`);
+            errors.push(`${entryPrefix}: step count exceeds maximum of ${MAX_PAD_STEPS}`);
         }
         stepEntry.forEach((step, stepIndex) => {
-            const message = stepError(step, padIndex, stepIndex);
-            if (message) errors.push(message);
+            const message = stepRule(step);
+            if (message) errors.push(`${entryPrefix}, Step ${stepIndex}: ${message}`);
         });
     });
-
-    return true;
 }
 
 /**
  * Validates a page object within a project.
  * @param {object} page - The page to validate
  * @param {number} pageIndex - The index of this page (for error messages)
- * @returns {string[]} Array of error messages (empty if valid)
+ * @returns {string[]} Error messages (empty if valid)
  */
 function validatePage(page, pageIndex) {
-    const errors = [];
     const pageNum = pageIndex + 1;
-
-    // Check if page is an object
-    if (!page || typeof page !== 'object') {
-        errors.push(`Page ${pageNum}: must be an object`);
-        return errors;
+    if (!isPlainObject(page)) {
+        return [`Page ${pageNum}: must be an object`];
     }
 
-    // Check page name
+    const errors = [];
     if (!page.name || typeof page.name !== 'string') {
         errors.push(`Page ${pageNum}: must have a valid "name" field (string)`);
     }
 
-    const stringStepError = (label) => (step, padIndex, stepIndex) => (
-        step !== null && step !== undefined && step !== '' && typeof step !== 'string'
-            ? `Page ${pageNum}, ${label} ${padIndex}, Step ${stepIndex}: must be a string or empty, got ${typeof step}`
-            : null
-    );
-
-    // Check sounds array (required)
-    if (!validateStepArrayField(page.sounds, {
-        pageNum,
-        fieldName: 'sounds',
-        entryLabel: 'Sound',
-        stepError: stringStepError('Sound'),
-        errors,
-        required: true
-    })) {
-        return errors;
+    for (const field of PAGE_STEP_FIELDS) {
+        const entries = page[field.fieldName];
+        if (!isPresent(entries)) {
+            if (field.required) {
+                errors.push(`Page ${pageNum}: must have a "${field.fieldName}" array`);
+                return errors;
+            }
+            continue;
+        }
+        validateStepArrayField(entries, pageNum, field, errors);
     }
-
-    // Check lights array if it exists
-    validateStepArrayField(page.lights, {
-        pageNum,
-        fieldName: 'lights',
-        entryLabel: 'Light',
-        stepError: stringStepError('Light'),
-        errors
-    });
-
-    validateStepArrayField(page.lightSyncToSound, {
-        pageNum,
-        fieldName: 'lightSyncToSound',
-        entryLabel: 'Light sync',
-        stepError: (step, padIndex, stepIndex) => (
-            typeof step !== 'boolean'
-                ? `Page ${pageNum}, Light sync ${padIndex}, Step ${stepIndex}: must be a boolean`
-                : null
-        ),
-        errors
-    });
-
-    validateStepArrayField(page.lightDurations, {
-        pageNum,
-        fieldName: 'lightDurations',
-        entryLabel: 'Light duration',
-        stepError: (step, padIndex, stepIndex) => (
-            typeof step !== 'number' || !Number.isFinite(step) || step < MIN_LIGHT_DURATION_SEC || step > MAX_LIGHT_DURATION_SEC
-                ? `Page ${pageNum}, Light duration ${padIndex}, Step ${stepIndex}: must be between ${MIN_LIGHT_DURATION_SEC} and ${MAX_LIGHT_DURATION_SEC} seconds`
-                : null
-        ),
-        errors
-    });
-
     return errors;
 }
 
@@ -293,47 +256,47 @@ export function getErrorSummary(errors) {
         return 'Project is valid';
     }
 
-    const truncate = (arr, maxItems = 3) => {
-        if (arr.length > maxItems) {
-            return [...arr.slice(0, maxItems), `... and ${arr.length - maxItems} more`];
-        }
-        return arr;
-    };
+    const maxItems = 3;
+    const shown = errors.length > maxItems
+        ? [...errors.slice(0, maxItems), `... and ${errors.length - maxItems} more`]
+        : errors;
 
-    const errorList = truncate(errors)
-        .map(err => `• ${err}`)
-        .join('\n');
+    return `Project validation failed with ${errors.length} error(s):\n${shown.map(err => `• ${err}`).join('\n')}`;
+}
 
-    return `Project validation failed with ${errors.length} error(s):\n${errorList}`;
+// ----------------------------------------------------------------------------
+// Device consistency (non-fatal)
+// ----------------------------------------------------------------------------
+
+/**
+ * Counts lights that need an RGB device (their colour is RGB-only).
+ * @param {Iterable<string|null|undefined>} lightNames
+ * @returns {number}
+ */
+export function countRgbOnlyLights(lightNames) {
+    let count = 0;
+    for (const light of lightNames) {
+        if (typeof light !== 'string' || !light) continue;
+        const color = getColorFromAnimationName(light);
+        if (color && ANIMATION_COLOR_TIERS[color] === 'rgb') count++;
+    }
+    return count;
 }
 
 /**
- * Counts RGB-only lights used by a project that targets legacy hardware.
+ * Counts RGB-only lights used by a project file that targets legacy hardware.
  * This is non-fatal (the schema stays valid) but those pads will fall back
  * to bicolor LEDs on physical legacy devices.
  * The caller composes the localized user-facing message.
- * @param {object} project
+ * @param {object} project - Project file (pages with per-pad \`lights\` arrays).
  * @returns {{ rgbLightCount: number }}
  */
 export function checkProjectDeviceConsistency(project) {
-    if (!project || typeof project !== 'object') return { rgbLightCount: 0 };
-
-    let rgbLightCount = 0;
-    if (normalizeTargetDevice(project.targetDevice) === 'legacy' && Array.isArray(project.pages)) {
-        project.pages.forEach((page) => {
-            if (!Array.isArray(page?.lights)) return;
-            page.lights.forEach((lightEntry) => {
-                if (!Array.isArray(lightEntry)) return;
-                lightEntry.forEach((light) => {
-                    if (typeof light !== 'string' || !light) return;
-                    const color = getColorFromAnimationName(light);
-                    if (color && ANIMATION_COLOR_TIERS[color] === 'rgb') {
-                        rgbLightCount++;
-                    }
-                });
-            });
-        });
+    if (!isPlainObject(project) || normalizeTargetDevice(project.targetDevice) !== 'legacy' || !Array.isArray(project.pages)) {
+        return { rgbLightCount: 0 };
     }
-
-    return { rgbLightCount };
+    const lightNames = project.pages.flatMap(page => (
+        Array.isArray(page?.lights) ? page.lights.filter(Array.isArray).flat() : []
+    ));
+    return { rgbLightCount: countRgbOnlyLights(lightNames) };
 }
