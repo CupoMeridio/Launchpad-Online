@@ -7,14 +7,28 @@
  * - samples/page-<X>/pad-<Y>.<ext> with all assigned audio samples
  */
 
-import defaultJSZip from './vendor/jszip.js';
-import { buildProjectExport, buildDraftFromProject } from './projectCreatorModel.js';
+import { buildProjectExport, buildDraftFromProject, normalizeZipPath } from './projectCreatorModel.js';
+import { PROJECT_ASSET_EXTENSIONS, PRECOMPRESSED_EXTENSIONS, hasFileExtension } from './constants.js';
 
-const AUDIO_EXTENSIONS = ['.wav', '.mp3', '.ogg', '.flac', '.m4a', '.aac', '.webm'];
+let cachedJSZip = null;
 
-function isAudioFile(fileName) {
-    const lower = fileName.toLowerCase();
-    return AUDIO_EXTENSIONS.some(ext => lower.endsWith(ext));
+async function resolveJSZip(overrideConstructor) {
+    if (overrideConstructor) {
+        return overrideConstructor;
+    }
+    if (!cachedJSZip) {
+        const module = await import('./vendor/jszip.js');
+        cachedJSZip = module.default || module;
+    }
+    return cachedJSZip;
+}
+
+function isPackageableAsset(fileName) {
+    return hasFileExtension(fileName, PROJECT_ASSET_EXTENSIONS);
+}
+
+function isPrecompressedFile(fileName) {
+    return hasFileExtension(fileName, PRECOMPRESSED_EXTENSIONS);
 }
 
 /**
@@ -23,13 +37,14 @@ function isAudioFile(fileName) {
  * @param {Function} [JSZipConstructor] - Optional JSZip constructor override for tests.
  * @returns {Promise<{ blob: Blob, filename: string, exportData: object }>}
  */
-export async function exportProjectToZip(draft, JSZipConstructor = defaultJSZip) {
-    if (!JSZipConstructor) {
+export async function exportProjectToZip(draft, JSZipConstructor = null) {
+    const ZipCtor = await resolveJSZip(JSZipConstructor);
+    if (!ZipCtor) {
         throw new Error('JSZip library is not available');
     }
 
     const exportData = buildProjectExport(draft);
-    const zip = new JSZipConstructor();
+    const zip = new ZipCtor();
 
     const jsonString = JSON.stringify(exportData.project, null, 2);
     // Include both canonical project.json and <id>.json for backwards/tooling compatibility
@@ -38,10 +53,13 @@ export async function exportProjectToZip(draft, JSZipConstructor = defaultJSZip)
         zip.file(exportData.configFileName, jsonString);
     }
 
-    // Add all audio sample files
+    // Add all audio sample files with optimal compression
     for (const item of exportData.files) {
         const fileContent = (item.file && item.file.data) ? item.file.data : item.file;
-        zip.file(item.path, fileContent);
+        const isPrecompressed = isPrecompressedFile(item.path);
+        zip.file(item.path, fileContent, {
+            compression: isPrecompressed ? 'STORE' : 'DEFLATE'
+        });
     }
 
     const blob = await zip.generateAsync({
@@ -64,12 +82,13 @@ export async function exportProjectToZip(draft, JSZipConstructor = defaultJSZip)
  * @param {Function} [JSZipConstructor] - Optional JSZip constructor override for tests.
  * @returns {Promise<{ draft: object, projectData: object }>}
  */
-export async function importProjectFromZip(zipInput, JSZipConstructor = defaultJSZip) {
-    if (!JSZipConstructor) {
+export async function importProjectFromZip(zipInput, JSZipConstructor = null) {
+    const ZipCtor = await resolveJSZip(JSZipConstructor);
+    if (!ZipCtor) {
         throw new Error('JSZip library is not available');
     }
 
-    const zip = await JSZipConstructor.loadAsync(zipInput);
+    const zip = await ZipCtor.loadAsync(zipInput);
 
     // 1. Locate the project JSON manifest
     let jsonEntry = zip.file('project.json');
@@ -96,11 +115,11 @@ export async function importProjectFromZip(zipInput, JSZipConstructor = defaultJ
         throw new Error(`Failed to parse project JSON: ${parseError.message}`);
     }
 
-    // 2. Extract all audio samples into a file map
+    // 2. Extract all audio and media assets into a file map indexed by canonical normalized path
     const fileMap = new Map();
     for (const [relativePath, entry] of Object.entries(zip.files)) {
         if (entry.dir) continue;
-        if (!isAudioFile(relativePath)) continue;
+        if (!isPackageableAsset(relativePath)) continue;
 
         const blob = await entry.async('blob');
         const fileName = relativePath.split('/').pop();
@@ -116,15 +135,7 @@ export async function importProjectFromZip(zipInput, JSZipConstructor = defaultJ
             fileObj.name = fileName;
         }
 
-        const normalizedPath = relativePath.replace(/\\/g, '/').toLowerCase().trim();
-        fileMap.set(normalizedPath, fileObj);
-        fileMap.set(fileName.toLowerCase(), fileObj);
-
-        // Also index without any leading folder name (e.g. project-name/samples/... -> samples/...)
-        const samplesIdx = normalizedPath.indexOf('samples/');
-        if (samplesIdx !== -1) {
-            fileMap.set(normalizedPath.slice(samplesIdx), fileObj);
-        }
+        fileMap.set(normalizeZipPath(relativePath), fileObj);
     }
 
     // 3. Build the draft using the model
@@ -132,6 +143,8 @@ export async function importProjectFromZip(zipInput, JSZipConstructor = defaultJ
 
     return {
         draft,
-        projectData
+        projectData,
+        // Assets declared by the project manifest but absent from the archive
+        missingAssets: draft.missingAssets || []
     };
 }

@@ -33,10 +33,13 @@ The project serves as a specialized alternative to Ableton Live, focusing exclus
 - **Audio Core & Visualizer**: 
   - Audio engine based on Web Audio API for sample playback.
   - Real-time audio visualizer with customizable rendering options.
+- **In-App Studio Creator**: Integrated visual editor to build, customize, and configure projects directly within the application, featuring live preview and complete project ZIP export and import.
+- **Multisampling Support**: Multi-step audio and light sequence assignment per pad with round-robin playback and momentary hold preview.
 - **Customization & Aesthetics**:
   - **Launchpad Skins**: Change the appearance of the digital controller, including support for button stickers/decals.
   - **Dynamic Backgrounds**: Decorative background images and video loops to enhance performance videos.
   - **Layout Control**: Rotation and scalability settings for optimal visuals.
+- **Multi-language Support (Localization)**: Full internationalization support with English, Italian, German, French, and Spanish locales.
 - **PWA Ready**: Installable as a native app on desktop and mobile, with offline support.
 - **Project Management**: Project loading via JSON files with support for up to 8 pages (512 total sounds).
 - **Built-in Project Library**: Access a growing collection of pre-configured projects ready to be played immediately.
@@ -47,13 +50,10 @@ The project serves as a specialized alternative to Ableton Live, focusing exclus
 
 Planned features for future development:
 
-- **Multisampling Support**: Ability to assign multiple audio samples to a single button (e.g., for velocity layering or round-robin).
-- **In-App Project Creator**: Integrated tool to build and configure projects directly within the application without manual JSON editing.
 - **In-App Animation Designer**: Visual interface to create and customize lighting patterns and animations.
 - **Project Library Expansion**: Continuous addition of ready-to-play projects to the built-in library.
 - **Performance Optimization**: Continuous research into app optimization to ensure lightweight and fast execution across browsers and the widest possible range of devices.
 - **Asset Compression & Memory Management**: Implementation of methods to reduce or compress the size of video and audio assets (currently .mp4 and .wav) to make the app lighter and less memory-intensive.
-- **Localization & Multi-language Support**: Implement translations for as many languages as possible to make the application accessible to a global audience.
 
 ---
 
@@ -89,25 +89,51 @@ Launchpad-Online/
 │   ├── images/             # UI images and launchpad covers
 │   └── videos/             # Background video loops
 ├── css/                    # Application styling
-│   ├── launchpad.css       # Launchpad-specific styles
-│   └── style.css           # General application styles
+│   ├── creator.css         # Studio Creator, Inspector & Multisampling styles (lazy-loaded)
+│   ├── launchpad.css       # Launchpad-specific styles & LED rendering
+│   ├── sidebar.css         # Collapsible sidebar, tabs & navigation styles
+│   └── style.css           # Core theme variables, layout & base controls
 ├── js/                     # Application logic
-│   ├── vendor/             # Third-party libraries
-│   │   └── launchpad-webmidi.js
+│   ├── creator/            # Studio Creator view (lazy-loaded)
+│   │   ├── index.js        # Open/close, pad source, single session-change dispatcher
+│   │   ├── padEditor.js    # Page tabs, pad grid, pad inspector (steps, sample, timing)
+│   │   ├── lightPicker.js  # Animation catalog, presets, dynamic text lights
+│   │   ├── themeEditor.js  # Draft appearance (background, skin, icon, visualizer, layout)
+│   │   ├── animationEditor.js # Custom Lights view: animation library, frames, brush, drawing on the pads
+│   │   ├── preview.js      # Pad step preview and hold-to-play
+│   │   ├── importExport.js # Project .zip export and import
+│   │   └── dom.js          # Small DOM helpers
+│   ├── midi-profiles/      # Hardware drivers (Legacy, RGB, Registry)
+│   ├── vendor/             # Third-party utilities (JSZip)
 │   ├── animationClasses.js # Animation class definitions
 │   ├── animationData.js    # Animation data and structures
 │   ├── animationEngine.js  # Core animation rendering engine
 │   ├── animationLibrary.js # Registry of available animations
-│   ├── app.js              # Main application entry point
+│   ├── app.js              # Entry point / composition root (no state, no exports)
 │   ├── audio.js            # Web Audio API engine
+│   ├── concurrency.js      # Bounded-concurrency helper (audio loading, zip import)
+│   ├── constants.js        # Global constants and grid definitions
+│   ├── creatorLoader.js    # Lazy loader for the Studio Creator module and styles
+│   ├── customAnimationModel.js # Custom (user-drawn) light animations: frames, validation, compilation
+│   ├── customAnimations.js # Custom animation playback and registry (project + Studio draft)
+│   ├── i18n.js             # Locale loading and translation lookup
 │   ├── interaction.js      # User interaction handling
-│   ├── lights.js           # Legacy light management (refactored)
-│   ├── midi.js             # MIDI hardware integration
-│   ├── physicalInterface.js # Physical Launchpad mapping
+│   ├── lights.js           # Light animation engine and presets
+│   ├── midi.js             # Native Web MIDI hardware integration
+│   ├── notifications.js    # On-screen toast notifications
+│   ├── physicalInterface.js # Physical Launchpad mapping & batching
 │   ├── project.js          # Project and page management
+│   ├── projectModel.js     # Pure project normalization and path resolution
+│   ├── projectState.js     # Runtime state: active project (atomic commit), loading status, page, mode
+│   ├── projectCreatorModel.js # Creator data model & validation
+│   ├── projectCreatorState.js # Creator session state & business logic
+│   ├── projectZip.js       # Standalone project .zip import/export
 │   ├── static-data.json    # Static configuration data
-│   ├── ui.js               # UI components and DOM management
-│   ├── video.js            # Video background controller
+│   ├── background.js       # Background media controller (videos & images)
+│   ├── settings.js         # Centralized application settings & safe persistence
+│   ├── staticCatalog.js    # Built-in catalog (projects, videos, skins) loader
+│   ├── launchpadAppearance.js # Launchpad skin, stickers, icon, rotation/size (preference vs project override)
+│   ├── ui.js               # UI shell: sidebar, menus, tabs, accent colour, resizable panels
 │   ├── visualizer-controls.js # Visualizer UI controls
 │   ├── visualizer.js       # Audio visualizer logic
 │   └── webInterface.js     # Virtual Launchpad interface

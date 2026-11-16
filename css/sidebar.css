@@ -1,0 +1,425 @@
+/*
+  SIDEBAR COMPONENT STYLES (css/sidebar.css)
+  - Navigation sidebar, accordion menus, customization panel,
+  - hamburger button (#openSidebar), and docked MIDI hardware status.
+*/
+
+/*
+  SIDEBAR HEADER
+  - Styles for the side menu header.
+*/
+.sidebar-header {
+    display: flex;
+    /* Uses Flexbox to align internal elements (title and spacer). */
+    align-items: center;
+    /* Vertically aligns elements to center. */
+    margin-bottom: 15px;
+    margin-top: 5px;
+}
+
+/* Empty spacer to align the title with content below. */
+.sidebar-spacer {
+    width: 30px;
+    /* Fixed width to match the space of the open/close button. */
+    height: 28px;
+    flex-shrink: 0;
+    /* Prevents shrinking if space is limited. */
+}
+
+.sidebar-header h2 {
+    margin: 0;
+    color: var(--text-bright);
+    /* White text for menu title. */
+    font-size: 16px;
+    font-weight: normal;
+    /* Lighter font than normal. */
+    text-align: center;
+    transition: opacity 0.2s ease;
+    /* Smooth transition for opacity. */
+    white-space: nowrap;
+    /* Prevents text from wrapping. */
+    overflow: hidden;
+    /* Hides text if it overflows the container. */
+}
+
+
+/*
+  LAYOUT WITH OPEN SIDEBAR
+  - When `.layout` has the `.sidebar-open` class, the first column (sidebar) expands to 260px.
+  - This change triggers the transition defined in `.layout`.
+*/
+.layout.sidebar-open {
+    grid-template-columns: var(--sidebar-width, 260px) 1fr;
+}
+
+/*
+  SIDEBAR
+  - Styles for the side menu.
+  - Initially hidden (`opacity: 0`, `visibility: hidden`).
+*/
+.sidebar {
+    grid-column: 1;
+    /* Occupies the first column of the grid. */
+    background-color: var(--bg-sidebar);
+    padding: 0px 16px 50px 16px;
+    /* Increased bottom padding from 16px to 50px to accommodate MIDI indicator */
+    height: 100%;
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+/* The `.sidebar-open` class on layout makes the sidebar visible. */
+.layout.sidebar-open .sidebar {
+    opacity: 1;
+    visibility: visible;
+}
+
+.sidebar-content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    /* Space between various menus (Project, Background, etc.). */
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.menu-item {
+    display: flex;
+    flex-direction: column;
+}
+
+/*
+  MENU BUTTONS
+  - CUSTOMIZATION: Change `background` and `color` for button style.
+    The `:hover` color defines the appearance on mouse hover.
+*/
+.menu-toggle {
+    background: var(--surface-muted);
+    color: var(--text-bright);
+    border: none;
+    padding: 12px 15px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    text-align: left;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* Adds ... if text is too long */
+    width: 100%;
+    /* Ensures button occupies all available width */
+}
+
+.menu-toggle:hover {
+    background: var(--surface-active);
+    /* Lighter color on mouse hover. */
+}
+
+.menu-toggle.active {
+    background: var(--surface-active);
+    border-left: 3px solid var(--accent-blue);
+}
+
+/*
+  DROPDOWN MENU
+  - Containers for options in each menu.
+  - Animation is managed through `max-height`, going from 0 to a value sufficient to show content.
+*/
+.menu-dropdown {
+    max-height: 0;
+    /* Initially closed. */
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    background: var(--bg-panel);
+    border-radius: var(--radius-sm);
+    margin-top: 5px;
+    max-width: 100%;
+    /* Limits maximum width to parent container */
+}
+
+/* The `.open` class is added via JS to open the dropdown. */
+.menu-dropdown.open {
+    max-height: 220px;
+    /* Maximum height. Increase if content is not visible. */
+    overflow-y: auto;
+    /* Shows scrollbar if content exceeds maximum height. */
+}
+
+#customization-menu.open {
+    max-height: 380px;
+}
+
+/*
+  BUTTONS INSIDE DROPDOWN MENUS
+  - CUSTOMIZATION: Change `background` and `color` of `button:hover` and `button.selected`
+    to modify the appearance of selected option or on mouse hover.
+*/
+.menu-dropdown button,
+.menu-option {
+    display: block;
+    width: 100%;
+    background: none;
+    color: var(--text-secondary);
+    border: none;
+    padding: 10px 15px;
+    text-align: left;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* Adds ... if text is too long */
+}
+
+.menu-dropdown button:hover,
+.menu-dropdown button.selected,
+.menu-option.selected {
+    background: var(--bg-input);
+    color: var(--text-bright);
+}
+
+/*
+  ACCENT COLOR PICKER CONTROLS
+*/
+.accent-picker-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    width: 100%;
+}
+
+.accent-color-input {
+    width: 38px;
+    height: 32px;
+    padding: 2px;
+    border: 1px solid var(--border-dark);
+    border-radius: var(--radius-sm);
+    background: var(--bg-input);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.menu-dropdown .accent-reset-btn {
+    flex: 1;
+    min-height: 32px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    text-align: center;
+    background: var(--bg-panel);
+    color: var(--text-muted);
+    border: 1px solid var(--border-dark);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.menu-dropdown .accent-reset-btn:hover {
+    background: var(--border-dark);
+    color: var(--text-primary);
+    border-color: var(--accent-blue);
+}
+
+
+/*
+  CUSTOMIZATION MENU (SEGMENTED TABS & PANELS)
+*/
+.customization-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    background: var(--surface-recessed);
+    border: 1px solid var(--border-panel);
+    border-radius: var(--radius-sm);
+    padding: 3px;
+    gap: 3px;
+    margin: 10px 12px 6px 12px;
+}
+
+.menu-dropdown .customization-tabs .customization-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 6px 4px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-faint);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-xs);
+    cursor: pointer;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: all 0.15s ease;
+}
+
+.menu-dropdown .customization-tabs .customization-tab:hover {
+    color: var(--text-bright);
+    background: var(--surface-muted);
+}
+
+.menu-dropdown .customization-tabs .customization-tab.selected {
+    color: var(--text-bright);
+    background: var(--accent-blue);
+    font-weight: 600;
+}
+
+.customization-tab-panel {
+    display: none;
+}
+
+.customization-tab-panel.active {
+    display: block;
+}
+
+.customization-header {
+    padding: 10px 12px 8px 12px;
+    border-bottom: 1px solid var(--border-panel);
+    margin-bottom: 6px;
+}
+
+.menu-dropdown .customization-reset-btn {
+    display: block;
+    width: 100%;
+    text-align: center;
+    background: var(--bg-panel);
+    color: var(--text-muted);
+    border: 1px solid var(--border-dark);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.menu-dropdown .customization-reset-btn:hover {
+    background: var(--border-dark);
+    color: var(--text-primary);
+    border-color: var(--accent-blue);
+}
+
+
+/*
+  CUSTOM SCROLLBAR (SIDEBAR)
+*/
+.sidebar {
+    --scrollbar-thumb: var(--accent-blue);
+    --scrollbar-thumb-hover: var(--accent-blue-hover);
+    --scrollbar-track: #2a2a2a;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: var(--radius-lg);
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: var(--radius-lg);
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+}
+
+/*
+  OPEN/CLOSE SIDEBAR BUTTON (Hamburger menu)
+  - CUSTOMIZATION: Change `background-color` to modify button color.
+*/
+#openSidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    background-color: var(--accent-blue);
+    /* Blue color. */
+    border: none;
+    color: var(--text-bright);
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    z-index: 3;
+    /* Positioned above almost everything. */
+    transition: background-color 0.3s ease;
+    font-size: 18px;
+    line-height: 1;
+    margin: 0;
+}
+
+#openSidebar:hover {
+    background-color: var(--accent-blue-hover);
+}
+
+/* Icon inside button (three lines). */
+#openSidebar .icon {
+    display: inline-block;
+    transition: transform 0.3s ease;
+    /* Animates rotation. */
+    font-size: 20px;
+    line-height: 1;
+    margin: 0;
+    padding: 0;
+}
+
+/* When sidebar is open, icon rotates to become an 'X' (or similar). */
+.layout.sidebar-open #openSidebar .icon {
+    transform: rotate(90deg);
+}
+
+.midi-status-fixed {
+    position: absolute;
+    bottom: 10px;
+    left: 16px;
+    /* Aligned with sidebar padding */
+    right: 16px;
+    /* Limits maximum width */
+    display: flex;
+    align-items: center;
+    color: var(--text-bright);
+    font-size: 0.85em;
+    /* Slightly reduced to fit better */
+    background-color: rgba(0, 0, 0, 0.3);
+    /* Semi-transparent background to improve readability */
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+}
+
+.midi-status-dot {
+    width: 8px;
+    /* Slightly reduced */
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+    flex-shrink: 0;
+    /* Never shrinks */
+}
+
+#midi-status-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* Adds ... if text is too long */
+    white-space: nowrap;
+    /* Prevents text from wrapping */
+    flex-grow: 1;
+    /* Occupies remaining space */
+    min-width: 0;
+    /* Allows flex item to shrink */
+}

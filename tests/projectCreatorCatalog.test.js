@@ -23,7 +23,17 @@ test('catalog groups every registered animation without dropping color variants'
     const fadeGroup = catalog.find(group => group.id === 'fade');
     assert.ok(fadeGroup);
     assert.ok(fadeGroup.variants.every(variant => variant.supportsDuration));
-    assert.deepEqual(fadeGroup.variants.map(variant => variant.color), ['red', 'orange', 'amber', 'yellow', 'green']);
+    assert.deepEqual(fadeGroup.variants.map(variant => variant.color), [
+        'red', 'orange', 'amber', 'yellow', 'green', 'blue', 'cyan', 'purple', 'pink', 'white'
+    ]);
+    assert.equal(fadeGroup.variants.find(v => v.color === 'red').tier, 'legacy');
+    assert.equal(fadeGroup.variants.find(v => v.color === 'blue').tier, 'rgb');
+
+    const legacyCatalog = buildAnimationCatalog(animations, 'legacy');
+    const legacyFade = legacyCatalog.find(group => group.id === 'fade');
+    assert.ok(legacyFade);
+    assert.deepEqual(legacyFade.variants.map(variant => variant.color), ['red', 'orange', 'amber', 'yellow', 'green']);
+    assert.ok(legacyFade.variants.every(variant => variant.tier === 'legacy'));
 
     const holdGroup = catalog.find(group => group.id === 'hold');
     assert.ok(holdGroup);

@@ -1,4 +1,13 @@
 /*
+  LAUNCHPAD PWA - CORE STYLESHEET (css/style.css)
+  - Theme design tokens (:root variables)
+  - Base typography, resets and global layout (.layout, main, .body)
+  - Background media, media overlays & video/image adjustment sliders
+  - Panel resizer handles (.sidebar-resizer, .inspector-resizer)
+  - Audio visualizer canvas and screen notifications
+*/
+
+/*
   This file contains general CSS styles for the Launchpad application.
   It defines the basic appearance of the page, layout, sidebar, menus,
   and other user interface elements. By modifying this file, you can
@@ -14,23 +23,64 @@
 :root {
     --accent-blue: #00aaff;
     --accent-blue-hover: #0088cc;
-    --accent-studio: #50c8a0;
-    --accent-studio-hover: #6ee7b7;
-    --accent-studio-dim: rgba(80, 200, 160, 0.18);
-    --accent-studio-glow: rgba(80, 200, 160, 0.35);
+    --accent-blue-dim: rgba(0, 170, 255, 0.18);
+    --accent-blue-glow: rgba(0, 170, 255, 0.35);
     --bg-dark: #1a1a1a;
-    --bg-inspector: #202326;
-    --bg-panel: #292e32;
-    --bg-input: #343a3e;
-    --border-dark: #454b4f;
-    --border-subtle: #383e42;
+    --bg-sidebar: #2a2a2a;
+    --bg-inspector: #2a2a2a;
+    --bg-panel: #252525;
+    --bg-input: #333333;
+    --border-dark: #3a3a3a;
+    --border-hover: #555;
+    --border-subtle: #303030;
+    --border-panel: #333333;
     --text-primary: #f0f0f0;
-    --text-muted: #98a3a8;
+    --text-muted: #aaaaaa;
+    --radius-xs: 3px;
     --radius-sm: 4px;
     --radius-md: 6px;
     --radius-lg: 10px;
     --radius-pill: 20px;
     --radius-card: 12px;
+    --sidebar-width: 260px;
+    --inspector-width: 310px;
+    --warning-color: #ffaa00;
+    --warning-bg: rgba(255, 170, 0, 0.12);
+    --warning-border: rgba(255, 170, 0, 0.3);
+    /* Semantic feedback colors (status dots, notifications, actions) */
+    --success-color: #4CAF50;
+    --error-color: #f44336;
+    --info-color: #2196F3;
+    --danger-color: #ff6b6b;
+    --warning-note-color: #ffbb45;
+    /* Surfaces used by the creator / inspector panels */
+    --surface-recessed: #181818;
+    --surface-muted: #2a2a2a;
+    --surface-button: #2b2b2b;
+    --surface-raised: #383838;
+    --surface-active: #3a3a3a;
+    /* Text shades used across the creator / inspector panels */
+    --text-bright: #ffffff;
+    --text-strong: #f4f6f7;
+    --text-secondary: #cccccc;
+    --text-label: #c5cdd1;
+    --text-subtle: #aab3b8;
+    --text-faint: #999999;
+    --text-dim: #888888;
+    --text-accent-dim: #8c989e;
+    --text-live-title: #f0f4f6;
+    --text-dialog: #e5ebed;
+    --text-toggle: #e9edef;
+    --text-sample-name: #b8c0c4;
+    /* Creator pad assignment & live-mode accents */
+    --pad-assigned-bg: #1c3547;
+    --pad-assigned-ring: #aadeff;
+    --live-banner-text: #88d4ff;
+    /* Media-control sliders (opacity, blur, brightness) */
+    --slider-accent: #00ff88;
+    /* Resizer drag handles */
+    --resizer-handle-color: rgba(255, 255, 255, 0.2);
+    --resizer-handle-active: #ffffff;
 }
 
 *,
@@ -50,12 +100,12 @@ body {
 }
 
 .midi-status-dot.connected {
-    background-color: #4CAF50;
+    background-color: var(--success-color);
     /* Green */
 }
 
 .midi-status-dot.disconnected {
-    background-color: #f44336;
+    background-color: var(--error-color);
     /* Red */
 }
 
@@ -64,12 +114,102 @@ body {
     /* Uses a set of modern and clean system fonts. */
     background-color: var(--bg-dark);
     /* Main background color, a very dark gray. */
-    color: #f0f0f0;
+    color: var(--text-primary);
     /* Main text color, a very light gray for contrast. */
     margin: 0;
     /* Removes default browser margins for complete control over layout. */
     overflow: hidden;
     /* Prevents scrolling at body level, useful for full-screen layouts. */
+}
+
+.layout.is-resizing {
+    transition: none !important;
+    user-select: none !important;
+    cursor: col-resize;
+}
+
+.layout.is-resizing * {
+    user-select: none !important;
+}
+
+/*
+  RESIZABLE SIDE PANELS (SIDEBAR & INSPECTOR)
+*/
+.sidebar-resizer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 6px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 20;
+    touch-action: none;
+    transition: background-color 0.15s ease;
+}
+
+.sidebar-resizer::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 2px;
+    transform: translateY(-50%);
+    width: 2px;
+    height: 36px;
+    border-radius: 1px;
+    background-color: var(--resizer-handle-color);
+    transition: background-color 0.15s ease, height 0.15s ease;
+}
+
+.sidebar-resizer:hover::after,
+.sidebar-resizer.is-dragging::after {
+    background-color: var(--resizer-handle-active);
+    height: 48px;
+}
+
+.sidebar-resizer:hover,
+.sidebar-resizer.is-dragging {
+    background-color: rgba(0, 170, 255, 0.45);
+}
+
+.inspector-resizer {
+    display: none;
+    position: absolute;
+    top: 0;
+    right: calc(var(--inspector-width, 310px) - 3px);
+    width: 6px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 20;
+    touch-action: none;
+    transition: background-color 0.15s ease;
+}
+
+.layout[data-studio="edit"] .inspector-resizer {
+    display: block;
+}
+
+.inspector-resizer::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 2px;
+    transform: translateY(-50%);
+    width: 2px;
+    height: 36px;
+    border-radius: 1px;
+    background-color: var(--resizer-handle-color);
+    transition: background-color 0.15s ease, height 0.15s ease;
+}
+
+.inspector-resizer:hover::after,
+.inspector-resizer.is-dragging::after {
+    background-color: var(--resizer-handle-active);
+    height: 48px;
+}
+
+.inspector-resizer:hover,
+.inspector-resizer.is-dragging {
+    background-color: rgba(0, 170, 255, 0.45);
 }
 
 /*
@@ -84,43 +224,6 @@ h2 {
     /* Removes margins for precise alignment. */
 }
 
-/*
-  SIDEBAR HEADER
-  - Styles for the side menu header.
-*/
-.sidebar-header {
-    display: flex;
-    /* Uses Flexbox to align internal elements (title and spacer). */
-    align-items: center;
-    /* Vertically aligns elements to center. */
-    margin-bottom: 15px;
-    margin-top: 5px;
-}
-
-/* Empty spacer to align the title with content below. */
-.sidebar-spacer {
-    width: 30px;
-    /* Fixed width to match the space of the open/close button. */
-    height: 28px;
-    flex-shrink: 0;
-    /* Prevents shrinking if space is limited. */
-}
-
-.sidebar-header h2 {
-    margin: 0;
-    color: #fff;
-    /* White text for menu title. */
-    font-size: 16px;
-    font-weight: normal;
-    /* Lighter font than normal. */
-    text-align: center;
-    transition: opacity 0.2s ease;
-    /* Smooth transition for opacity. */
-    white-space: nowrap;
-    /* Prevents text from wrapping. */
-    overflow: hidden;
-    /* Hides text if it overflows the container. */
-}
 
 /*
   MAIN ELEMENT
@@ -190,13 +293,13 @@ main {
 }
 
 /*
-  VIDEO OVERLAY
-  - A layer that overlays the video to apply effects like color, opacity, and blur.
+  MEDIA OVERLAY
+  - A layer that overlays the background media to apply effects like color, opacity, and blur.
   - CUSTOMIZATION: Modify `background-color` to change the filter color.
     The value `rgba(18, 18, 18, 0.15)` is a semi-transparent black.
     Opacity and blur are controlled dynamically via JavaScript, but here you can set transition values.
 */
-.video-overlay {
+.media-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -204,7 +307,7 @@ main {
     height: 100%;
     background-color: rgba(18, 18, 18, 0.15);
     z-index: -1;
-    /* Positioned between video and content. */
+    /* Positioned between media and content. */
     transition: opacity 0.3s ease, backdrop-filter 0.3s ease;
     /* Transitions for opacity and blur. */
     opacity: 0;
@@ -216,17 +319,17 @@ main {
 }
 
 /* The `.active` class is added via JS to show the overlay. */
-.video-overlay.active {
+.media-overlay.active {
     opacity: 1;
 }
 
 /*
-  VIDEO CONTROLS (SLIDERS)
+  MEDIA CONTROLS (SLIDERS)
   - Styles for the slider container (opacity, blur, brightness).
   - The appear/disappear animation is created with `max-height` and `padding`.
 */
-.video-controls {
-    background-color: #252525;
+.media-controls {
+    background-color: var(--bg-panel);
     /* Slightly different background from menu to distinguish it. */
     border-radius: var(--radius-sm);
     margin-top: 5px;
@@ -238,7 +341,7 @@ main {
 }
 
 /* The `.visible` class is added via JS to show controls. */
-.video-controls.visible {
+.media-controls.visible {
     padding: 15px;
     max-height: 500px;
     /* Height sufficient to contain everything. */
@@ -265,7 +368,7 @@ main {
 .control-group .section-title {
     display: block;
     font-size: 12px;
-    color: #ccc;
+    color: var(--text-secondary);
     margin-bottom: 5px;
     font-weight: 500;
     white-space: nowrap;
@@ -290,7 +393,7 @@ main {
 .input-with-unit {
     display: flex;
     align-items: center;
-    background: #333;
+    background: var(--bg-input);
     border: 1px solid var(--border-dark);
     border-radius: var(--radius-sm);
     padding: 0 6px;
@@ -312,7 +415,7 @@ main {
 .control-group input[type="range"] {
     width: calc(100% - 85px);
     height: 4px;
-    background: #333;
+    background: var(--bg-input);
     /* Slider bar color. */
     border-radius: 2px;
     outline: none;
@@ -330,7 +433,7 @@ main {
     height: 100%;
     background: transparent;
     border: none;
-    color: #ccc;
+    color: var(--text-secondary);
     font-size: 11px;
     text-align: right;
     padding: 0;
@@ -352,7 +455,7 @@ main {
 /* Text showing the unit of measurement (e.g., 'px', '%'). */
 .value-display {
     font-size: 11px;
-    color: #888;
+    color: var(--text-dim);
     margin-left: 2px;
     white-space: nowrap;
     flex-shrink: 0;
@@ -364,7 +467,7 @@ main {
     -webkit-appearance: none;
     width: 14px;
     height: 14px;
-    background: #00ff88;
+    background: var(--slider-accent);
     /* Thumb color (neon green). */
     border-radius: 50%;
     /* Makes it round. */
@@ -375,7 +478,7 @@ main {
 .control-group input[type="range"]::-moz-range-thumb {
     width: 14px;
     height: 14px;
-    background: #00ff88;
+    background: var(--slider-accent);
     border-radius: 50%;
     cursor: pointer;
     border: none;
@@ -409,8 +512,8 @@ main {
 
 /* Styles for dropdown menu (select) */
 .control-group select {
-    background-color: #333;
-    color: #ccc;
+    background-color: var(--bg-input);
+    color: var(--text-secondary);
     border: 1px solid var(--border-dark);
     border-radius: var(--radius-sm);
     padding: 4px 8px;
@@ -424,234 +527,6 @@ main {
     border-color: var(--accent-blue);
 }
 
-/*
-  LAYOUT WITH OPEN SIDEBAR
-  - When `.layout` has the `.sidebar-open` class, the first column (sidebar) expands to 260px.
-  - This change triggers the transition defined in `.layout`.
-*/
-.layout.sidebar-open {
-    grid-template-columns: 260px 1fr;
-}
-
-/*
-  SIDEBAR
-  - Styles for the side menu.
-  - Initially hidden (`opacity: 0`, `visibility: hidden`).
-*/
-.sidebar {
-    grid-column: 1;
-    /* Occupies the first column of the grid. */
-    background-color: #2a2a2a;
-    padding: 0px 16px 50px 16px;
-    /* Increased bottom padding from 16px to 50px to accommodate MIDI indicator */
-    height: 100%;
-    position: relative;
-    z-index: 1;
-    overflow: hidden;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
-}
-
-/* The `.sidebar-open` class on layout makes the sidebar visible. */
-.layout.sidebar-open .sidebar {
-    opacity: 1;
-    visibility: visible;
-}
-
-.sidebar-content {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    /* Space between various menus (Project, Background, etc.). */
-}
-
-.menu-item {
-    display: flex;
-    flex-direction: column;
-}
-
-/*
-  MENU BUTTONS
-  - CUSTOMIZATION: Change `background` and `color` for button style.
-    The `:hover` color defines the appearance on mouse hover.
-*/
-.menu-toggle {
-    background: #2a2a2a;
-    color: white;
-    border: none;
-    padding: 12px 15px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    text-align: left;
-    font-size: 14px;
-    transition: background-color 0.2s ease;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    /* Adds ... if text is too long */
-    width: 100%;
-    /* Ensures button occupies all available width */
-}
-
-.menu-toggle:hover {
-    background: #3a3a3a;
-    /* Lighter color on mouse hover. */
-}
-
-.menu-toggle.active {
-    background: #3a3a3a;
-    border-left: 3px solid var(--accent-blue);
-}
-
-/*
-  DROPDOWN MENU
-  - Containers for options in each menu.
-  - Animation is managed through `max-height`, going from 0 to a value sufficient to show content.
-*/
-.menu-dropdown {
-    max-height: 0;
-    /* Initially closed. */
-    overflow: hidden;
-    transition: max-height 0.3s ease;
-    background: #252525;
-    border-radius: var(--radius-sm);
-    margin-top: 5px;
-    max-width: 100%;
-    /* Limits maximum width to parent container */
-}
-
-/* The `.open` class is added via JS to open the dropdown. */
-.menu-dropdown.open {
-    max-height: 200px;
-    /* Maximum height. Increase if content is not visible. */
-    overflow-y: auto;
-    /* Shows scrollbar if content exceeds maximum height. */
-}
-
-/*
-  BUTTONS INSIDE DROPDOWN MENUS
-  - CUSTOMIZATION: Change `background` and `color` of `button:hover` and `button.selected`
-    to modify the appearance of selected option or on mouse hover.
-*/
-.menu-dropdown button {
-    display: block;
-    width: 100%;
-    background: none;
-    color: #ccc;
-    border: none;
-    padding: 10px 15px;
-    text-align: left;
-    cursor: pointer;
-    font-size: 13px;
-    transition: background-color 0.2s ease, color 0.2s ease;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    /* Adds ... if text is too long */
-}
-
-.menu-dropdown button:hover,
-.menu-dropdown button.selected {
-    background: #333;
-    color: white;
-}
-
-/*
-  CUSTOM SCROLLBAR
-  - Reusable scrollbar styling parameterized via --scrollbar-thumb, --scrollbar-thumb-hover, and --scrollbar-track.
-*/
-.menu-dropdown {
-    --scrollbar-thumb: var(--accent-blue);
-    --scrollbar-thumb-hover: var(--accent-blue-hover);
-    --scrollbar-track: #2a2a2a;
-}
-
-.project-inspector,
-.creator-light-categories {
-    --scrollbar-thumb: var(--accent-studio);
-    --scrollbar-thumb-hover: var(--accent-studio-hover);
-    --scrollbar-track: #181b1d;
-}
-
-.menu-dropdown,
-.project-inspector,
-.creator-light-categories {
-    scrollbar-width: thin;
-    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-}
-
-.menu-dropdown::-webkit-scrollbar,
-.project-inspector::-webkit-scrollbar {
-    width: 8px;
-}
-
-.creator-light-categories::-webkit-scrollbar {
-    height: 5px;
-}
-
-.menu-dropdown::-webkit-scrollbar-track,
-.project-inspector::-webkit-scrollbar-track,
-.creator-light-categories::-webkit-scrollbar-track {
-    background: var(--scrollbar-track);
-    border-radius: var(--radius-lg);
-}
-
-.menu-dropdown::-webkit-scrollbar-thumb,
-.project-inspector::-webkit-scrollbar-thumb,
-.creator-light-categories::-webkit-scrollbar-thumb {
-    background: var(--scrollbar-thumb);
-    border-radius: var(--radius-lg);
-}
-
-.menu-dropdown::-webkit-scrollbar-thumb:hover,
-.project-inspector::-webkit-scrollbar-thumb:hover,
-.creator-light-categories::-webkit-scrollbar-thumb:hover {
-    background: var(--scrollbar-thumb-hover);
-}
-
-/*
-  OPEN/CLOSE SIDEBAR BUTTON (Hamburger menu)
-  - CUSTOMIZATION: Change `background-color` to modify button color.
-*/
-#openSidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    background-color: var(--accent-blue);
-    /* Blue color. */
-    border: none;
-    color: white;
-    padding: 10px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    z-index: 3;
-    /* Positioned above almost everything. */
-    transition: background-color 0.3s ease;
-    font-size: 18px;
-    line-height: 1;
-    margin: 0;
-}
-
-#openSidebar:hover {
-    background-color: var(--accent-blue-hover);
-}
-
-/* Icon inside button (three lines). */
-#openSidebar .icon {
-    display: inline-block;
-    transition: transform 0.3s ease;
-    /* Animates rotation. */
-    font-size: 20px;
-    line-height: 1;
-    margin: 0;
-    padding: 0;
-}
-
-/* When sidebar is open, icon rotates to become an 'X' (or similar). */
-.layout.sidebar-open #openSidebar .icon {
-    transform: rotate(90deg);
-}
 
 /*
   MAIN BODY CONTAINER
@@ -695,9 +570,9 @@ main {
 
 /* Adapts visualizer position and width when sidebar is open. */
 .layout.sidebar-open .visualizer-canvas {
-    left: 260px;
+    left: var(--sidebar-width, 260px);
     /* Moves canvas start to the right of sidebar. */
-    width: calc(100% - 260px);
+    width: calc(100% - var(--sidebar-width, 260px));
     /* Reduces width to avoid overlapping sidebar. */
 }
 
@@ -751,7 +626,7 @@ main {
 .notification {
     padding: 10px 15px;
     border-radius: var(--radius-sm);
-    color: white;
+    color: var(--text-bright);
     opacity: 0;
     transition: opacity 0.5s ease-in-out;
     pointer-events: auto;
@@ -762,672 +637,19 @@ main {
 }
 
 .notification.success {
-    background-color: #4CAF50;
+    background-color: var(--success-color);
 }
 
 .notification.error {
-    background-color: #f44336;
+    background-color: var(--error-color);
 }
 
 .notification.info {
-    background-color: #2196F3;
+    background-color: var(--info-color);
 }
 
-.midi-status-fixed {
-    position: absolute;
-    bottom: 10px;
-    left: 16px;
-    /* Aligned with sidebar padding */
-    right: 16px;
-    /* Limits maximum width */
-    display: flex;
-    align-items: center;
-    color: #fff;
-    font-size: 0.85em;
-    /* Slightly reduced to fit better */
-    background-color: rgba(0, 0, 0, 0.3);
-    /* Semi-transparent background to improve readability */
-    padding: 8px 12px;
-    border-radius: var(--radius-sm);
-}
-
-.midi-status-dot {
-    width: 8px;
-    /* Slightly reduced */
-    height: 8px;
-    border-radius: 50%;
-    margin-right: 8px;
-    flex-shrink: 0;
-    /* Never shrinks */
-}
-
-#midi-status-text {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    /* Adds ... if text is too long */
-    white-space: nowrap;
-    /* Prevents text from wrapping */
-    flex-grow: 1;
-    /* Occupies remaining space */
-    min-width: 0;
-    /* Allows flex item to shrink */
-}
-
-.layout[data-studio="edit"].sidebar-open {
-    grid-template-columns: 260px minmax(0, 1fr) 310px;
-}
-
-.layout[data-studio="edit"]:not(.sidebar-open) {
-    grid-template-columns: 0 minmax(0, 1fr) 310px;
-}
-
-.project-inspector {
-    display: none;
-    grid-column: 3;
-    grid-row: 1;
-    min-width: 0;
-    height: 100%;
-    padding: 16px;
-    flex-direction: column;
-    gap: 16px;
-    overflow-y: auto;
-    color: var(--text-primary);
-    background: var(--bg-inspector);
-    border-left: 1px solid var(--border-dark);
-    z-index: 3;
-}
-
-.layout[data-studio="edit"] .project-inspector {
-    display: flex;
-}
-
-.inspector-header,
-.inspector-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-}
-
-.inspector-header {
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border-dark);
-}
-
-.inspector-header h2 {
-    margin: 3px 0 0;
-    color: #f2f4f5;
-    font-size: 18px;
-}
-
-.inspector-eyebrow {
-    color: var(--accent-studio);
-    font-size: 10px;
-    font-weight: 700;
-}
-
-.inspector-close {
-    width: 34px;
-    height: 34px;
-    color: #e9edef;
-    background: transparent;
-    border: 1px solid var(--border-dark);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    font-size: 20px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.inspector-section {
-    display: grid;
-    gap: 8px;
-}
-
-.inspector-section[hidden] {
-    display: none;
-}
-
-.inspector-section label {
-    color: #c5cdd1;
-    font-size: 12px;
-}
-
-.inspector-section input[type="text"],
-.inspector-section input[type="number"],
-.inspector-section input[type="search"],
-.inspector-section select {
-    width: 100%;
-    min-width: 0;
-    min-height: 36px;
-    padding: 8px 10px;
-    color: #f0f2f3;
-    background: #151719;
-    border: 1px solid var(--border-dark);
-    border-radius: var(--radius-sm);
-}
-
-.inspector-page-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    margin-top: 4px;
-    color: var(--text-muted);
-    font-size: 11px;
-    font-weight: 700;
-}
-
-.inspector-page-heading strong {
-    color: #f4f6f7;
-    font-size: 13px;
-}
-
-.creator-page-tabs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-}
-
-.creator-page-tab {
-    width: 34px;
-    height: 34px;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: #e9edef;
-    background: var(--bg-input);
-    border: 1px solid var(--border-dark);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.inspector-action,
-.inspector-export {
-    min-height: 34px;
-    padding: 8px 10px;
-    color: #e9edef;
-    background: var(--bg-input);
-    border: 1px solid var(--border-dark);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    font-size: 12px;
-}
-
-.creator-page-tab.selected {
-    color: #101416;
-    background: var(--accent-studio);
-    border-color: var(--accent-studio);
-}
-
-.creator-page-tab:hover,
-.inspector-action:hover {
-    background: #454d52;
-}
-
-.inspector-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-}
-
-.inspector-actions .inspector-action:last-child:nth-child(odd) {
-    grid-column: 1 / -1;
-}
-
-.creator-sample-name {
-    min-height: 30px;
-    margin: 0;
-    overflow-wrap: anywhere;
-    color: #b8c0c4;
-    font-size: 12px;
-}
-
-.creator-light-presets {
-    display: grid;
-    gap: 10px;
-}
-
-.creator-light-categories {
-    display: flex;
-    gap: 5px;
-    padding-bottom: 5px;
-    overflow-x: auto;
-}
-
-.creator-light-category {
-    flex: 0 0 auto;
-    padding: 6px 8px;
-    color: #cbd2d5;
-    background: var(--bg-panel);
-    border: 1px solid var(--border-dark);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    font-size: 10px;
-}
-
-.creator-light-category.selected {
-    color: #101416;
-    background: var(--accent-studio);
-    border-color: var(--accent-studio);
-}
-
-.creator-animation-group {
-    display: grid;
-    gap: 8px;
-    padding-top: 8px;
-    border-top: 1px solid var(--border-subtle);
-}
-
-.creator-animation-group h4 {
-    margin: 0;
-    color: #c5cdd1;
-    font-size: 11px;
-    font-weight: 600;
-}
-
-.creator-animation-variants {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-}
-
-.creator-animation-swatch {
-    display: grid;
-    place-items: center;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    background: var(--bg-panel);
-    border: 1px solid var(--border-dark);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-}
-
-.creator-animation-swatch.selected {
-    border-color: var(--accent-studio);
-    box-shadow: inset 0 0 0 1px var(--accent-studio);
-}
-
-.creator-light-swatch {
-    width: 20px;
-    height: 20px;
-    background: var(--preset-color);
-    border: 1px solid rgba(255, 255, 255, 0.45);
-    border-radius: 50%;
-    box-shadow: 0 0 7px var(--preset-color);
-}
-
-.creator-text-animation {
-    display: grid;
-    gap: 8px;
-    padding: 10px;
-    background: var(--bg-panel);
-    border: 1px solid var(--border-dark);
-    border-radius: var(--radius-sm);
-}
-
-.creator-animation-empty {
-    margin: 2px 0;
-    color: var(--text-muted);
-    font-size: 11px;
-}
-
-.inspector-footer {
-    margin-top: auto;
-    padding-top: 12px;
-    border-top: 1px solid var(--border-dark);
-}
-
-.inspector-footer span {
-    color: #aab3b8;
-    font-size: 11px;
-}
-
-.inspector-export {
-    color: #101416;
-    background: var(--accent-studio);
-    border-color: var(--accent-studio);
-    font-weight: 700;
-}
-
-.layout[data-studio="edit"] #Launchpad .grid-item {
-    background-color: var(--bg-input);
-    box-shadow: inset 0 0 0 1px var(--border-dark);
-}
-
-.layout[data-studio="edit"] #Launchpad .grid-item.creator-pad-assigned {
-    background-color: #245244;
-}
-
-.layout[data-studio="edit"] #Launchpad .grid-item.creator-pad-assigned::after {
-    position: absolute;
-    right: clamp(2px, 10%, 5px);
-    bottom: clamp(2px, 10%, 5px);
-    width: clamp(4px, 16%, 7px);
-    height: clamp(4px, 16%, 7px);
-    content: '';
-    background: var(--accent-studio);
-    border: 1px solid #d8fff2;
-    border-radius: 50%;
-    pointer-events: none;
-}
-
-.layout[data-studio="edit"] #Launchpad .grid-item.creator-pad-selected {
-    outline: 3px solid var(--accent-studio);
-    outline-offset: 1px;
-    z-index: 1;
-}
-
-.layout[data-studio="edit"] #Launchpad .grid-item[data-creator-led] {
-    box-shadow: inset 0 0 0 3px var(--creator-led-color, var(--accent-studio));
-}
-
-.creator-light-timing {
-    display: grid;
-    gap: 8px;
-    padding: 10px;
-    background: var(--bg-panel);
-    border: 1px solid var(--border-dark);
-    border-radius: var(--radius-sm);
-}
-
-.creator-sync-toggle {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    color: #e9edef;
-    cursor: pointer;
-}
-
-.creator-sync-toggle input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-    accent-color: var(--accent-studio);
-}
-
-.creator-manual-light-duration {
-    display: grid;
-    gap: 4px;
-}
-
-.creator-duration-note {
-    margin: 0;
-    color: #ffbb45;
-    font-size: 11px;
-}
-
-/* Studio Dialog (Unsaved changes confirmation) */
-.creator-dialog {
-    border: 1px solid var(--border-dark);
-    border-radius: var(--radius-card);
-    background: rgba(21, 23, 25, 0.95);
-    backdrop-filter: blur(12px);
-    color: #e5ebed;
-    padding: 0;
-    max-width: 440px;
-    width: 90vw;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65);
-    margin: auto;
-}
-
-.creator-dialog::backdrop {
-    background: rgba(0, 0, 0, 0.65);
-    backdrop-filter: blur(4px);
-}
-
-.creator-dialog-content {
-    padding: 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-}
-
-.creator-dialog-content h3 {
-    margin: 0;
-    font-size: 16px;
-    color: #ffffff;
-}
-
-.creator-dialog-content p {
-    margin: 0;
-    font-size: 13px;
-    line-height: 1.5;
-    color: #aab3b8;
-}
-
-.creator-dialog-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 6px;
-}
-
-.inspector-action.primary {
-    background: var(--accent-studio);
-    color: #101416;
-    font-weight: 600;
-    border-color: transparent;
-}
-
-.inspector-action.primary:hover {
-    background: var(--accent-studio-hover);
-}
-
-.inspector-action.danger {
-    background: rgba(230, 60, 60, 0.15);
-    color: #ff6b6b;
-    border-color: rgba(230, 60, 60, 0.4);
-}
-
-.inspector-action.danger:hover {
-    background: rgba(230, 60, 60, 0.3);
-    border-color: #ff6b6b;
-}
-
-.layout[data-studio="edit"] #openSidebar,
-.layout[data-studio="live"] #openSidebar {
-    display: none;
-}
-
-.studio-submode-bar {
-    display: grid;
-    gap: 6px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border-subtle);
-}
-
-.studio-submode-toggle {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    background: #151719;
-    border: 1px solid var(--border-dark);
-    border-radius: var(--radius-md);
-    padding: 2px;
-    gap: 2px;
-}
-
-.studio-submode-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 6px 8px;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-muted);
-    background: transparent;
-    border: none;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-
-.studio-submode-btn:hover {
-    color: var(--text-primary);
-}
-
-.studio-submode-btn.selected {
-    color: #101416;
-    background: var(--accent-studio);
-}
-
-.studio-live-banner {
-    margin: 0;
-    padding: 8px 10px;
-    background: var(--accent-studio-dim);
-    border: 1px solid var(--accent-studio-glow);
-    border-radius: var(--radius-sm);
-    color: var(--accent-studio-hover);
-    font-size: 11px;
-    text-align: center;
-}
-
-.creator-assigned-light {
-    display: grid;
-    gap: 8px;
-    padding: 8px 10px;
-    background: var(--bg-panel);
-    border: 1px solid var(--border-dark);
-    border-radius: var(--radius-md);
-}
-
-.creator-assigned-light-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-}
-
-.creator-assigned-light-info {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-}
-
-.creator-assigned-light-info strong {
-    font-size: 12px;
-    color: #f4f6f7;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.creator-action-sm {
-    min-height: 28px;
-    padding: 4px 8px;
-    font-size: 11px;
-}
-
-.inspector-action-danger {
-    color: #ff9b9b;
-    border-color: #833535;
-    background: rgba(180, 40, 40, 0.15);
-}
-
-.inspector-action-danger:hover {
-    background: rgba(180, 40, 40, 0.35);
-}
-
-.creator-hold-hint {
-    margin: 0;
-    color: var(--accent-studio-hover);
-    font-size: 11px;
-}
-
-/* Studio Live Full-screen Mode */
-.layout[data-studio="live"] {
-    grid-template-columns: 0 1fr;
-    gap: 0;
-}
-
-.layout[data-studio="live"] #Launchpad .grid-item {
-    cursor: pointer;
-    outline: none;
-    box-shadow: none;
-}
-
-.layout[data-studio="live"] #Launchpad .grid-item:active {
-    filter: brightness(1.3);
-}
-
-.studio-live-toolbar {
-    position: fixed;
-    top: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 30;
-    max-width: 90vw;
-}
-
-.studio-live-toolbar-content {
-    display: inline-flex;
-    align-items: center;
-    gap: 16px;
-    background: rgba(21, 23, 25, 0.92);
-    backdrop-filter: blur(12px);
-    border: 1px solid var(--border-dark);
-    border-radius: var(--radius-pill);
-    padding: 8px 16px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
-}
-
-.studio-live-info {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.studio-live-badge {
-    background: var(--accent-studio-dim);
-    color: var(--accent-studio);
-    font-size: 10px;
-    font-weight: 700;
-    padding: 3px 8px;
-    border-radius: var(--radius-lg);
-    letter-spacing: 0.5px;
-}
-
-.studio-live-title {
-    color: #f0f4f6;
-    font-size: 13px;
-    font-weight: 600;
-    max-width: 200px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.studio-live-page-badge {
-    color: #8c989e;
-    font-size: 12px;
-    font-weight: 500;
-}
-
-.studio-exit-live-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    font-size: 12px;
-    font-weight: 600;
-    color: #101416;
-    background: var(--accent-studio);
-    border: none;
-    border-radius: var(--radius-pill);
-    cursor: pointer;
-    box-shadow: 0 0 10px var(--accent-studio-glow);
-    transition: all 0.2s ease;
-}
-
-.studio-exit-live-btn:hover {
-    background: var(--accent-studio-hover);
-    box-shadow: 0 0 14px var(--accent-studio-glow);
+/* Dark text: white on the warning amber is unreadable (contrast ~1.9:1). */
+.notification.warning {
+    background-color: var(--warning-color);
+    color: var(--bg-dark);
 }

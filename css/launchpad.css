@@ -45,85 +45,84 @@
 }
 
 /*
-  GRID PADS (8x8 Buttons)
-  - Base style for square pads that play sounds.
-  - CUSTOMIZATION:
-    - `background-color`: Pad color at rest.
-    - `border-radius`: Corner rounding of pads.
-    - `box-shadow`: Inner shadow to give an "inset" effect.
+  PADS AND MENU BUTTONS (shared geometry + emissive LED layer)
+  - Shared by the 8x8 grid pads and the round menu buttons.
+  - The lit color is composed from three custom properties in a single color-mix,
+    so the LED can be dimmed without recomputing the base color:
+      --pad-base : pad color when the LED is off (CUSTOMIZATION: unlit color)
+      --led-color: current LED hue
+      --led-level: emission level, 0 (off) to 1 (full)
+  - `aspect-ratio: 1 / 1` keeps them square; corner rounding differs below.
 */
-.grid-item {
-  width: 100%;
-  height: 100%;
-  min-width: 0;
-  min-height: 0;
-  aspect-ratio: 1 / 1;
-  /* Keeps pads square to avoid distortion. */
-  background-color: #d3d3d3;
-  /* Light gray by default. */
-  border-radius: 12%;
-  cursor: pointer;
-  transition: background-color 0.1s ease;
-  /* Quick transition for color change. */
-  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
-  border: none;
-  /* Removes default button border. */
-  position: relative;
-  /* Necessary to position the 'sticker' pseudo-element. */
-}
-
-/* Pad style on mouse hover. */
-.grid-item:hover {
-  background-color: #bfbfbf;
-  /* A slightly darker gray. */
-}
-
-/*
-  Pad style when active (i.e., while playing).
-  - The `.active` class is added and removed via JavaScript.
-  - CUSTOMIZATION: This is the most important style for visual feedback.
-    - `background-color`: Pad color when pressed. #00aaff is a bright blue.
-    - `box-shadow`: Adds a glow of the same color for a neon effect.
-*/
-.grid-item.active {
-  background-color: #00aaff;
-  box-shadow: 0 0 10px #00aaff;
-}
-
-/*
-  MENU BUTTONS (side and top)
-  - Style for round buttons.
-  - CUSTOMIZATION:
-    - `background-color`: Button color at rest.
-    - `:hover` and `.selected`: Style on mouse hover or when a sound page is selected.
-      Change `background-color` and `box-shadow` to customize the effect.
-*/
+.grid-item,
 .grid-item-menu {
   width: 100%;
   height: 100%;
   min-width: 0;
   min-height: 0;
   aspect-ratio: 1 / 1;
-  /* Keeps pads square for perfect circles. */
-  background-color: #d3d3d3;
-  border-radius: 50%;
-  /* Makes them perfectly round. */
+  --pad-base: #d3d3d3;
+  /* Unlit skin color, kept apart from --pad-base so dimmed LEDs always blend
+     with the real pad surface instead of the darkened active base. */
+  --pad-rest: #d3d3d3;
+  --led-color: transparent;
+  --led-level: 0;
+  background-color: color-mix(in srgb, var(--led-color) calc(var(--led-level) * 100%), var(--pad-base));
   cursor: pointer;
-  transition: background-color 0.1s ease;
+  /* Instant LED toggling without CSS interpolation overhead */
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.22),
+              inset 0 0 5px rgba(0, 0, 0, 0.5),
+              0 0 calc(var(--led-level) * 12px) color-mix(in srgb, var(--led-color) calc(var(--led-level) * 100%), transparent);
   border: none;
   position: relative;
-  /* Necessary to position the 'sticker' pseudo-element. */
 }
 
+/*
+  CORNER SHAPE
+  - Grid pads are slightly rounded squares; menu buttons are perfect circles.
+*/
+.grid-item {
+  border-radius: 12%;
+}
+
+.grid-item-menu {
+  border-radius: 50%;
+}
+
+/* Unlit state on mouse hover, shared by pads and menu buttons. */
+.grid-item:hover,
 .grid-item-menu:hover {
-  background-color: #bfbfbf;
+  --pad-base: #bfbfbf;
 }
 
-.grid-item-menu.selected {
-  background-color: #ff9900;
-  /* Arancione per la pagina selezionata */
-  box-shadow: 0 0 10px #ff9900;
-  /* Bagliore arancione */
+/*
+  Pad style when active (i.e., while playing).
+  - Emissive layer lights up with the user's UI accent color at full emission.
+*/
+.grid-item.active,
+.grid-item-menu.active {
+  --pad-base: #989898;
+  --led-color: var(--accent-blue);
+  --led-level: 1;
+}
+
+/*
+  Dedicated styling for white LEDs:
+  White is mixed with the skin's real rest color (--pad-rest) instead of the
+  darkened active base (.grid-item.active sets #989898). Mixing against #989898
+  made a dimmed white darker than the unlit pad, breaking monotonicity; blending
+  with the true pad surface keeps the 3 emission steps (100%, 65%, 35%) monotonic
+  down to the unlit color, e.g. on the Classic skin:
+  Full (L* ~100) -> Medium (~95) -> Low (~90) -> Off (~85).
+  An inner dark contrast ring + intense white glow, both scaled by --led-level,
+  keep the steps clearly separated.
+*/
+.grid-item[data-led-color="white"],
+.grid-item-menu[data-led-color="white"] {
+  --pad-base: var(--pad-rest);
+  box-shadow: inset 0 0 0 calc(1px + var(--led-level) * 1.5px) rgba(0, 0, 0, calc(0.3 + var(--led-level) * 0.35)),
+              inset 0 0 calc(var(--led-level) * 5px) rgba(0, 0, 0, calc(var(--led-level) * 0.45)),
+              0 0 calc(var(--led-level) * 16px) rgba(255, 255, 255, calc(var(--led-level) * 0.95));
 }
 
 /*
@@ -135,36 +134,65 @@
     - `background-color`: Sticker color (currently black).
     - `width` and `height`: Control the sticker size. A lower value (e.g., 80%) will make the colored border thicker.
 */
-.Launchpad.has-stickers .grid-item::before {
+.Launchpad.has-stickers .grid-item::before,
+.Launchpad.has-stickers .grid-item-menu::before,
+.Launchpad.has-stickers .grid-item-pro-aux:not(.pro-corner-button)::before {
   content: '';
   display: block;
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  /* Centers the sticker in the pad. */
   width: 85%;
   height: 85%;
   background-color: black;
-  border-radius: 12%;
-  /* Same rounding as the pad. */
+  border-radius: inherit;
   pointer-events: none;
-  /* Allows clicks to pass through the sticker and reach the button. */
+  z-index: 1;
 }
 
-.Launchpad.has-stickers .grid-item-menu::before {
-  content: '';
-  display: block;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 85%;
-  height: 85%;
-  background-color: black;
+/* Classic / MK2 stickers (12% central pads, 50% round menu buttons) */
+.Launchpad.launchpad-model-classic.has-stickers .grid-item::before {
+  border-radius: 12%;
+}
+.Launchpad.launchpad-model-classic.has-stickers .grid-item-menu::before {
   border-radius: 50%;
-  /* Rounding for menu buttons. */
-  pointer-events: none;
+}
+
+/* Modern MK3 / X stickers (all buttons are square / squircles 9%) */
+.Launchpad.launchpad-model-mk3.has-stickers .grid-item::before,
+.Launchpad.launchpad-model-mk3.has-stickers .grid-item-menu::before {
+  border-radius: 9%;
+}
+
+/* Launchpad Pro 2015 stickers (10% pads, 50% round control buttons) */
+.Launchpad.launchpad-model-pro.has-stickers .grid-item::before {
+  border-radius: 10%;
+}
+.Launchpad.launchpad-model-pro.has-stickers .pro-round-btn::before,
+.Launchpad.launchpad-model-pro.has-stickers .grid-item-menu::before,
+.Launchpad.launchpad-model-pro.has-stickers .grid-item-pro-aux::before {
+  border-radius: 50%;
+}
+
+/* Launchpad Pro MK3 stickers (all buttons are square / squircles 9%) */
+.Launchpad.launchpad-model-pro-mk3.has-stickers .grid-item::before,
+.Launchpad.launchpad-model-pro-mk3.has-stickers .pro-squircle-btn:not(.pro-corner-button)::before,
+.Launchpad.launchpad-model-pro-mk3.has-stickers .grid-item-menu::before,
+.Launchpad.launchpad-model-pro-mk3.has-stickers .grid-item-pro-aux:not(.pro-corner-button)::before {
+  border-radius: 9%;
+}
+
+.Launchpad.launchpad-model-pro-mk3.has-stickers .pro-split-top::before {
+  border-radius: clamp(2px, 0.6cqi, 4px);
+  width: 90%;
+  height: 75%;
+}
+
+.Launchpad.launchpad-model-pro-mk3.has-stickers .pro-split-bottom::before {
+  border-radius: clamp(3px, 1.2cqi, 6px);
+  width: 90%;
+  height: 85%;
 }
 
 /*
@@ -226,6 +254,417 @@
   height: 100%;
   object-fit: cover;
   border-radius: 12%;
+}
+
+/*
+  =============================================================================
+  LAUNCHPAD MODEL STYLES (MK3, PRO 2015, PRO MK3)
+  =============================================================================
+*/
+
+/* --- MODERN MK3 / X LAYOUT (9x9 with squircles & orange bottom rim) --- */
+.Launchpad.launchpad-model-mk3 {
+  grid-template-columns: repeat(9, 1fr);
+  grid-template-rows: repeat(9, 1fr);
+  gap: clamp(3px, 1.4%, 7px);
+  background-color: #0d0f12;
+  border-bottom: 4px solid #ff5500;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.08);
+}
+
+/* Shared squircle geometry for the modern models (MK3 / X and Pro MK3) */
+:where(.Launchpad.launchpad-model-mk3, .Launchpad.launchpad-model-pro-mk3) .grid-item {
+  border-radius: 9%;
+  --pad-base: #e2e4e8;
+  --pad-rest: #e2e4e8;
+}
+
+:where(.Launchpad.launchpad-model-mk3, .Launchpad.launchpad-model-pro-mk3) .grid-item-menu {
+  border-radius: 9%;
+}
+
+:where(.Launchpad.launchpad-model-mk3) .grid-item {
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.3),
+              inset 0 1px 1px rgba(255, 255, 255, 0.25),
+              0 0 calc(var(--led-level) * 12px) color-mix(in srgb, var(--led-color) calc(var(--led-level) * 100%), transparent);
+}
+
+.Launchpad.launchpad-model-mk3 .grid-item-menu {
+  background-color: #d0d4dc;
+  color: #333;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+}
+
+.Launchpad.launchpad-model-mk3 .mk3-icon {
+  width: 50%;
+  height: 50%;
+  pointer-events: none;
+}
+
+.Launchpad.launchpad-model-mk3 .mk3-btn-text {
+  font-size: clamp(3px, 2.1cqi, 9.5px);
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+/* Shared top-right logo container geometry for all model layouts */
+.Launchpad.launchpad-model-mk3 #image-container,
+.Launchpad.launchpad-model-pro #image-container,
+.Launchpad.launchpad-model-pro-mk3 #image-container {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  justify-self: stretch;
+  align-self: stretch;
+}
+
+.Launchpad.launchpad-model-mk3 #image-container {
+  grid-column: 9 / span 1;
+  grid-row: 1 / span 1;
+}
+
+.Launchpad.launchpad-model-mk3 #image-container .square-image,
+.Launchpad.launchpad-model-pro-mk3 #image-container .square-image {
+  border-radius: 9%;
+}
+
+.Launchpad.launchpad-model-mk3 #image-container .square-image[src*="Logo.png"],
+.Launchpad.launchpad-model-mk3 .mk3-logo-img {
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+  opacity: 0.9;
+}
+
+/* --- LAUNCHPAD PRO (2015) & PRO MK3 (2020): shared 10x10 perimeter footprint --- */
+.Launchpad.launchpad-model-pro,
+.Launchpad.launchpad-model-pro-mk3 {
+  grid-template-columns: repeat(10, 1fr);
+  grid-template-rows: repeat(10, 1fr);
+  gap: clamp(3px, 1.3%, 6px);
+  border-radius: clamp(8px, 2.8%, 16px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+:where(.Launchpad.launchpad-model-pro, .Launchpad.launchpad-model-pro-mk3) .grid-item {
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.35),
+              inset 0 1px 1px rgba(255, 255, 255, 0.2),
+              0 0 calc(var(--led-level) * 12px) color-mix(in srgb, var(--led-color) calc(var(--led-level) * 100%), transparent);
+}
+
+.Launchpad.launchpad-model-pro .pro-round-btn {
+  border-radius: 50%;
+}
+
+.Launchpad.launchpad-model-pro-mk3 .pro-squircle-btn {
+  border-radius: 9%;
+}
+
+.Launchpad.launchpad-model-mk3 .grid-item-menu,
+.Launchpad.launchpad-model-pro .grid-item-menu,
+.Launchpad.launchpad-model-pro-mk3 .grid-item-menu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.Launchpad.launchpad-model-pro .grid-item-menu,
+.Launchpad.launchpad-model-pro-mk3 .grid-item-menu {
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1), 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.Launchpad.launchpad-model-pro .grid-item-pro-aux,
+.Launchpad.launchpad-model-pro-mk3 .grid-item-pro-aux {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  aspect-ratio: 1 / 1;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.4);
+  transition: background-color 0.1s ease;
+  cursor: default;
+  position: relative;
+}
+
+.Launchpad.launchpad-model-pro .grid-item-menu,
+.Launchpad.launchpad-model-pro-mk3 .grid-item-menu {
+  cursor: pointer;
+}
+
+.Launchpad.launchpad-model-pro .grid-item-pro-aux:hover,
+.Launchpad.launchpad-model-pro-mk3 .grid-item-pro-aux:hover {
+  color: #fff;
+}
+
+/* Launchpad Pro (2015) palette: lighter shell */
+.Launchpad.launchpad-model-pro {
+  background-color: #121316;
+}
+
+:where(.Launchpad.launchpad-model-pro) .grid-item {
+  border-radius: 10%;
+  --pad-base: #dce0e6;
+  --pad-rest: #dce0e6;
+}
+
+.Launchpad.launchpad-model-pro .grid-item-menu {
+  background-color: #2a2d33;
+  color: #ddd;
+}
+
+.Launchpad.launchpad-model-pro .grid-item-menu:hover {
+  background-color: #353940;
+}
+
+.Launchpad.launchpad-model-pro .grid-item-pro-aux {
+  background-color: #24272c;
+  color: #bbb;
+}
+
+.Launchpad.launchpad-model-pro .grid-item-pro-aux:hover {
+  background-color: #2d3137;
+}
+
+.Launchpad.launchpad-model-pro .pro-btn-text,
+.Launchpad.launchpad-model-pro-mk3 .pro-btn-text {
+  font-size: clamp(2px, 1.7cqi, 8px);
+  font-weight: 600;
+  text-align: center;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 1px;
+  pointer-events: none;
+}
+
+.Launchpad.launchpad-model-pro .pro-icon,
+.Launchpad.launchpad-model-pro-mk3 .pro-icon {
+  width: 45%;
+  height: 45%;
+  pointer-events: none;
+}
+
+.Launchpad.launchpad-model-pro #image-container,
+.Launchpad.launchpad-model-pro-mk3 #image-container {
+  grid-column: 10 / span 1;
+  grid-row: 1 / span 1;
+}
+
+.Launchpad.launchpad-model-pro #image-container .square-image {
+  border-radius: 50%;
+}
+
+.Launchpad.launchpad-model-pro .pro-corner-button,
+.Launchpad.launchpad-model-pro-mk3 .pro-corner-button {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.Launchpad.launchpad-model-pro #image-container .square-image[src*="Logo.png"],
+.Launchpad.launchpad-model-pro-mk3 #image-container .square-image[src*="Logo.png"],
+.Launchpad.launchpad-model-pro .pro-logo-img,
+.Launchpad.launchpad-model-pro-mk3 .pro-logo-img {
+  width: 75%;
+  height: 75%;
+  object-fit: contain;
+}
+
+/* Launchpad Pro MK3 (2020) palette: dark shell with orange rim */
+.Launchpad.launchpad-model-pro-mk3 {
+  background-color: #0d0f12;
+  border-bottom: 4px solid #ff5500;
+}
+
+.Launchpad.launchpad-model-pro-mk3 .grid-item-menu {
+  background-color: #26292f;
+  color: #eee;
+}
+
+.Launchpad.launchpad-model-pro-mk3 .grid-item-menu:hover {
+  background-color: #31353d;
+}
+
+.Launchpad.launchpad-model-pro-mk3 .grid-item-pro-aux {
+  border-radius: 9%;
+  background-color: #202328;
+  color: #ccc;
+}
+
+.Launchpad.launchpad-model-pro-mk3 .grid-item-pro-aux:hover {
+  background-color: #2a2e35;
+}
+
+/* Pro MK3 split bottom row (8 columns, each with slim track-select button on top and function button on bottom) */
+.Launchpad.launchpad-model-pro-mk3 .pro-split-column {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: clamp(2px, 0.6%, 4px);
+}
+
+.Launchpad.launchpad-model-pro-mk3 .pro-split-top,
+.Launchpad.launchpad-model-pro-mk3 .pro-split-bottom {
+  aspect-ratio: auto;
+  min-height: 0;
+  width: 100%;
+}
+
+.Launchpad.launchpad-model-pro-mk3 .pro-split-top {
+  height: 25%;
+  border-radius: clamp(2px, 0.6cqi, 4px);
+  background-color: #202328;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+
+.Launchpad.launchpad-model-pro-mk3 .pro-split-top:hover {
+  background-color: #2a2e35;
+}
+
+.Launchpad.launchpad-model-pro-mk3 .pro-split-bottom {
+  height: calc(75% - clamp(2px, 0.6%, 4px));
+  border-radius: clamp(3px, 1.2cqi, 6px);
+  background-color: #202328;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.Launchpad.launchpad-model-pro-mk3 .pro-split-bottom:hover {
+  background-color: #2a2e35;
+}
+
+/* Pro MK3 typography, icons and multi-line button layouts */
+.Launchpad.launchpad-model-pro-mk3 .grid-item-menu,
+.Launchpad.launchpad-model-pro-mk3 .grid-item-pro-aux {
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+}
+
+.Launchpad.launchpad-model-pro-mk3 .pro-btn-text {
+  font-size: clamp(2px, 1.4cqi, 7.5px);
+  white-space: normal;
+  line-height: 1.05;
+  text-align: center;
+  max-width: 96%;
+}
+
+.Launchpad.launchpad-model-pro-mk3 .pro-subtext {
+  font-size: clamp(2px, 1.15cqi, 5.5px);
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.05;
+  color: #9aa0a6;
+  white-space: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 96%;
+  pointer-events: none;
+}
+
+.Launchpad.launchpad-model-pro-mk3 .pro-subtext-dots {
+  font-size: clamp(4px, 1.8cqi, 9px);
+  letter-spacing: 1px;
+  line-height: 0.8;
+  color: #c4c7c5;
+}
+
+.Launchpad.launchpad-model-pro-mk3 .pro-subtext-red {
+  color: #ff453a;
+  font-weight: 600;
+}
+
+.Launchpad.launchpad-model-pro-mk3 .pro-scene-arrow {
+  font-size: clamp(6px, 1.8cqi, 12px);
+  font-weight: 700;
+  line-height: 1;
+  color: #c4c7c5;
+  pointer-events: none;
+}
+
+.Launchpad.launchpad-model-pro-mk3 .pro-icon-record {
+  width: 40%;
+  height: 40%;
+}
+
+/* Shift (top-left) and Setup (bottom-left) corner buttons are more compact than standard buttons */
+.Launchpad.launchpad-model-pro-mk3 .pro-corner-top-left.grid-item-pro-aux,
+.Launchpad.launchpad-model-pro-mk3 .pro-corner-bottom-left.grid-item-pro-aux {
+  width: 68%;
+  height: 68%;
+  place-self: center;
+  border-radius: clamp(3px, 1cqi, 5px);
+  cursor: pointer;
+}
+
+.Launchpad.launchpad-model-pro-mk3 .pro-corner-top-left.grid-item-pro-aux .pro-btn-text,
+.Launchpad.launchpad-model-pro-mk3 .pro-corner-bottom-left.grid-item-pro-aux .pro-btn-text {
+  font-size: clamp(2px, 1.2cqi, 6px);
+}
+
+.Launchpad.launchpad-model-pro-mk3 .pro-corner-bottom-right {
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Ensure printed labels and vector icons sit above the black stickers and remain clearly legible.
+   Declared after the model palettes so they win by source order without `!important`. */
+.Launchpad.has-stickers .mk3-btn-text,
+.Launchpad.has-stickers .mk3-icon,
+.Launchpad.has-stickers .pro-btn-text,
+.Launchpad.has-stickers .pro-subtext,
+.Launchpad.has-stickers .pro-scene-arrow,
+.Launchpad.has-stickers .pro-icon {
+  position: relative;
+  z-index: 2;
+  color: #fff;
+  fill: currentColor;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
+  pointer-events: none;
+}
+
+/* Keeps the red subtext red when the white sticker-label rule above applies. */
+.Launchpad.has-stickers .pro-subtext-red {
+  color: #ff453a;
+}
+
+/*
+  SELECTED PAGE / MODE BUTTON
+  - Declared after the model palettes so it wins by source order without `!important`.
+  - The `:hover` variant keeps the orange highlight while hovering the active button.
+*/
+.Launchpad .grid-item-menu.selected,
+.Launchpad .grid-item-menu.selected:hover {
+  background-color: #ff9900;
+  color: #fff;
+  box-shadow: 0 0 10px #ff9900;
 }
 
 /*

@@ -1,33 +1,76 @@
 import { audioEngine } from './audio.js';
-import { currentPage, currentProject, projectLights, activePageButton, setCurrentPage, setActivePageButton, activeModeButton, setCurrentMode, setActiveModeButton, getProjectStateSnapshot } from './app.js';
-import { triggerAnimation, releaseAnimation } from './lights.js';
-import { resolveLightDuration } from './animationData.js';
+import { getActiveProject, getCurrentPage, setCurrentPage, getCurrentMode, setCurrentMode, isProjectReady } from './projectState.js';
+import { triggerAnimation, releaseAnimation, resolveStepLightDuration } from './lights.js';
 import { setPhysicalColor, getLpColor, flushPhysicalColors } from './physicalInterface.js';
-import { getPadElement, updatePageButtonHighlight } from './webInterface.js';
+import { getPadElement, updatePageButtonHighlight, updateModeButtonHighlight } from './webInterface.js';
 import { registerListener } from './eventCleanup.js';
-import { isProjectReady } from './projectLoadingState.js';
+import { debug, logger } from './logger.js';
+import { createPadStep } from './projectModel.js';
 import { 
     LAUNCHPAD_COLS, 
-    LAUNCHPAD_PADS, 
     SCENE_BUTTONS_X, 
     AUTOMAP_BUTTONS_Y, 
     ERROR_SHAKE_DURATION_MS, 
     TOTAL_PAGES, 
     TOTAL_MODES, 
     FIRST_MODE_INDEX, 
-    TOTAL_AUTOMAP_BUTTONS, 
-    DEFAULT_LIGHT_DURATION_SEC
+    TOTAL_AUTOMAP_BUTTONS
 } from './constants.js';
 
-let interactionInitialized = false; // Track if listeners have been set up
-let shakeTimeoutId = null; // Track error shake timeout to prevent stacking
-
-let currentPadSource = null;
+/** @typedef {import('./projectModel.js').PadStep} PadStep */
 
 /**
- * Registers an active pad configuration source provider (e.g. Studio Creator).
- * Pass null to revert to standard Performance project mode.
- * @param {object|null} provider
+ * What a pad press should play, as resolved by a pad source.
+ * @typedef {object} PadPlayback
+ * @property {PadStep} step - The step to play (sound and/or light).
+ * @property {number} stepIndex - Index of `step` within the pad's steps.
+ * @property {number} totalSteps - Number of steps of the pad (>= 1).
+ * @property {string} soundKey - Audio engine key: re-pressing the pad restarts its sound.
+ * @property {string|null} counterKey - Round-robin cursor key, or null to keep the cursor still.
+ */
+
+/**
+ * Provider of pad behaviour. The performance project is the default source;
+ * the Studio Creator registers its own while editing.
+ * @typedef {object} PadSource
+ * @property {function(number): (PadPlayback|null)} getPadPlayback - Resolves the playback for a pad index (0-63).
+ * @property {function(number): void} [onPadPress] - Notified before a pad plays.
+ * @property {function(number): void} [onPadDrag] - The pointer, still pressed, moved onto another pad
+ *   (e.g. painting a stroke). Without it, dragging does nothing.
+ * @property {function(): void} [onDragEnd] - The press that started a drag ended.
+ * @property {function(number, boolean): void} [onPageChange] - Handles page buttons (replaces project paging).
+ */
+
+let interactionInitialized = false; // Track if listeners have been set up
+/** Pad under a pressed pointer (mouse button or touch), or null when nothing is pressed. */
+let dragPadIndex = null;
+let shakeTimeoutId = null; // Track error shake timeout to prevent stacking
+
+/** A pad with no steps still gives press feedback, it just plays nothing. */
+const EMPTY_STEP = Object.freeze(createPadStep());
+
+let currentPadSource = null;
+const padStepCounters = new Map();
+const activePressAnimations = new Map();
+/**
+ * Pads showing press feedback. A press the pad source ignores (e.g. painting a
+ * custom animation frame) adds none, so its release must not clear the LED.
+ */
+const pressedPads = new Set();
+
+/**
+ * Resets pad step round-robin counters (e.g. on project load).
+ */
+export function resetPadStepCounters() {
+    padStepCounters.clear();
+    activePressAnimations.clear();
+    pressedPads.clear();
+}
+
+/**
+ * Registers an active pad source (e.g. Studio Creator).
+ * Pass null to revert to the performance project.
+ * @param {PadSource|null} provider
  */
 export function setPadSource(provider) {
     currentPadSource = provider;
@@ -37,17 +80,41 @@ export function getPadSource() {
     return currentPadSource;
 }
 
-function getDefaultPadConfig(index) {
-    const state = getProjectStateSnapshot();
-    if (!state.project) return null;
-    const soundIndex = state.page * LAUNCHPAD_PADS + index;
-    const isReady = isProjectReady();
+/**
+ * Reads a pad's round-robin step cursor without advancing it.
+ * Letting the pad source read (but never mutate) the cursor keeps the
+ * advancement in a single place: `triggerPad`.
+ * @param {string} counterKey
+ * @returns {number}
+ */
+export function getPadStepCursor(counterKey) {
+    return padStepCounters.get(counterKey) || 0;
+}
+
+/**
+ * Default pad source: the active performance project.
+ * @param {number} index - Pad index (0-63).
+ * @returns {PadPlayback|null}
+ */
+function getProjectPadPlayback(index) {
+    const active = getActiveProject();
+    const page = getCurrentPage();
+    if (!active || page === null) return null;
+
+    const steps = active.pages[page]?.[index] || [];
+    const soundKey = `project:${page}:${index}`;
+    if (steps.length === 0) {
+        return { step: EMPTY_STEP, stepIndex: 0, totalSteps: 1, soundKey, counterKey: null };
+    }
+
+    const counterKey = `${page}:${index}`;
+    const stepIndex = getPadStepCursor(counterKey) % steps.length;
     return {
-        soundIndex,
-        soundBuffer: null,
-        animationName: isReady && state.lights ? state.lights[soundIndex] : null,
-        syncToSound: state.lightSyncToSound?.[soundIndex] ?? true,
-        manualDuration: state.lightDurations?.[soundIndex] ?? DEFAULT_LIGHT_DURATION_SEC
+        step: steps[stepIndex],
+        stepIndex,
+        totalSteps: steps.length,
+        soundKey,
+        counterKey
     };
 }
 
@@ -59,28 +126,32 @@ export function triggerPad(index) {
     const pad = getPadElement(index);
     if (!pad) return;
 
-    if (currentPadSource?.onPadPress) {
-        currentPadSource.onPadPress(index);
-    }
+    currentPadSource?.onPadPress?.(index);
 
-    const config = currentPadSource ? currentPadSource.getPadConfig(index) : getDefaultPadConfig(index);
-    if (!config) return;
+    const playback = currentPadSource ? currentPadSource.getPadPlayback(index) : getProjectPadPlayback(index);
+    if (!playback) return;
 
-    let duration = 0;
-    if (config.soundBuffer) {
-        const soundKey = config.soundKey !== undefined ? config.soundKey : `draft:${index}`;
-        duration = audioEngine.playBuffer(config.soundBuffer, soundKey);
-    } else if (config.soundIndex !== undefined) {
-        duration = audioEngine.playPadSound(config.soundIndex);
-    }
+    const { step } = playback;
+    const soundDuration = step.buffer ? audioEngine.playBuffer(step.buffer, playback.soundKey) : 0;
 
-    if (config.animationName) {
+    if (step.light) {
         const x = index % LAUNCHPAD_COLS;
         const y = Math.floor(index / LAUNCHPAD_COLS);
-        const animationDuration = resolveLightDuration(config.syncToSound, duration, config.manualDuration);
-        triggerAnimation(config.animationName, x, y, animationDuration);
+        triggerAnimation(step.light, x, y, resolveStepLightDuration(step, soundDuration));
+        activePressAnimations.set(index, step.light);
+    } else {
+        activePressAnimations.delete(index);
     }
 
+    // Advance the round-robin step cursor here, and only here, for every pad
+    // source (performance project and Studio Creator live preview alike).
+    // Advancing while *reading* the playback would double-count whenever the pad
+    // is released without an active animation (e.g. a step with no light).
+    if (playback.counterKey && playback.totalSteps > 1) {
+        padStepCounters.set(playback.counterKey, (playback.stepIndex + 1) % playback.totalSteps);
+    }
+
+    pressedPads.add(index);
     pad.classList.add('active');
 }
 
@@ -92,14 +163,54 @@ export function releasePad(index) {
     const pad = getPadElement(index);
     if (!pad) return;
 
-    const config = currentPadSource ? currentPadSource.getPadConfig(index) : getDefaultPadConfig(index);
-    if (config?.animationName) {
+    const animationName = activePressAnimations.get(index);
+    activePressAnimations.delete(index);
+
+    if (animationName) {
         const x = index % LAUNCHPAD_COLS;
         const y = Math.floor(index / LAUNCHPAD_COLS);
-        releaseAnimation(config.animationName, x, y);
+        releaseAnimation(animationName, x, y);
     }
 
-    pad.classList.remove('active');
+    if (pressedPads.delete(index)) pad.classList.remove('active');
+}
+
+/** @returns {number|null} The index of the virtual pad element, if `element` is inside one. */
+function padIndexOf(element) {
+    const pad = element?.closest?.('.grid-item');
+    return pad && pad.dataset.index !== undefined ? parseInt(pad.dataset.index, 10) : null;
+}
+
+/** The pressed pointer reached `index`: tell the pad source once per new pad. */
+function dragOver(index) {
+    if (dragPadIndex === null || index === null || index === dragPadIndex) return;
+    dragPadIndex = index;
+    currentPadSource?.onPadDrag?.(index);
+}
+
+function endDrag() {
+    if (dragPadIndex === null) return;
+    dragPadIndex = null;
+    currentPadSource?.onDragEnd?.();
+}
+
+/**
+ * Dragging across pads with the button (or finger) down. Only pad sources that
+ * implement onPadDrag react, so performance mode is unaffected.
+ * @param {HTMLElement} launchpad
+ */
+function initPadDrag(launchpad) {
+    registerListener(launchpad, 'mouseover', (e) => {
+        if (e.buttons === 1) dragOver(padIndexOf(e.target));
+    });
+    registerListener(launchpad, 'touchmove', (e) => {
+        const touch = e.touches[0];
+        if (touch) dragOver(padIndexOf(document.elementFromPoint(touch.clientX, touch.clientY)));
+    }, { passive: true });
+    // Released anywhere, even outside the Launchpad.
+    registerListener(window, 'mouseup', endDrag);
+    registerListener(window, 'touchend', endDrag);
+    registerListener(window, 'touchcancel', endDrag);
 }
 
 /**
@@ -109,36 +220,13 @@ export function releasePad(index) {
 export function initInteraction() {
     // Prevent multiple initializations
     if (interactionInitialized) {
-        console.log("[Interaction] Already initialized, skipping duplicate setup");
+        debug("[Interaction] Already initialized, skipping duplicate setup");
         return;
     }
     interactionInitialized = true;
 
     const launchpad = document.getElementById('Launchpad');
     if (!launchpad) return;
-
-    // Initialize pads: set data-index for delegation
-    const pads = launchpad.querySelectorAll('.grid-item');
-    pads.forEach((pad, index) => {
-        pad.dataset.index = index;
-    });
-
-    // Initialize menu buttons: set data-page for side buttons
-    const menuButtons = launchpad.querySelectorAll('.grid-item-menu');
-    menuButtons.forEach(btn => {
-        if (btn.id.startsWith('m')) {
-            btn.dataset.page = parseInt(btn.id.substring(1), 10) - 1;
-        } else if (btn.id.startsWith('a')) {
-            const modeIndex = parseInt(btn.id.substring(1), 10) - 1;
-            // Only assign data-mode to official modes (4-7)
-            if (modeIndex >= FIRST_MODE_INDEX && modeIndex < FIRST_MODE_INDEX + TOTAL_MODES) {
-                btn.dataset.mode = modeIndex;
-            } else {
-                // Tasti 0-3 (Navigation) - Al momento non hanno una funzione specifica
-                btn.classList.add('navigation-button');
-            }
-        }
-    });
 
     // Handle Press (mousedown and touchstart)
     const handlePress = (e) => {
@@ -150,7 +238,8 @@ export function initInteraction() {
         if (!target) return;
 
         if (target.dataset.index !== undefined) {
-            triggerPad(parseInt(target.dataset.index, 10));
+            dragPadIndex = parseInt(target.dataset.index, 10);
+            triggerPad(dragPadIndex);
         } else if (target.dataset.page !== undefined) {
             changeSoundSet(parseInt(target.dataset.page, 10));
         } else if (target.dataset.mode !== undefined) {
@@ -183,26 +272,47 @@ export function initInteraction() {
     registerListener(launchpad, 'touchcancel', handleRelease);
 
     registerListener(launchpad, 'mouseout', handleMouseOut);
+    initPadDrag(launchpad);
 
-    console.log("[Interaction] Interaction listeners initialized");
+    registerListener(window, 'launchpad-view-changed', () => {
+        if (currentPadSource) return;
+        syncPerformancePageButtons();
+        syncPerformanceModeButtons();
+    });
+
+    debug("[Interaction] Interaction listeners initialized");
 }
+
+/**
+ * Lights one physical button orange and the others off, in a single flush.
+ * @param {Array<[number, number]>} coordinates - Physical [x, y] of each button in the row.
+ * @param {number} activeIndex - Index (into `coordinates`) of the button to highlight.
+ */
+function lightPhysicalButtonRow(coordinates, activeIndex) {
+    const orange = getLpColor('orange');
+    if (!orange) return; // Physical launchpad not connected or colors not ready
+    const off = getLpColor('off');
+
+    coordinates.forEach((position, i) => {
+        setPhysicalColor(i === activeIndex ? orange : off, position, false);
+    });
+    flushPhysicalColors();
+}
+
+// Page buttons are the scene buttons on the right side (x = SCENE_BUTTONS_X).
+const PAGE_BUTTON_COORDINATES = Array.from({ length: TOTAL_PAGES }, (_, i) => [SCENE_BUTTONS_X, i]);
+// Mode buttons are the official modes (4-7) on the top automap row.
+const MODE_BUTTON_COORDINATES = Array.from(
+    { length: TOTAL_AUTOMAP_BUTTONS - FIRST_MODE_INDEX },
+    (_, i) => [FIRST_MODE_INDEX + i, AUTOMAP_BUTTONS_Y]
+);
 
 /**
  * Updates the lights for the page buttons on the physical Launchpad.
  * @param {number} activeIndex - The index of the currently active page.
  */
 export function updatePhysicalPageLights(activeIndex) {
-    const orange = getLpColor('orange');
-    const off = getLpColor('off');
-
-    if (!orange) return; // Physical launchpad not connected or colors not ready
-
-    for (let i = 0; i < TOTAL_PAGES; i++) {
-        // Page buttons are at x=SCENE_BUTTONS_X (Scene buttons on right side)
-        const color = (i === activeIndex) ? orange : off;
-        setPhysicalColor(color, [SCENE_BUTTONS_X, i], false);
-    }
-    flushPhysicalColors();
+    lightPhysicalButtonRow(PAGE_BUTTON_COORDINATES, activeIndex);
 }
 
 /**
@@ -210,17 +320,10 @@ export function updatePhysicalPageLights(activeIndex) {
  * with the active performance page.
  * @param {number} pageIndex
  */
-export function syncPerformancePageButtons(pageIndex = currentPage) {
+export function syncPerformancePageButtons(pageIndex = getCurrentPage()) {
+    if (currentPadSource) return; // Prevent highlighting performance page during Creator editing
     if (pageIndex === null || pageIndex === undefined) return;
     updatePageButtonHighlight(pageIndex);
-    const pageButtons = document.querySelectorAll('.grid-item-menu[data-page]');
-    if (activePageButton) {
-        activePageButton.classList.remove('selected');
-    }
-    if (pageButtons[pageIndex]) {
-        setActivePageButton(pageButtons[pageIndex]);
-        activePageButton.classList.add('selected');
-    }
     updatePhysicalPageLights(pageIndex);
 }
 
@@ -241,22 +344,18 @@ export function changeSoundSet(index, updateVisuals = true) {
         return;
     }
 
-    // Check if project is ready before proceeding
-    // This prevents race condition where currentProject is set but projectLights isn't
     if (!isProjectReady()) {
-        console.warn(`[Interaction] Cannot change sound set: Project not ready (state: ${isProjectReady() ? 'ready' : 'loading'})`);
+        logger.warn('[Interaction] Cannot change sound set: Project not ready');
         return;
     }
 
-    // Get a consistent snapshot to ensure project state is coherent
-    const state = getProjectStateSnapshot();
-    
-    if (state.project && index < state.project.pages.length) {
-        const pageChanged = (index !== state.page);
+    const active = getActiveProject();
+    if (active && index < active.project.pages.length) {
+        const pageChanged = (index !== getCurrentPage());
         setCurrentPage(index);
         
         if (pageChanged) {
-            console.log(`Page changed: ${index}`);
+            debug(`Page changed: ${index}`);
         }
 
         if (updateVisuals) {
@@ -284,19 +383,19 @@ export function changeSoundSet(index, updateVisuals = true) {
  * Updates the lights for the mode buttons on the physical Launchpad.
  * @param {number} activeIndex - The index of the currently active mode (4-7).
  */
-export function updatePhysicalModeLights(activeIndex) {
-    const orange = getLpColor('orange');
-    const off = getLpColor('off');
+function updatePhysicalModeLights(activeIndex) {
+    lightPhysicalButtonRow(MODE_BUTTON_COORDINATES, activeIndex - FIRST_MODE_INDEX);
+}
 
-    if (!orange) return; // Physical launchpad not connected or colors not ready
-
-    // Update only the 4 official modes (4-7)
-    for (let i = FIRST_MODE_INDEX; i < TOTAL_AUTOMAP_BUTTONS; i++) {
-        // Mode buttons are at y=AUTOMAP_BUTTONS_Y (Top row buttons)
-        const color = (i === activeIndex) ? orange : off;
-        setPhysicalColor(color, [i, AUTOMAP_BUTTONS_Y], false);
-    }
-    flushPhysicalColors();
+/**
+ * Synchronizes the visual state and physical lights of Launchpad mode buttons
+ * with the active mode.
+ * @param {number} modeIndex
+ */
+export function syncPerformanceModeButtons(modeIndex = getCurrentMode()) {
+    if (modeIndex === null || modeIndex === undefined) return;
+    updateModeButtonHighlight(modeIndex);
+    updatePhysicalModeLights(modeIndex);
 }
 
 /**
@@ -313,16 +412,15 @@ export function updatePhysicalModeLights(activeIndex) {
 export function changeMode(index, updateVisuals = true) {
     // Only allow official modes (4-7)
     if (index < FIRST_MODE_INDEX || index >= FIRST_MODE_INDEX + TOTAL_MODES) {
-        console.warn(`[Interaction] Mode index ${index} is not an official mode (4-7). Ignoring.`);
+        logger.warn(`[Interaction] Mode index ${index} is not an official mode (4-7). Ignoring.`);
         return;
     }
 
-    const state = getProjectStateSnapshot();
-    const modeChanged = (index !== state.mode);
+    const modeChanged = (index !== getCurrentMode());
 
     setCurrentMode(index);
     if (modeChanged) {
-        console.log(`Mode changed: ${index}`);
+        debug(`Mode changed: ${index}`);
     }
 
     // Always dispatch event to ensure hardware layout is synced with current state
@@ -332,20 +430,6 @@ export function changeMode(index, updateVisuals = true) {
     }));
 
     if (updateVisuals) {
-        const modeButtons = document.querySelectorAll('.grid-item-menu[data-mode]');
-        if (activeModeButton) {
-            activeModeButton.classList.remove('selected');
-        }
-        
-        // Find the button with the correct data-mode attribute
-        const newButton = Array.from(modeButtons).find(btn => parseInt(btn.dataset.mode, 10) === index);
-        setActiveModeButton(newButton);
-        
-        if (activeModeButton) {
-            activeModeButton.classList.add('selected');
-        }
-
-        // Update physical Launchpad lights
-        updatePhysicalModeLights(index);
+        syncPerformanceModeButtons(index);
     }
 }

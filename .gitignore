@@ -3,3 +3,7 @@ settings.local.json
 
 # Dipendenze Node
 node_modules/
+
+# Trae artifacts
+.trae*
+

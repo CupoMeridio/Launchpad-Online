@@ -13,12 +13,28 @@
  * 3. Fetch (`fetch`): Executed every time the application makes a network request (e.g., for a CSS file, an image, an API).
  */
 
+// Service workers run as classic scripts without access to localStorage and
+// cannot import logger.js. Diagnostics stay silent unless the worker script
+// URL carries a `?debug` parameter, which app.js forwards when debug mode is
+// enabled (via `?debug` in the page URL or `launchpad.debug` in localStorage).
+const DEBUG = new URL(self.location.href).searchParams.has('debug');
+
+/**
+ * Emits a debug log only when the DEBUG flag is enabled.
+ * @param {...*} args - Values forwarded to console.log
+ */
+function debug(...args) {
+    if (DEBUG) {
+        console.log(...args);
+    }
+}
+
 // CACHE NAME
 // Format: 'launchpad-pwa-cache-YYYY-MM-DD-HHMM'
 // CUSTOMIZATION: When you make changes to App Shell files, update this timestamp.
 // This invalidates the old cache and forces the Service Worker to download new files.
 // Example: 'launchpad-pwa-cache-2026-03-21-1430' → update to → 'launchpad-pwa-cache-2026-03-21-1505'
-const CACHE_NAME = 'launchpad-pwa-cache-2026-10-22-1915';
+const CACHE_NAME = 'launchpad-pwa-cache-2026-11-13-2321';
 
 // Get the base path dynamically to support both local dev and GitHub Pages
 const basePath = self.registration.scope.replace(self.location.origin, '');
@@ -30,6 +46,8 @@ const APP_SHELL_FILES = [
     `${basePath}`, // The root, for requests to the main page
     `${basePath}index.html`,
     `${basePath}css/style.css`,
+    `${basePath}css/sidebar.css`,
+    `${basePath}css/creator.css`,
     `${basePath}css/launchpad.css`,
     `${basePath}js/animationClasses.js`,
     `${basePath}js/animationData.js`,
@@ -42,19 +60,47 @@ const APP_SHELL_FILES = [
     `${basePath}js/animations/multi.js`,
     `${basePath}js/animations/special.js`,
     `${basePath}js/app.js`,
+    `${basePath}js/appearance.js`,
+    `${basePath}js/appearanceModel.js`,
     `${basePath}js/audio.js`,
     `${basePath}js/constants.js`,
+    `${basePath}js/creatorLoader.js`,
+    `${basePath}js/customAnimationModel.js`,
+    `${basePath}js/customAnimations.js`,
     `${basePath}js/formControls.js`,
+    `${basePath}js/i18n.js`,
     `${basePath}js/interaction.js`,
+    `${basePath}js/launchpadAppearance.js`,
+    `${basePath}js/launchpadView.js`,
     `${basePath}js/lights.js`,
+    `${basePath}js/logger.js`,
     `${basePath}js/midi.js`,
+    `${basePath}js/midi-profiles/DeviceProfile.js`,
+    `${basePath}js/midi-profiles/LaunchpadLegacy.js`,
+    `${basePath}js/midi-profiles/LaunchpadRGB.js`,
+    `${basePath}js/midi-profiles/modelDetection.js`,
+    `${basePath}js/midi-profiles/ProfileRegistry.js`,
+    `${basePath}js/notifications.js`,
     `${basePath}js/physicalInterface.js`,
     `${basePath}js/project.js`,
-    `${basePath}js/projectCreator.js`,
+    `${basePath}js/projectModel.js`,
+    `${basePath}js/concurrency.js`,
+    `${basePath}js/creator/animationEditor.js`,
+    `${basePath}js/creator/dom.js`,
+    `${basePath}js/creator/importExport.js`,
+    `${basePath}js/creator/index.js`,
+    `${basePath}js/creator/lightPicker.js`,
+    `${basePath}js/creator/padEditor.js`,
+    `${basePath}js/creator/preview.js`,
+    `${basePath}js/creator/themeEditor.js`,
     `${basePath}js/projectCreatorModel.js`,
+    `${basePath}js/projectCreatorState.js`,
     `${basePath}js/projectZip.js`,
+    `${basePath}js/projectState.js`,
+    `${basePath}js/settings.js`,
+    `${basePath}js/staticCatalog.js`,
     `${basePath}js/ui.js`,
-    `${basePath}js/video.js`,
+    `${basePath}js/background.js`,
     `${basePath}js/visibilityManager.js`,
     `${basePath}js/visualizer.js`,
     `${basePath}js/visualizer-controls.js`,
@@ -62,9 +108,7 @@ const APP_SHELL_FILES = [
     `${basePath}js/projectValidator.js`,
     `${basePath}js/audioErrorHandler.js`,
     `${basePath}js/eventCleanup.js`,
-    `${basePath}js/projectLoadingState.js`,
     `${basePath}js/webInterface.js`,
-    `${basePath}js/vendor/launchpad-webmidi.js`,
     `${basePath}js/vendor/jszip.js`,
     `${basePath}js/vendor/jszip.min.js`,
     `${basePath}js/static-data.json`,
@@ -87,12 +131,12 @@ const APP_SHELL_FILES = [
 
 // 1. 'INSTALL' EVENT: Caching the App Shell
 self.addEventListener('install', event => {
-    console.log('Service Worker: Installing...');
+    debug('Service Worker: Installing...');
     // `event.waitUntil` tells the browser to wait for the operation inside to complete
     // before considering the installation finished.
     event.waitUntil(
         caches.open(CACHE_NAME).then(cache => {
-            console.log('Service Worker: Caching App Shell files');
+            debug('Service Worker: Caching App Shell files');
             // `cache.addAll` takes an array of URLs, downloads them and adds them to the cache.
             // If even one file fails to download, the entire operation fails.
             return cache.addAll(APP_SHELL_FILES);
@@ -104,24 +148,21 @@ self.addEventListener('install', event => {
 
 // 2. 'ACTIVATE' EVENT: Cleaning up old caches
 self.addEventListener('activate', event => {
-    console.log('Service Worker: Activating...');
+    debug('Service Worker: Activating...');
     event.waitUntil(
         caches.keys().then(cacheNames => {
             return Promise.all(
                 cacheNames.map(cacheName => {
-                    // If a cache name doesn't match the current one, it gets deleted.
-                    // This is crucial for removing obsolete files and freeing up space.
-                    if (cacheName !== CACHE_NAME) {
-                        console.log('Service Worker: Removing old cache', cacheName);
+                    // Only delete caches belonging to Launchpad PWA that don't match the current CACHE_NAME.
+                    // This prevents deleting caches belonging to other PWAs on the same origin (e.g. GitHub Pages).
+                    if (cacheName.startsWith('launchpad-pwa-cache-') && cacheName !== CACHE_NAME) {
+                        debug('Service Worker: Removing old cache', cacheName);
                         return caches.delete(cacheName);
                     }
                 })
             );
-        })
+        }).then(() => self.clients.claim())
     );
-    // `self.clients.claim()` allows the activated Service Worker to take control
-    // of all open tabs of the application immediately, without needing a refresh.
-    return self.clients.claim();
 });
 
 // 3. 'FETCH' EVENT: Intercepting network requests
@@ -129,48 +170,28 @@ self.addEventListener('fetch', event => {
     const { request } = event;
     const url = new URL(request.url);
 
-    // Inietta Permissions-Policy header nelle risposte di navigazione (HTML)
+    // NAVIGATION REQUESTS (HTML): Network-first with offline App Shell fallback
     if (request.mode === 'navigate') {
         event.respondWith(
             fetch(request)
-                .then(response => {
-                    const headers = new Headers(response.headers);
-                    headers.set('Permissions-Policy', 'midi=(self)');
-                    // Rimuoviamo Feature-Policy perché obsoleto e causa warning se usato con Permissions-Policy
-                    
-                    // Clona la risposta originale *prima* di usarne il body
-                    const responseToCache = response.clone();
-                    
-                    const newResponse = new Response(response.body, {
-                        status: response.status,
-                        statusText: response.statusText,
-                        headers
-                    });
-                    
-                    // Crea un'altra risposta con gli header modificati da mettere in cache
-                    const responseForCache = new Response(responseToCache.body, {
-                        status: responseToCache.status,
-                        statusText: responseToCache.statusText,
-                        headers
-                    });
-
-                    // Aggiorna la cache con la risposta che include i nuovi header
-                    caches.open(CACHE_NAME).then(cache => cache.put(request, responseForCache));
-                    return newResponse;
+                .then(networkResponse => {
+                    if (networkResponse && networkResponse.ok) {
+                        const clone = networkResponse.clone();
+                        // Cache the App Shell page under canonical URLs without blocking navigation response
+                        event.waitUntil(
+                            caches.open(CACHE_NAME).then(cache => {
+                                return Promise.all([
+                                    cache.put(`${basePath}`, clone.clone()),
+                                    cache.put(`${basePath}index.html`, clone)
+                                ]);
+                            })
+                        );
+                    }
+                    return networkResponse;
                 })
                 .catch(async () => {
-                    const cached = await caches.match(request);
-                    if (cached) {
-                        const clonedCached = cached.clone();
-                        // Ricostruisci la risposta cached con i nuovi header
-                        const headers = new Headers(clonedCached.headers);
-                        headers.set('Permissions-Policy', 'midi=(self)');
-                        return new Response(clonedCached.body, {
-                            status: clonedCached.status,
-                            statusText: clonedCached.statusText,
-                            headers
-                        });
-                    }
+                    return (await caches.match(`${basePath}index.html`)) ||
+                           (await caches.match(`${basePath}`));
                 })
         );
         return;
@@ -178,20 +199,25 @@ self.addEventListener('fetch', event => {
 
     // STRATEGY 1: NETWORK-FIRST for configuration files (.json)
     // The latest project configuration is requested if online, while allowing offline work.
-    // If the request fails (e.g., offline) and the resource is not cached, we return a JSON error
-    // that can be interpreted by the app to show a notification to the user.
+    // If the network request fails or returns an HTTP error, we fall back to cache if available.
+    // If not cached, we return a JSON error response that can be interpreted by the app.
     if (url.pathname.endsWith('.json')) {
         event.respondWith(
             fetch(request)
                 .then(networkResponse => {
-                    // Cache the fresh response and return it
-                    return caches.open(CACHE_NAME).then(cache => {
-                        cache.put(request, networkResponse.clone());
-                        return networkResponse;
+                    if (networkResponse && networkResponse.ok) {
+                        return caches.open(CACHE_NAME).then(cache => {
+                            cache.put(request, networkResponse.clone());
+                            return networkResponse;
+                        });
+                    }
+                    // Network returned an HTTP error (e.g., 404, 500): fall back to cache if available
+                    return caches.match(request).then(cached => {
+                        return cached || networkResponse;
                     });
                 })
                 .catch(() => {
-                    // Try to serve from cache first
+                    // Network failure (offline, timeout, DNS error): fall back to cache
                     return caches.match(request).then(cached => {
                         if (cached) {
                             return cached;
@@ -218,14 +244,14 @@ self.addEventListener('fetch', event => {
                     return cachedResponse;
                 }
                 return fetch(request).then(networkResponse => {
-                    // Do not cache partial responses (206) as Cache API doesn't support them
-                    if (networkResponse.status === 206) {
-                        return networkResponse;
+                    // Do not cache partial responses (206) or error responses
+                    if (networkResponse && networkResponse.ok && networkResponse.status !== 206) {
+                        return caches.open(CACHE_NAME).then(cache => {
+                            cache.put(request, networkResponse.clone());
+                            return networkResponse;
+                        });
                     }
-                    return caches.open(CACHE_NAME).then(cache => {
-                        cache.put(request, networkResponse.clone());
-                        return networkResponse;
-                    });
+                    return networkResponse;
                 });
             })
         );
@@ -236,10 +262,13 @@ self.addEventListener('fetch', event => {
     event.respondWith(
         caches.match(request).then(cachedResponse => {
             return cachedResponse || fetch(request).then(networkResponse => {
-                return caches.open(CACHE_NAME).then(cache => {
-                    cache.put(request, networkResponse.clone());
-                    return networkResponse;
-                });
+                if (networkResponse && networkResponse.ok) {
+                    return caches.open(CACHE_NAME).then(cache => {
+                        cache.put(request, networkResponse.clone());
+                        return networkResponse;
+                    });
+                }
+                return networkResponse;
             });
         })
     );

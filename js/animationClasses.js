@@ -4,13 +4,111 @@
  * Contains various animation logic classes.
  */
 
-import { fader, getLpColor, webColorMap } from './animationEngine.js';
+import { fader } from './animationEngine.js';
 import { alphabetCoords, numberCoords, symbolCoords } from './animationData.js';
 
-export class MatrixRainAnimation {
-    constructor(colorName, duration, direction = 'down') {
+/**
+ * Computes the greatest Euclidean distance from a pad (x, y) to the four
+ * corners of the 8x8 grid. Reverse-wave animations use it to normalize the
+ * per-pad timing so the wave crosses the whole board.
+ * @param {number} x - Column index (0..7).
+ * @param {number} y - Row index (0..7).
+ * @returns {number} Maximum corner distance.
+ */
+export function maxCornerDistance(x, y) {
+    const dx = Math.max(x, 7 - x);
+    const dy = Math.max(y, 7 - y);
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+/**
+ * Builds precomputed animation events for an expanding cross from pad (x, y).
+ * @param {number} x - Center column (0..7).
+ * @param {number} y - Center row (0..7).
+ * @param {number} stepDelay - Delay per ring.
+ * @param {number} fadeDuration - Fade duration per pad.
+ * @returns {Array<{ p: [number, number], time: number, dur: number }>}
+ */
+export function buildCrossEvents(x, y, stepDelay, fadeDuration) {
+    const events = [{ p: [x, y], time: 0, dur: fadeDuration }];
+    for (let dist = 1; dist < 8; dist++) {
+        const time = dist * stepDelay;
+        const directions = [[x + dist, y], [x - dist, y], [x, y + dist], [x, y - dist]];
+        for (const p of directions) {
+            if (p[0] >= 0 && p[0] < 8 && p[1] >= 0 && p[1] < 8) {
+                events.push({ p, time, dur: fadeDuration });
+            }
+        }
+    }
+    return events;
+}
+
+/**
+ * Builds precomputed animation events for a contracting cross converging onto pad (x, y).
+ * @param {number} x - Target column (0..7).
+ * @param {number} y - Target row (0..7).
+ * @param {number} stepDelay - Delay per ring.
+ * @param {number} fadeDuration - Fade duration per pad.
+ * @returns {Array<{ p: [number, number], time: number, dur: number }>}
+ */
+export function buildReverseCrossEvents(x, y, stepDelay, fadeDuration) {
+    const maxDist = Math.max(x, 7 - x, y, 7 - y);
+    const events = [];
+    for (let dist = maxDist; dist >= 0; dist--) {
+        const time = (maxDist - dist) * stepDelay;
+        if (dist === 0) {
+            events.push({ p: [x, y], time, dur: fadeDuration });
+        } else {
+            const directions = [[x + dist, y], [x - dist, y], [x, y + dist], [x, y - dist]];
+            for (const p of directions) {
+                if (p[0] >= 0 && p[0] < 8 && p[1] >= 0 && p[1] < 8) {
+                    events.push({ p, time, dur: fadeDuration });
+                }
+            }
+        }
+    }
+    return events;
+}
+
+/**
+ * Builds precomputed wave events propagating from or toward an origin point.
+ * @param {object} options
+ * @param {number} options.x - Wave origin X (may be fractional, e.g. 3.5 for the centre).
+ * @param {number} options.y - Wave origin Y.
+ * @param {number} options.stepDelay - Delay per distance unit.
+ * @param {number} options.fadeDuration - Fade duration per pad.
+ * @param {boolean} [options.reverse=false] - When true, wave contracts toward origin.
+ * @param {number} [options.maxDistance=0] - Distance offset for reverse waves.
+ * @returns {Array<{ p: [number, number], time: number, dur: number }>}
+ */
+export function buildWaveEvents({ x: originX, y: originY, stepDelay, fadeDuration, reverse = false, maxDistance = 0 }) {
+    const events = [];
+    for (let targetY = 0; targetY < 8; targetY++) {
+        for (let targetX = 0; targetX < 8; targetX++) {
+            const dx = targetX - originX;
+            const dy = targetY - originY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const time = (reverse ? (maxDistance - distance) : distance) * stepDelay;
+            events.push({ p: [targetX, targetY], time, dur: fadeDuration });
+        }
+    }
+    return events;
+}
+
+/**
+ * Maps a rain line (column or row, 0-7) and the drop's position along it
+ * (0-7) to the pad it lights, for each falling direction.
+ */
+const RAIN_CELL_BY_DIRECTION = {
+    down: (line, index) => [line, index],
+    up: (line, index) => [line, 7 - index],
+    right: (line, index) => [index, line],
+    left: (line, index) => [7 - index, line]
+};
+
+class BaseMatrixRainAnimation {
+    constructor(duration, direction = 'down') {
         this.startTime = performance.now();
-        this.colorName = colorName;
         this.baseDuration = 1450;
         this.factor = duration ? duration / this.baseDuration : 1;
         this.direction = direction; // 'down', 'up', 'left', 'right'
@@ -26,126 +124,87 @@ export class MatrixRainAnimation {
         }
     }
 
-    update(now) {
-        let activeCount = 0;
-        const elapsed = now - this.startTime;
+    _triggerCell(_x, _y, _fadeDuration) {
+        // Implemented by subclasses
+    }
 
-        for (let i = 0; i < 8; i++) {
-            const line = this.lines[i];
-            const lineTime = elapsed - line.delay;
+    /**
+     * Advances one rain line, lighting the next pad when the drop enters it.
+     * @param {number} lineIndex - Column (down/up) or row (left/right), 0-7.
+     * @param {number} elapsed - Ms since the animation started.
+     * @returns {boolean} True while the line is waiting or still falling.
+     */
+    _advanceLine(lineIndex, elapsed) {
+        const line = this.lines[lineIndex];
+        const lineTime = elapsed - line.delay;
+        if (lineTime <= 0) return true; // Waiting to start
 
-            if (lineTime > 0) {
-                // Determine which index should be active at this time
-                const currentIdx = Math.floor(lineTime / line.speed);
+        const currentIdx = Math.floor(lineTime / line.speed);
+        if (currentIdx >= 8) return false; // Drop has left the grid
 
-                if (currentIdx < 8) {
-                    activeCount++;
-                    // Triggers fade only if a new cell is entered
-                    if (currentIdx > line.lastIdx) {
-                        const fadeDuration = line.speed * 4;
-                        let x, y;
-
-                        if (this.direction === 'down') {
-                            x = i; y = currentIdx;
-                        } else if (this.direction === 'up') {
-                            x = i; y = 7 - currentIdx;
-                        } else if (this.direction === 'right') {
-                            x = currentIdx; y = i;
-                        } else if (this.direction === 'left') {
-                            x = 7 - currentIdx; y = i;
-                        }
-
-                        fader.add([x, y], this.colorName, fadeDuration, 'standard');
-                        line.lastIdx = currentIdx;
-                    }
-                }
-            } else {
-                activeCount++; // Waiting to start
-            }
+        // Trigger a fade only when the drop enters a new cell.
+        if (currentIdx > line.lastIdx) {
+            const toCell = RAIN_CELL_BY_DIRECTION[this.direction];
+            const [x, y] = toCell ? toCell(lineIndex, currentIdx) : [];
+            this._triggerCell(x, y, line.speed * 4);
+            line.lastIdx = currentIdx;
         }
+        return true;
+    }
 
+    update(now) {
+        const elapsed = now - this.startTime;
+        let activeCount = 0;
+        for (let i = 0; i < 8; i++) {
+            if (this._advanceLine(i, elapsed)) activeCount++;
+        }
         return activeCount === 0; // Finished when all lines are done
     }
 }
 
-export class MatrixRainMultiAnimation {
-    constructor(config, duration, direction = 'down') {
-        this.startTime = performance.now();
-        this.config = config;
-        this.baseDuration = 1450;
-        this.factor = duration ? duration / this.baseDuration : 1;
-        this.direction = direction; // 'down', 'up', 'left', 'right'
-
-        // Pre-calculate per-line physics
-        this.lines = [];
-        for (let i = 0; i < 8; i++) {
-            this.lines.push({
-                delay: Math.random() * 500 * this.factor,
-                speed: (70 + Math.random() * 50) * this.factor,
-                lastIdx: -1 // Tracks which row/col was last triggered
-            });
-        }
-    }
-
-    update(now) {
-        let activeCount = 0;
-        const elapsed = now - this.startTime;
-
-        for (let i = 0; i < 8; i++) {
-            const line = this.lines[i];
-            const lineTime = elapsed - line.delay;
-
-            if (lineTime > 0) {
-                // Determine which index should be active at this time
-                const currentIdx = Math.floor(lineTime / line.speed);
-
-                if (currentIdx < 8) {
-                    activeCount++;
-                    // Triggers fade only if a new cell is entered
-                    if (currentIdx > line.lastIdx) {
-                        const fadeDuration = line.speed * 4;
-                        let x, y;
-
-                        if (this.direction === 'down') {
-                            x = i; y = currentIdx;
-                        } else if (this.direction === 'up') {
-                            x = i; y = 7 - currentIdx;
-                        } else if (this.direction === 'right') {
-                            x = currentIdx; y = i;
-                        } else if (this.direction === 'left') {
-                            x = 7 - currentIdx; y = i;
-                        }
-
-                        // Use 'multi' mode with config
-                        fader.add([x, y], null, fadeDuration, 'multi', this.config);
-                        line.lastIdx = currentIdx;
-                    }
-                }
-            } else {
-                activeCount++; // Waiting to start
-            }
-        }
-
-        return activeCount === 0; // Finished when all lines are done
-    }
-}
-
-export class StrobeBurstAnimation {
-    constructor(colorName, duration) {
-        this.startTime = performance.now();
+export class MatrixRainAnimation extends BaseMatrixRainAnimation {
+    constructor(colorName, duration, direction = 'down') {
+        super(duration, direction);
         this.colorName = colorName;
+    }
+
+    _triggerCell(x, y, fadeDuration) {
+        fader.add([x, y], this.colorName, fadeDuration, 'standard');
+    }
+}
+
+export class MatrixRainMultiAnimation extends BaseMatrixRainAnimation {
+    constructor(config, duration, direction = 'down') {
+        super(duration, direction);
+        this.config = config;
+    }
+
+    _triggerCell(x, y, fadeDuration) {
+        fader.add([x, y], null, fadeDuration, 'multi', this.config);
+    }
+}
+
+class BaseStrobeBurstAnimation {
+    constructor(duration) {
+        this.startTime = performance.now();
         this.totalDuration = duration || 480;
         this.flashInterval = this.totalDuration / 4;
         this.flashDuration = this.flashInterval * 0.4;
 
-        this.flashes = [0, 1, 2, 3]; // 4 flashes
         this.currentFlashIdx = 0;
         this.state = 'waiting'; // waiting, on, off
-        this.flashEndTime = 0;
+    }
 
-        this.baseColor = getLpColor(colorName);
-        this.lpOff = getLpColor('off');
-        this.webColors = webColorMap[colorName];
+    _triggerFlashForIndex(_flashIndex) {
+        // Implemented by subclasses
+    }
+
+    _fillGrid(colorName) {
+        for (let y = 0; y < 8; y++) {
+            for (let x = 0; x < 8; x++) {
+                fader.add([x, y], colorName, this.flashDuration, 'instant');
+            }
+        }
     }
 
     update(now) {
@@ -164,68 +223,35 @@ export class StrobeBurstAnimation {
 
         if (this.state === 'waiting') {
             if (flashLocalTime < this.flashDuration) {
-                // TRIGGER FLASH ONCE
-                this._triggerFlash();
+                this._triggerFlashForIndex(this.currentFlashIdx);
                 this.state = 'on';
             }
         }
 
         return false;
-    }
-
-    _triggerFlash() {
-        for (let y = 0; y < 8; y++) {
-            for (let x = 0; x < 8; x++) {
-                fader.add([x, y], this.colorName, this.flashDuration, 'instant');
-            }
-        }
     }
 }
 
-export class StrobeBurstMultiAnimation {
+export class StrobeBurstAnimation extends BaseStrobeBurstAnimation {
+    constructor(colorName, duration) {
+        super(duration);
+        this.colorName = colorName;
+    }
+
+    _triggerFlashForIndex() {
+        this._fillGrid(this.colorName);
+    }
+}
+
+export class StrobeBurstMultiAnimation extends BaseStrobeBurstAnimation {
     constructor(config, duration) {
-        this.startTime = performance.now();
+        super(duration);
         this.config = config;
-        this.totalDuration = duration || 480;
-        this.flashInterval = this.totalDuration / 4;
-        this.flashDuration = this.flashInterval * 0.4;
-
-        this.currentFlashIdx = 0;
-        this.state = 'waiting'; // waiting, on, off
-        this.lpOff = getLpColor('off');
     }
 
-    update(now) {
-        const elapsed = now - this.startTime;
-        const targetFlashIdx = Math.floor(elapsed / this.flashInterval);
-
-        if (targetFlashIdx >= 4) return true; // Finished
-
-        if (targetFlashIdx > this.currentFlashIdx) {
-            this.currentFlashIdx = targetFlashIdx;
-            this.state = 'waiting';
-        }
-
-        const flashLocalTime = elapsed % this.flashInterval;
-
-        if (this.state === 'waiting') {
-            if (flashLocalTime < this.flashDuration) {
-                // TRIGGER FLASH
-                const colorConfig = this.config.sequence[Math.min(this.currentFlashIdx, this.config.sequence.length - 1)];
-                this._triggerFlash(colorConfig.color);
-                this.state = 'on';
-            }
-        }
-
-        return false;
-    }
-
-    _triggerFlash(colorName) {
-        for (let y = 0; y < 8; y++) {
-            for (let x = 0; x < 8; x++) {
-                fader.add([x, y], colorName, this.flashDuration, 'instant');
-            }
-        }
+    _triggerFlashForIndex(flashIndex) {
+        const colorConfig = this.config.sequence[Math.min(flashIndex, this.config.sequence.length - 1)];
+        this._fillGrid(colorConfig.color);
     }
 }
 

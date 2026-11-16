@@ -27,14 +27,6 @@ export function getVisualizer() {
 }
 
 /**
- * Checks if the visualizer is initialized.
- * @returns {boolean} True if visualizer is available.
- */
-export function isVisualizerReady() {
-    return visualizerInstance !== null;
-}
-
-/**
  * Sets the smoothing value of the analyser.
  * @param {number} value - Smoothing constant (0-0.95).
  */

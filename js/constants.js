@@ -41,6 +41,12 @@ export const TOTAL_PAGES = LAUNCHPAD_ROWS; // 8
 export const TOTAL_AUTOMAP_BUTTONS = 8;
 export const FIRST_MODE_INDEX = 4;
 export const TOTAL_MODES = 4; // 4-7 are official modes
+export const DEFAULT_MODE_INDEX = 5; // User 1, set on the first user interaction
+
+/**
+ * Maximum number of multisample steps per pad in sequential round-robin mode.
+ */
+export const MAX_PAD_STEPS = 16;
 
 // ============================================================================
 // PROJECT ASSET LOADING TIMEOUTS
@@ -53,10 +59,10 @@ export const TOTAL_MODES = 4; // 4-7 are official modes
 export const PROJECT_LOADING_TIMEOUT_MS = 60000; // 60 seconds
 
 /**
- * Maximum time to wait for project ready state when MIDI device connects (milliseconds)
- * Allows some time for project to load, but doesn't block MIDI connection indefinitely
+ * Maximum number of samples fetched/decoded in parallel while loading a project.
+ * Keeps connections and decode work bounded without waiting on whole batches.
  */
-export const MIDI_PROJECT_WAIT_TIMEOUT_MS = 3000; // 3 seconds
+export const AUDIO_LOAD_CONCURRENCY = 6;
 
 // ============================================================================
 // ANIMATION & VISUAL FEEDBACK TIMEOUTS
@@ -66,11 +72,6 @@ export const MIDI_PROJECT_WAIT_TIMEOUT_MS = 3000; // 3 seconds
  * Duration of error shake animation on Launchpad when invalid action attempted
  */
 export const ERROR_SHAKE_DURATION_MS = 500; // 500ms
-
-/**
- * Duration for visualizer mode change animations
- */
-export const VISUALIZER_TRANSITION_DURATION_MS = 300; // 300ms
 
 // ============================================================================
 // UI LAYOUT CONSTRAINTS
@@ -89,6 +90,95 @@ export const LAUNCHPAD_SIZE_MIN = 50; // 50% of original
 export const LAUNCHPAD_SIZE_MAX = 140; // 140% of original
 
 // ============================================================================
+// PROJECT ASSET FILE TYPES
+// ============================================================================
+// Single source of truth for the file extensions understood by the project
+// import/export logic and by the `accept` attributes of the upload inputs.
+
+export const AUDIO_EXTENSIONS = ['.wav', '.mp3', '.ogg', '.flac', '.m4a', '.aac', '.webm'];
+export const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg', '.avif'];
+const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mov', '.m4v', '.ogv', '.mkv'];
+
+/** Backgrounds and icons accept both images and videos. */
+export const MEDIA_EXTENSIONS = [...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS];
+
+// ============================================================================
+// APP-BUNDLED ASSETS
+// ============================================================================
+// Paths under `assets/` are resources shipped with the app (catalog videos and
+// skins, icons). Project files reference catalog items by these canonical
+// paths, so they resolve the same in the player, in the Studio and after a zip
+// round trip, and are never looked up inside a project folder or archive.
+
+export const APP_ASSETS_PREFIX = 'assets/';
+export const CATALOG_VIDEOS_PATH = 'assets/videos/';
+export const CATALOG_SKINS_PATH = 'assets/images/launchpad covers/';
+
+/**
+ * @param {*} path
+ * @returns {boolean} True for a path to a resource bundled with the app.
+ */
+export function isAppAssetPath(path) {
+    return typeof path === 'string' && path.startsWith(APP_ASSETS_PREFIX);
+}
+
+/**
+ * Catalog file name of a catalog reference, which may be the canonical path
+ * (`assets/videos/X.mp4`) or the bare name (`X.mp4`) used by the sidebar menus.
+ * @param {string} reference
+ * @param {string} catalogPath - CATALOG_VIDEOS_PATH or CATALOG_SKINS_PATH.
+ * @returns {string}
+ */
+export function toCatalogName(reference, catalogPath) {
+    return typeof reference === 'string' && reference.startsWith(catalogPath)
+        ? reference.slice(catalogPath.length)
+        : reference;
+}
+
+/** Every file type that may be packaged inside a project archive. */
+export const PROJECT_ASSET_EXTENSIONS = [...AUDIO_EXTENSIONS, ...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS];
+
+/** Formats that already carry their own compression and are stored, not deflated. */
+export const PRECOMPRESSED_EXTENSIONS = [
+    '.mp3', '.ogg', '.flac', '.m4a', '.aac', '.webm',
+    '.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif',
+    '.mp4', '.mov', '.m4v', '.ogv', '.mkv'
+];
+
+/**
+ * Builds the value for an `<input accept>` attribute from an extension list.
+ * @param {string[]} extensions
+ * @returns {string}
+ */
+export function toAcceptAttribute(extensions) {
+    return [...new Set(extensions)].join(',');
+}
+
+/**
+ * Checks whether a file name ends with one of the given extensions.
+ * @param {string} fileName
+ * @param {string[]} extensions
+ * @returns {boolean}
+ */
+export function hasFileExtension(fileName, extensions) {
+    if (typeof fileName !== 'string' || fileName.length === 0) return false;
+    const lower = fileName.split('?')[0].split('#')[0].toLowerCase();
+    return extensions.some(ext => lower.endsWith(ext));
+}
+
+// ============================================================================
+// VISUALIZER OPTIONS
+// ============================================================================
+
+export const VISUALIZER_MODES = ['off', 'top', 'bottom', 'both', 'top-mirror', 'bottom-mirror', 'both-mirror'];
+export const VISUALIZER_GRADIENT_DIRECTIONS = ['vertical', 'horizontal', 'vertical-reverse', 'horizontal-reverse'];
+
+export const DEFAULT_VISUALIZER_MODE = 'off';
+export const DEFAULT_VISUALIZER_COLOR = '#00aaff';
+export const DEFAULT_VISUALIZER_GRADIENT = false;
+export const DEFAULT_VISUALIZER_GRADIENT_DIRECTION = 'vertical';
+
+// ============================================================================
 // PROJECT LIGHT & PAGE CONSTRAINTS
 // ============================================================================
 
@@ -97,5 +187,56 @@ export const DEFAULT_LIGHT_DURATION_SEC = 2.5;
 export const MIN_LIGHT_DURATION_SEC = 0.1;
 export const MAX_LIGHT_DURATION_SEC = 60.0;
 
-export const ANIMATION_COLORS = ['red', 'orange', 'amber', 'yellow', 'green'];
+// Single source of truth for the LED palette: each color maps to the hardware
+// tier it requires. 'legacy' colors work on every Launchpad, 'rgb' colors need
+// an RGB-capable device (Mk2 / Pro / X / Mini Mk3).
+export const ANIMATION_COLOR_TIERS = {
+    red: 'legacy',
+    orange: 'legacy',
+    amber: 'legacy',
+    yellow: 'legacy',
+    green: 'legacy',
+    blue: 'rgb',
+    cyan: 'rgb',
+    purple: 'rgb',
+    pink: 'rgb',
+    white: 'rgb'
+};
 
+// Palette order derives from the tier map, so the two never drift apart.
+export const ANIMATION_COLORS = Object.keys(ANIMATION_COLOR_TIERS);
+
+
+export const TARGET_DEVICES = ['universal', 'legacy', 'rgb'];
+export const DEFAULT_TARGET_DEVICE = 'universal';
+
+/**
+ * Validates and normalizes the target hardware declared by a project.
+ * Falls back to 'universal' whenever the value is absent or unrecognized.
+ * @param {string|null} [targetDevice]
+ * @returns {'universal' | 'legacy' | 'rgb'}
+ */
+export function normalizeTargetDevice(targetDevice) {
+    return (typeof targetDevice === 'string' && TARGET_DEVICES.includes(targetDevice))
+        ? targetDevice
+        : DEFAULT_TARGET_DEVICE;
+}
+
+/**
+ * Extracts the color suffix from an animation name (e.g. 'fade_blue' -> 'blue').
+ * @param {string|null} animationName
+ * @returns {string|null}
+ */
+export function getColorFromAnimationName(animationName) {
+    if (typeof animationName !== 'string' || !animationName) return null;
+    return ANIMATION_COLORS.find(color => animationName.endsWith(`_${color}`)) || null;
+}
+
+// Fallback substitutions for colors not physically available on bi-color LEDs (Legacy Launchpad)
+export const LEGACY_COLOR_FALLBACKS = {
+    blue: 'green',
+    cyan: 'green',
+    purple: 'red',
+    pink: 'red',
+    white: 'amber'
+};

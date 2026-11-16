@@ -4,16 +4,18 @@
  * Contains the core logic for scheduling and fading lights.
  */
 
-import { setWebColor, webColorMap } from './webInterface.js';
+import { setWebColor, getWebColor, LED_LEVELS } from './webInterface.js';
 import { setPhysicalColor, getLpColor, flushPhysicalColors } from './physicalInterface.js';
 
-export { setWebColor, webColorMap, setPhysicalColor, getLpColor, flushPhysicalColors };
+// Only the physical flush needs to be re-exported (used by lights.js);
+// the other color helpers are imported directly from their source modules.
+export { flushPhysicalColors };
 
 /**
  * Handles delayed callbacks without creating new object instances for every call.
  * Uses a recycled pool of task objects.
  */
-export class AnimationScheduler {
+class AnimationScheduler {
     constructor() {
         this.tasks = [];
         this.pool = [];  
@@ -51,11 +53,27 @@ export class AnimationScheduler {
     }
 }
 
+/** Brightness of each third of a standard fade. */
+const FADE_PHASE_LEVELS = ['full', 'medium', 'low'];
+
+/**
+ * Which third of a fade is running.
+ * @param {number} elapsed - Ms since the fade started.
+ * @param {number} duration - Total fade duration in ms.
+ * @returns {0|1|2|null} The phase, or null once the fade is over.
+ */
+function fadePhase(elapsed, duration) {
+    if (elapsed < duration * (1 / 3)) return 0;
+    if (elapsed < duration * (2 / 3)) return 1;
+    if (elapsed < duration) return 2;
+    return null;
+}
+
 /**
  * Handles all fading logic in a single batched loop.
  * Eliminates the creation of separate animation objects for every single LED fade.
  */
-export class FadeSystem {
+class FadeSystem {
     constructor() {
         // Map allows sparse storage (only active pads) without iterating 100 empty slots
         // Key: Pad ID/Index (string or number), Value: FadeState object
@@ -68,7 +86,9 @@ export class FadeSystem {
      * @param {Object} p - The pad element (HTML Node) or [x, y] coordinates.
      * @param {string} colorName - Color name key.
      * @param {number} duration - Total duration in ms.
-     * @param {string} mode - 'standard' or 'instant'.
+     * @param {string} mode - 'standard', 'instant', 'multi' or 'steady'.
+     * @param {object|null} [config] - 'multi': { sequence }; 'steady': { level, start? }, where
+     *   `start` is the scheduled start time (defaults to now), so late ticks do not delay frames.
      */
     add(p, colorName, duration, mode = 'standard', config = null) {
         const key = Array.isArray(p) ? `${p[0]},${p[1]}` : p;
@@ -82,91 +102,101 @@ export class FadeSystem {
 
         state.p = p;
         state.color = colorName;
-        state.start = performance.now();
+        state.start = config?.start ?? performance.now();
         state.dur = duration || 300;
         state.mode = mode;
         state.config = config;
 
         state.base = getLpColor(colorName);
         state.off = getLpColor('off');
+
+        // Steady frames (custom animations) paint at once: a frame that replaces
+        // one ending in the same tick must not leave the pad dark for a frame.
+        if (mode === 'steady') {
+            this._updateSteadyFade(key, state, performance.now() - state.start);
+        }
     }
 
     update(now) {
         if (this.activeFades.size === 0) return;
-
         for (const [key, state] of this.activeFades) {
-            const elapsed = now - state.start;
-            const p = state.p;
-
-            if (state.mode === 'multi' && state.config) {
-                // Multi-color sequence (Red -> Amber -> Green)
-                const sequence = state.config.sequence;
-                const s1Time = state.dur * (1 / 3);
-                const s2Time = state.dur * (2 / 3);
-
-                if (elapsed < s1Time) {
-                    const step = sequence[0];
-                    setWebColor(webColorMap[step.color][step.level], p);
-                    setPhysicalColor(getLpColor(step.color, step.level), p);
-                } else if (elapsed < s2Time) {
-                    const step = sequence[1];
-                    setWebColor(webColorMap[step.color][step.level], p);
-                    setPhysicalColor(getLpColor(step.color, step.level), p);
-                } else if (elapsed < state.dur) {
-                    const step = sequence[2];
-                    setWebColor(webColorMap[step.color][step.level], p);
-                    setPhysicalColor(getLpColor(step.color, step.level), p);
-                } else {
-                    setWebColor('off', p);
-                    setPhysicalColor(state.off, p);
-                    this._recycle(key, state);
-                }
-                continue;
-            }
-
-            if (state.color === 'off') {
-                setWebColor('off', p);
-                setPhysicalColor(state.off, p);
-                this._recycle(key, state);
-                continue;
-            }
-
-            const webColors = webColorMap[state.color];
-            if (!webColors) {
-                this._recycle(key, state);
-                continue;
-            }
-
-            if (state.mode === 'instant') {
-                // Instant Mode: Full -> Off (No fading, strictly for duration)
-                if (elapsed < state.dur) {
-                    setWebColor(webColors.full, p);
-                    setPhysicalColor(state.base?.full, p);
-                } else {
-                    setWebColor('off', p);
-                    setPhysicalColor(state.off, p);
-                    this._recycle(key, state);
-                }
-            } else {
-                // Standard Fade: Full -> Medium -> Low -> Off
-                const step1 = state.dur * (1 / 3);
-                const step2 = state.dur * (2 / 3);
-                if (elapsed < step1) {
-                    setWebColor(webColors.full, p);
-                    setPhysicalColor(state.base?.full || state.base, p);
-                } else if (elapsed < step2) {
-                    setWebColor(webColors.medium, p);
-                    setPhysicalColor(state.base?.medium || state.base, p);
-                } else if (elapsed < state.dur) {
-                    setWebColor(webColors.low, p);
-                    setPhysicalColor(state.base?.low || state.base, p);
-                } else {
-                    setWebColor('off', p);
-                    setPhysicalColor(state.off, p);
-                    this._recycle(key, state);
-                }
-            }
+            this._updateFade(key, state, now - state.start);
         }
+    }
+
+    /**
+     * Paints one fade for the current frame, or ends it.
+     * @param {string} key
+     * @param {object} state
+     * @param {number} elapsed - Ms since the fade started.
+     */
+    _updateFade(key, state, elapsed) {
+        if (state.mode === 'multi' && state.config) {
+            this._updateMultiFade(key, state, elapsed);
+        } else if (state.color === 'off') {
+            this._finish(key, state);
+        } else if (!getWebColor(state.color)) {
+            this._recycle(key, state); // Unknown colour: drop silently
+        } else if (state.mode === 'instant') {
+            this._updateInstantFade(key, state, elapsed);
+        } else if (state.mode === 'steady') {
+            this._updateSteadyFade(key, state, elapsed);
+        } else {
+            this._updateStandardFade(key, state, elapsed);
+        }
+    }
+
+    /** Multi-color sequence (e.g. Red -> Amber -> Green), one step per third. */
+    _updateMultiFade(key, state, elapsed) {
+        const phase = fadePhase(elapsed, state.dur);
+        if (phase === null) {
+            this._finish(key, state);
+            return;
+        }
+        const step = state.config.sequence[phase];
+        if (getWebColor(step.color)) setWebColor(step.color, state.p, step.level);
+        setPhysicalColor(getLpColor(step.color, step.level), state.p);
+    }
+
+    /** Instant mode: full brightness for the whole duration, no fading. */
+    _updateInstantFade(key, state, elapsed) {
+        if (elapsed >= state.dur) {
+            this._finish(key, state);
+            return;
+        }
+        setWebColor(state.color, state.p, LED_LEVELS.full);
+        setPhysicalColor(state.base?.full, state.p);
+    }
+
+    /** Steady: one colour at a fixed level for the whole duration (custom animation frames). */
+    _updateSteadyFade(key, state, elapsed) {
+        if (elapsed >= state.dur) {
+            this._finish(key, state);
+            return;
+        }
+        const level = state.config?.level || 'full';
+        setWebColor(state.color, state.p, level);
+        setPhysicalColor(getLpColor(state.color, level), state.p);
+    }
+
+    /** Standard fade: full -> medium -> low, one level per third, then off. */
+    _updateStandardFade(key, state, elapsed) {
+        const phase = fadePhase(elapsed, state.dur);
+        if (phase === null) {
+            this._finish(key, state);
+            return;
+        }
+        const level = FADE_PHASE_LEVELS[phase];
+        setWebColor(state.color, state.p, LED_LEVELS[level]);
+        // Colours without brightness levels (e.g. some RGB entries) are a single value.
+        setPhysicalColor(state.base?.[level] || state.base, state.p);
+    }
+
+    /** Turns the pad off and releases the fade. */
+    _finish(key, state) {
+        setWebColor('off', state.p);
+        setPhysicalColor(state.off, state.p);
+        this._recycle(key, state);
     }
 
     _recycle(key, state) {

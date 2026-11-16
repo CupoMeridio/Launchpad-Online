@@ -1,10 +1,14 @@
 {
   "type": "module",
   "scripts": {
-    "test": "node --test"
+    "test": "eslint js/ tests/ service-worker.js --max-warnings 0 && node --test",
+    "lint": "eslint js/ tests/ service-worker.js --max-warnings 0",
+    "vendor:jszip": "node -e \"require('fs').copyFileSync('node_modules/jszip/dist/jszip.min.js','js/vendor/jszip.min.js')\""
   },
-  "dependencies": {
-    "jszip": "^3.10.2",
-    "launchpad-webmidi": "^1.2.0"
+  "devDependencies": {
+    "css-tree": "^3.2.1",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0",
+    "jszip": "3.10.2"
   }
 }
