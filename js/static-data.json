@@ -45,6 +45,11 @@
       "id": "kdrew-circles",
       "name": "KDrew - Circles",
       "configPath": "projects/KDrew - Circles/KDrew - Circles.json"
+    },
+    {
+      "id": "you-and-me",
+      "name": "You And Me",
+      "configPath": "projects/You And Me/You And Me.json"
     }
   ]
 }
