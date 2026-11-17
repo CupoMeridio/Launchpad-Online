@@ -30,6 +30,11 @@
       "id": "knife-party-bonfire",
       "name": "Knife Party - Bonfire",
       "configPath": "projects/Knife Party - Bonfire/Knife Party - Bonfire.json"
+    },
+    {
+      "id": "deorro-five-hours",
+      "name": "Deorro - Five Hours",
+      "configPath": "projects/Deorro - Five Hours/Deorro - Five Hours.json"
     }
   ]
 }
