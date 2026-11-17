@@ -35,6 +35,11 @@
       "id": "deorro-five-hours",
       "name": "Deorro - Five Hours",
       "configPath": "projects/Deorro - Five Hours/Deorro - Five Hours.json"
+    },
+    {
+      "id": "alan-walker-faded",
+      "name": "Alan Walker - Faded",
+      "configPath": "projects/Alan Walker - Faded/Alan Walker - Faded.json"
     }
   ]
 }
