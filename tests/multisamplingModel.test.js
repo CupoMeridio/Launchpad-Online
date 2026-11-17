@@ -33,12 +33,12 @@ test('multisampling model manages pad step addition and removal within limits', 
         assert.equal(newIndex, i);
     }
     steps = getPadSteps(page, 0);
-    assert.equal(steps.length, 16);
+    assert.equal(steps.length, MAX_PAD_STEPS);
 
     // Exceeding MAX_PAD_STEPS is capped
     const extraIndex = addPadStep(page, 0);
-    assert.equal(extraIndex, 15);
-    assert.equal(getPadSteps(page, 0).length, 16);
+    assert.equal(extraIndex, MAX_PAD_STEPS - 1);
+    assert.equal(getPadSteps(page, 0).length, MAX_PAD_STEPS);
 
     // Cannot remove when down to 1 step
     const freshPage = createProjectPage(1);

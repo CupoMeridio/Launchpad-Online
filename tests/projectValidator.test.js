@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { validateProject, checkProjectDeviceConsistency } from '../js/projectValidator.js';
+import { MAX_PAD_STEPS } from '../js/constants.js';
 
 const workspaceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const projectsRoot = path.join(workspaceRoot, 'projects');
@@ -79,8 +80,12 @@ test('rejects pages with malformed sound and light data', () => {
     assert.match(validateProject(invalidLightStep).errors.join('\n'), /Light 0, Step 0: must be a string or empty/);
 
     const tooManySteps = createValidProject();
-    tooManySteps.pages[0].sounds[0] = Array(17).fill('sample.wav');
-    assert.match(validateProject(tooManySteps).errors.join('\n'), /step count exceeds maximum of 16/);
+    tooManySteps.pages[0].sounds[0] = Array(MAX_PAD_STEPS + 1).fill('sample.wav');
+    assert.match(validateProject(tooManySteps).errors.join('\n'), new RegExp(`step count exceeds maximum of ${MAX_PAD_STEPS}`));
+
+    const atTheLimit = createValidProject();
+    atTheLimit.pages[0].sounds[0] = Array(MAX_PAD_STEPS).fill('sample.wav');
+    assert.deepEqual(validateProject(atTheLimit).errors, [], 'exactly the maximum is allowed');
 });
 
 test('rejects optional metadata with an invalid type', () => {
