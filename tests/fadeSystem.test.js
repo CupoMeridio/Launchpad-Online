@@ -88,3 +88,16 @@ test('"off" clears the pad at once and unknown colours are dropped', () => {
     assert.equal(isLit(5, 0), false);
     assert.equal(fader.activeFades.size, 0);
 });
+
+test('a fade shorter than a frame is drawn at once, so it is seen for at least one frame', () => {
+    fader.add([4, 0], 'red', 5); // e.g. a snake step synced to a short sample
+    assert.equal(isLit(4, 0), true, 'lit as soon as it is added, before the next update');
+    assert.equal(level(4, 0), LED_LEVELS.full);
+    run([16]); // the next frame: already over
+    assert.equal(isLit(4, 0), false);
+
+    fader.add([5, 0], 'green', 5, 'instant');
+    assert.equal(isLit(5, 0), true);
+    fader.add([5, 0], 'off', 0, 'instant');
+    assert.equal(isLit(5, 0), false, '"off" still clears the pad at once');
+});

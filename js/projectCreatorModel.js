@@ -48,8 +48,9 @@ export function buildAnimationCatalog(animationRegistry, targetDevice = DEFAULT_
     const groups = new Map();
 
     Object.entries(animationRegistry).forEach(([animationName, anim]) => {
-        // User-drawn animations are listed separately, not as catalog groups.
-        if (anim.custom) return;
+        // User-drawn animations are listed separately, not as catalog groups;
+        // former names kept for old projects (aliasOf) are not listed at all.
+        if (anim.custom || anim.aliasOf) return;
         const baseName = anim.baseName || animationName;
         const category = anim.category || 'special';
         const color = anim.color ?? null;
