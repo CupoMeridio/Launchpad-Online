@@ -25,6 +25,11 @@
       "id": "krewella-alive-cash-cash-x-kalkutta-remix",
       "name": "Krewella - Alive (Cash Cash x Kalkutta Remix)",
       "configPath": "projects/Krewella - Alive (Cash Cash x Kalkutta Remix)/Krewella - Alive (Cash Cash x Kalkutta Remix).json"
+    },
+    {
+      "id": "knife-party-bonfire",
+      "name": "Knife Party - Bonfire",
+      "configPath": "projects/Knife Party - Bonfire/Knife Party - Bonfire.json"
     }
   ]
 }
