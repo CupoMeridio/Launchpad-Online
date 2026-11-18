@@ -25,6 +25,31 @@
       "id": "krewella-alive-cash-cash-x-kalkutta-remix",
       "name": "Krewella - Alive (Cash Cash x Kalkutta Remix)",
       "configPath": "projects/Krewella - Alive (Cash Cash x Kalkutta Remix)/Krewella - Alive (Cash Cash x Kalkutta Remix).json"
+    },
+    {
+      "id": "knife-party-bonfire",
+      "name": "Knife Party - Bonfire",
+      "configPath": "projects/Knife Party - Bonfire/Knife Party - Bonfire.json"
+    },
+    {
+      "id": "deorro-five-hours",
+      "name": "Deorro - Five Hours",
+      "configPath": "projects/Deorro - Five Hours/Deorro - Five Hours.json"
+    },
+    {
+      "id": "alan-walker-faded",
+      "name": "Alan Walker - Faded",
+      "configPath": "projects/Alan Walker - Faded/Alan Walker - Faded.json"
+    },
+    {
+      "id": "kdrew-circles",
+      "name": "KDrew - Circles",
+      "configPath": "projects/KDrew - Circles/KDrew - Circles.json"
+    },
+    {
+      "id": "you-and-me",
+      "name": "You And Me",
+      "configPath": "projects/You And Me/You And Me.json"
     }
   ]
 }

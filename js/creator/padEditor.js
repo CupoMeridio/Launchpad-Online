@@ -369,7 +369,7 @@ export function initPadEditorListeners() {
         const page = creatorSession.getCurrentPage();
         if (padIndex === null || !page) return;
         if (getPadSteps(page, padIndex).length >= MAX_PAD_STEPS) {
-            showNotification(getTranslation('creator.maxStepsReached'), 'warning');
+            showNotification(translate('creator.maxStepsReached', { max: MAX_PAD_STEPS }), 'warning');
             return;
         }
         creatorSession.addStep();

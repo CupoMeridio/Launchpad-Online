@@ -280,6 +280,78 @@ const HEART_POINTS = [
     [0, 4], [1, 4], [2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [7, 4], [1, 5], [2, 5], [3, 5], [4, 5], [5, 5], [6, 5], [2, 6], [3, 6], [4, 6], [5, 6], [3, 7], [4, 7]
 ];
 
+/** Colours a multicolour firework picks from, one per rocket. */
+const FIREWORK_RANDOM_COLORS = ['red', 'green', 'amber'];
+
+const pickRandom = list => list[Math.floor(Math.random() * list.length)];
+
+/** A fixed light playing precomputed, self-coloured events. */
+const precomputedLight = build => ({
+    on: (_x, _y, duration) => {
+        activeAnimations.add(new PrecomputedAnimation(null, duration, build));
+    },
+    type: 'fixed'
+});
+
+/** A rocket climbs a random column, then bursts in two rings. */
+export function buildFireworkEvents(dur, colorName) {
+    const startX = Math.floor(Math.random() * 8);
+    const explodeY = 1 + Math.floor(Math.random() * 3);
+    const totalSteps = 10;
+    const stepDelay = dur ? dur / totalSteps : 80;
+    const climbSpeed = stepDelay;
+    const explosionDuration = stepDelay * 4;
+    const events = [];
+    for (let curY = 7; curY >= explodeY; curY--) {
+        events.push({ p: [startX, curY], time: (7 - curY) * climbSpeed, dur: climbSpeed, color: colorName, mode: 'instant' });
+    }
+    const explosionTime = (7 - explodeY) * climbSpeed;
+    const particles = [[0, -1], [0, 1], [-1, 0], [1, 0], [-1, -1], [1, -1], [-1, 1], [1, 1]];
+    particles.forEach(([dx, dy]) => {
+        const tx = startX + dx, ty = explodeY + dy;
+        if (tx >= 0 && tx < 8 && ty >= 0 && ty < 8) events.push({ p: [tx, ty], time: explosionTime, dur: explosionDuration, color: colorName, mode: 'instant' });
+    });
+    const secPopTime = explosionTime + 150;
+    particles.forEach(([dx, dy]) => {
+        const tx2 = startX + dx * 2, ty2 = explodeY + dy * 2;
+        if (tx2 >= 0 && tx2 < 8 && ty2 >= 0 && ty2 < 8) events.push({ p: [tx2, ty2], time: secPopTime, dur: 200, color: colorName, mode: 'instant' });
+    });
+    return events;
+}
+
+/** A heart filling row by row. */
+export function buildHeartFillEvents(dur, colorName) {
+    const factor = dur ? dur / 1350 : 1;
+    const holdTime = 1000 * factor;
+    return HEART_POINTS.map(([tx, ty]) => (
+        { p: [tx, ty], time: (ty * 40 + (tx * 10)) * factor, dur: holdTime, color: colorName, mode: 'instant' }
+    ));
+}
+
+/** A heart appearing at once. */
+export function buildHeartSimpleEvents(dur, colorName) {
+    const holdTime = dur || 1000;
+    return HEART_POINTS.map(([tx, ty]) => ({ p: [tx, ty], time: 0, dur: holdTime, color: colorName, mode: 'instant' }));
+}
+
+/** A heart growing from its centre and shrinking back. */
+export function buildHeartWaveEvents(dur, colorName) {
+    const centerX = 3.5, centerY = 3.5;
+    const factor = dur ? dur / 1400 : 1;
+    return HEART_POINTS.map(([tx, ty]) => {
+        const dist = Math.sqrt(Math.pow(tx - centerX, 2) + Math.pow(ty - centerY, 2));
+        const appearDelay = (dist * 80) * factor;
+        const disappearDelay = (1000 + ((5 - dist) * 80)) * factor;
+        return { p: [tx, ty], time: appearDelay, dur: (disappearDelay - appearDelay), color: colorName, mode: 'instant' };
+    });
+}
+
+const HEART_BUILDERS = {
+    heart_fill: buildHeartFillEvents,
+    heart_simple: buildHeartSimpleEvents,
+    heart_wave: buildHeartWaveEvents
+};
+
 export function register(animations, colors) {
     // EQ_REAL: Multi-color realistic EQ (Green -> Amber -> Red)
     animations['eq_real'] = {
@@ -352,90 +424,27 @@ export function register(animations, colors) {
         });
     });
 
-    // FIREWORK
+    // FIREWORK and HEARTS in every colour (e.g. firework_blue, heart_fill_pink).
+    colors.forEach(colorName => {
+        animations[`firework_${colorName}`] = precomputedLight(dur => buildFireworkEvents(dur, colorName));
+        Object.entries(HEART_BUILDERS).forEach(([name, build]) => {
+            animations[`${name}_${colorName}`] = precomputedLight(dur => build(dur, colorName));
+        });
+    });
+
+    // FIREWORK (multicolour): each rocket takes one of the classic colours at random.
     animations['firework'] = {
-        on: (_x, _y, duration) => {
-            activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
-                const colorsArr = ['red', 'green', 'amber'];
-                const colorName = colorsArr[Math.floor(Math.random() * colorsArr.length)];
-                const startX = Math.floor(Math.random() * 8);
-                const explodeY = 1 + Math.floor(Math.random() * 3);
-                const totalSteps = 10;
-                const stepDelay = dur ? dur / totalSteps : 80;
-                const climbSpeed = stepDelay;
-                const explosionDuration = stepDelay * 4;
-                const events = [];
-                for (let curY = 7; curY >= explodeY; curY--) {
-                    events.push({ p: [startX, curY], time: (7 - curY) * climbSpeed, dur: climbSpeed, color: colorName, mode: 'instant' });
-                }
-                const explosionTime = (7 - explodeY) * climbSpeed;
-                const particles = [[0, -1], [0, 1], [-1, 0], [1, 0], [-1, -1], [1, -1], [-1, 1], [1, 1]];
-                particles.forEach(([dx, dy]) => {
-                    const tx = startX + dx, ty = explodeY + dy;
-                    if (tx >= 0 && tx < 8 && ty >= 0 && ty < 8) events.push({ p: [tx, ty], time: explosionTime, dur: explosionDuration, color: colorName, mode: 'instant' });
-                });
-                const secPopTime = explosionTime + 150;
-                particles.forEach(([dx, dy]) => {
-                    const tx2 = startX + dx * 2, ty2 = explodeY + dy * 2;
-                    if (tx2 >= 0 && tx2 < 8 && ty2 >= 0 && ty2 < 8) events.push({ p: [tx2, ty2], time: secPopTime, dur: 200, color: colorName, mode: 'instant' });
-                });
-                return events;
-            }));
-        },
-        type: 'fixed',
+        ...precomputedLight(dur => buildFireworkEvents(dur, pickRandom(FIREWORK_RANDOM_COLORS))),
         swatchColors: ['red', 'amber', 'green']
     };
 
-    // HEART_FILL
-    animations['heart_fill'] = {
-        on: (_x, _y, duration) => {
-            activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
-                const factor = dur ? dur / 1350 : 1;
-                const holdTime = 1000 * factor;
-                const events = [];
-                HEART_POINTS.forEach(([tx, ty]) => {
-                    events.push({ p: [tx, ty], time: (ty * 40 + (tx * 10)) * factor, dur: holdTime, color: 'red', mode: 'instant' });
-                });
-                return events;
-            }));
-        },
-        type: 'fixed',
-        swatchColors: ['red']
-    };
-
-    // HEART_SIMPLE
-    animations['heart_simple'] = {
-        on: (_x, _y, duration) => {
-            activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
-                const holdTime = dur || 1000;
-                const events = [];
-                HEART_POINTS.forEach(([tx, ty]) => {
-                    events.push({ p: [tx, ty], time: 0, dur: holdTime, color: 'red', mode: 'instant' });
-                });
-                return events;
-            }));
-        },
-        type: 'fixed',
-        swatchColors: ['red']
-    };
-
-    // HEART_WAVE
-    animations['heart_wave'] = {
-        on: (_x, _y, duration) => {
-            activeAnimations.add(new PrecomputedAnimation(null, duration, (dur) => {
-                const centerX = 3.5, centerY = 3.5;
-                const factor = dur ? dur / 1400 : 1;
-                const events = [];
-                HEART_POINTS.forEach(([tx, ty]) => {
-                    const dist = Math.sqrt(Math.pow(tx - centerX, 2) + Math.pow(ty - centerY, 2));
-                    const appearDelay = (dist * 80) * factor;
-                    const disappearDelay = (1000 + ((5 - dist) * 80)) * factor;
-                    events.push({ p: [tx, ty], time: appearDelay, dur: (disappearDelay - appearDelay), color: 'red', mode: 'instant' });
-                });
-                return events;
-            }));
-        },
-        type: 'fixed',
-        swatchColors: ['red']
-    };
+    // Former names of the (then red only) hearts: still played by projects saved
+    // before the colour variants, but not listed in the Studio (aliasOf).
+    Object.entries(HEART_BUILDERS).forEach(([name, build]) => {
+        animations[name] = {
+            ...precomputedLight(dur => build(dur, 'red')),
+            swatchColors: ['red'],
+            aliasOf: `${name}_red`
+        };
+    });
 }

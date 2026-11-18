@@ -112,7 +112,7 @@
     "creator.stepIndicator": "Step {step} von {total}",
     "creator.addStep": "Step hinzufügen",
     "creator.removeStep": "Step entfernen",
-    "creator.maxStepsReached": "Maximales Limit von 16 Steps pro Pad erreicht.",
+    "creator.maxStepsReached": "Maximales Limit von {max} Steps pro Pad erreicht.",
     "creator.page": "Seite {page}",
     "creator.pad": "Pad {pad}",
     "creator.padEmpty": "Pad {pad}: leer",

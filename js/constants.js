@@ -46,7 +46,7 @@ export const DEFAULT_MODE_INDEX = 5; // User 1, set on the first user interactio
 /**
  * Maximum number of multisample steps per pad in sequential round-robin mode.
  */
-export const MAX_PAD_STEPS = 16;
+export const MAX_PAD_STEPS = 32;
 
 // ============================================================================
 // PROJECT ASSET LOADING TIMEOUTS

@@ -106,14 +106,18 @@ Sequenze disponibili: `red_to_green`, `green_to_red`.
 ---
 
 ## 3. Animazioni Speciali
-Animazioni con comportamenti o colori predefiniti.
+Fuochi d'artificio e cuori, disponibili in tutti i colori (`{color}` come sopra).
 
 | Stringa JSON | Descrizione |
 |--------------|-------------|
-| `firework` | Esplosione di fuochi d'artificio in una posizione casuale. |
-| `heart_fill` | Cuore rosso che si riempie gradualmente. |
-| `heart_simple` | Cuore rosso che appare istantaneamente. |
-| `heart_wave` | Cuore rosso con effetto onda dal centro. |
+| `firework_{color}` | Esplosione di fuochi d'artificio in una posizione casuale. |
+| `firework` | Come sopra, con un colore casuale (rosso, verde o ambra) a ogni razzo. |
+| `heart_fill_{color}` | Cuore che si riempie gradualmente. |
+| `heart_simple_{color}` | Cuore che appare istantaneamente. |
+| `heart_wave_{color}` | Cuore con effetto onda dal centro. |
+
+I nomi senza colore `heart_fill`, `heart_simple` e `heart_wave` (cuore rosso) restano
+validi per i progetti già salvati, ma lo Studio non li elenca: equivalgono a `…_red`.
 
 ---
 

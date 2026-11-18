@@ -110,11 +110,11 @@ class FadeSystem {
         state.base = getLpColor(colorName);
         state.off = getLpColor('off');
 
-        // Steady frames (custom animations) paint at once: a frame that replaces
-        // one ending in the same tick must not leave the pad dark for a frame.
-        if (mode === 'steady') {
-            this._updateSteadyFade(key, state, performance.now() - state.start);
-        }
+        // Paint at once, whatever the mode. A fade shorter than a frame (e.g. a
+        // snake step synced to a short sample) would otherwise be over before the
+        // next update ever draws it; and a steady frame (custom animations) that
+        // replaces one ending in the same tick must not leave the pad dark.
+        this._updateFade(key, state, performance.now() - state.start);
     }
 
     update(now) {

@@ -85,20 +85,30 @@ function getLightPreviewDuration(animationName, page, padIndex, stepIndex) {
     );
 }
 
-function isSwatchSelected(selectedLight, isDynamic, template, color, animationName) {
-    const pendingTextAnimation = creatorSession.getPendingTextAnimation();
-    if (!selectedLight && !pendingTextAnimation) return false;
-    if (isDynamic) {
-        const hasDirectionPrefix = DYNAMIC_TEXT_PRESETS
-            .filter(preset => preset.template.startsWith('scroll_'))
-            .some(preset => selectedLight.startsWith(`${preset.template}_`));
-        const matchesDynamicTemplate = template === 'scroll'
-            ? selectedLight.startsWith('scroll_') && !hasDirectionPrefix
-            : selectedLight.startsWith(`${template}_`);
-        const savedDynamicMatch = matchesDynamicTemplate && selectedLight.endsWith(`_${color}`);
-        return (pendingTextAnimation?.template === template && pendingTextAnimation.color === color) || savedDynamicMatch;
-    }
-    return selectedLight === animationName;
+/**
+ * Whether a swatch shows as selected. Only one choice is ever highlighted:
+ * a text light being chosen (its text still to be written) replaces the light
+ * assigned to the step until it is applied or abandoned.
+ * @param {object} swatch
+ * @param {string|null} swatch.selectedLight - Light assigned to the step.
+ * @param {{template: string, color: string}|null} swatch.pendingText - Text light being chosen.
+ * @param {string|null} swatch.template - Dynamic text template of the swatch (null for other lights).
+ * @param {string} swatch.color
+ * @param {string} swatch.animationName
+ * @returns {boolean}
+ */
+export function isSwatchSelected({ selectedLight, pendingText, template, color, animationName }) {
+    if (pendingText) return pendingText.template === template && pendingText.color === color;
+    if (!selectedLight) return false;
+    if (!template) return selectedLight === animationName;
+    // "scroll" must not claim the directional scrolls ("scroll_left_…" etc.).
+    const hasDirectionPrefix = DYNAMIC_TEXT_PRESETS
+        .filter(preset => preset.template.startsWith('scroll_'))
+        .some(preset => selectedLight.startsWith(`${preset.template}_`));
+    const matchesTemplate = template === 'scroll'
+        ? selectedLight.startsWith('scroll_') && !hasDirectionPrefix
+        : selectedLight.startsWith(`${template}_`);
+    return matchesTemplate && selectedLight.endsWith(`_${color}`);
 }
 
 /**
@@ -186,13 +196,13 @@ function renderLightCategoryTabs(categoryContainer, activeLightCategory) {
 function renderAnimationVariantSwatch(variant, group, groupLabel, selectedLight) {
     const animationName = variant.animation || group.id;
     const isDynamic = !!group.dynamicTemplate;
-    const isSelected = isSwatchSelected(
+    const isSelected = isSwatchSelected({
         selectedLight,
-        isDynamic,
-        group.dynamicTemplate,
-        variant.color,
+        pendingText: creatorSession.getPendingTextAnimation(),
+        template: group.dynamicTemplate ?? null,
+        color: variant.color,
         animationName
-    );
+    });
 
     const button = document.createElement('button');
     button.type = 'button';
@@ -254,6 +264,19 @@ function renderAnimationGroupCard(group, selectedLight) {
     return card;
 }
 
+/**
+ * The light assigned to the selected step, as listed in the picker: a former
+ * name (e.g. heart_fill) shows as its current variant (heart_fill_red).
+ * @returns {string} '' when no step is selected or it has no light.
+ */
+function getSelectedLight() {
+    const activePadIndex = creatorSession.getActivePadIndex();
+    const currentPage = creatorSession.getCurrentPage();
+    if (activePadIndex === null || !currentPage) return '';
+    const assigned = getPadSteps(currentPage, activePadIndex)[creatorSession.getActiveStepIndex()]?.light || '';
+    return animations[assigned]?.aliasOf ?? assigned;
+}
+
 export function renderLightPresets() {
     const categoryContainer = document.getElementById('creator-light-categories');
     const presetContainer = document.getElementById('creator-light-presets');
@@ -261,12 +284,7 @@ export function renderLightPresets() {
     if (!categoryContainer || !presetContainer) return;
 
     const search = searchInput ? searchInput.value.trim().toLowerCase() : '';
-    const activePadIndex = creatorSession.getActivePadIndex();
-    const activeStepIndex = creatorSession.getActiveStepIndex();
-    const currentPage = creatorSession.getCurrentPage();
-    const selectedLight = activePadIndex === null || !currentPage
-        ? ''
-        : (getPadSteps(currentPage, activePadIndex)[activeStepIndex]?.light || '');
+    const selectedLight = getSelectedLight();
 
     const activeLightCategory = creatorSession.getActiveLightCategory();
     renderLightCategoryTabs(categoryContainer, activeLightCategory);
@@ -275,13 +293,16 @@ export function renderLightPresets() {
     const targetDevice = draft?.targetDevice || DEFAULT_TARGET_DEVICE;
 
     if (activeLightCategory === lastRenderedCategory && search === lastRenderedSearch && targetDevice === lastRenderedTargetDevice && presetContainer.children.length > 0) {
+        // Same swatches as last time: only refresh which one is selected.
+        const pendingText = creatorSession.getPendingTextAnimation();
         presetContainer.querySelectorAll('.creator-animation-swatch').forEach(button => {
-            const isDynamic = button.dataset.isDynamic === 'true';
-            const template = button.dataset.template;
-            const color = button.dataset.color;
-            const animationName = button.dataset.animation;
-            const isSelected = isSwatchSelected(selectedLight, isDynamic, template, color, animationName);
-            button.classList.toggle('selected', isSelected);
+            button.classList.toggle('selected', isSwatchSelected({
+                selectedLight,
+                pendingText,
+                template: button.dataset.isDynamic === 'true' ? button.dataset.template : null,
+                color: button.dataset.color,
+                animationName: button.dataset.animation
+            }));
         });
         return;
     }

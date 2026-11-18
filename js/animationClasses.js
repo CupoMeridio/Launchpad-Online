@@ -411,9 +411,10 @@ export class PrecomputedAnimation {
                 if (this.onTrigger) {
                     this.onTrigger(event, this.colorName);
                 } else {
-                    // Default behavior: FadeSystem
+                    // Default behavior: FadeSystem. An event may carry its own colour
+                    // (multicolour lights such as the firework and the hearts).
                     let mode = event.mode || 'standard';
-                    fader.add(event.p, this.colorName, event.dur, mode);
+                    fader.add(event.p, event.color ?? this.colorName, event.dur, mode);
                 }
                 this.cursor++;
             } else {
